@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 // Replace with your Google Places API key
 // For production, use environment variables or secure storage
-const GOOGLE_PLACES_API_KEY = "AIzaSyAhHSfclY-TMJaOcoUnitAYD1m08ZHI8Sw";
+const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
 
 interface Review {
   authorAttribution: {
@@ -65,6 +65,12 @@ export default function PlaceSearchScreen() {
   // Google Places API Text Search (New)
   // Documentation: https://developers.google.com/maps/documentation/places/web-service/text-search
   const searchPlaces = async (query: string) => {
+    if (!GOOGLE_PLACES_API_KEY) {
+      setError("Google Places API key is not set");
+      setSearchResults([]);
+      return;
+    }
+
     if (!query.trim()) {
       setSearchResults([]);
       setError(null);

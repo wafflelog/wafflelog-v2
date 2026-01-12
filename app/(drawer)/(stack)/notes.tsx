@@ -34,8 +34,8 @@ export default function CommentsScreen() {
     authorName: string;
   } | null>(null);
 
-  // Dummy comments data
-  const [comments, setComments] = useState<Comment[]>([
+  // Dummy notes data
+  const [notes, setComments] = useState<Comment[]>([
     {
       id: "1",
       author: {
@@ -93,20 +93,20 @@ export default function CommentsScreen() {
     if (replyingTo) {
       // Add as reply
       setComments(
-        comments.map((comment) => {
-          if (comment.id === replyingTo.commentId) {
+        notes.map((note) => {
+          if (note.id === replyingTo.commentId) {
             return {
-              ...comment,
-              replies: [...(comment.replies || []), newCommentObj],
+              ...note,
+              replies: [...(note.replies || []), newCommentObj],
             };
           }
-          return comment;
+          return note;
         })
       );
       setReplyingTo(null);
     } else {
-      // Add as top-level comment
-      setComments([newCommentObj, ...comments]);
+      // Add as top-level note
+      setComments([newCommentObj, ...notes]);
     }
 
     setNewComment("");
@@ -123,26 +123,26 @@ export default function CommentsScreen() {
 
   const togglePin = (commentId: string) => {
     setComments(
-      comments.map((comment) => {
-        if (comment.id === commentId) {
+      notes.map((note) => {
+        if (note.id === commentId) {
           return {
-            ...comment,
-            isPinned: !comment.isPinned,
+            ...note,
+            isPinned: !note.isPinned,
           };
         }
-        return comment;
+        return note;
       })
     );
   };
 
   const getTotalCommentCount = () => {
-    return comments.reduce((total, comment) => {
-      return total + 1 + (comment.replies?.length || 0);
+    return notes.reduce((total, note) => {
+      return total + 1 + (note.replies?.length || 0);
     }, 0);
   };
 
-  // Sort comments: pinned first, then by timestamp
-  const sortedComments = [...comments].sort((a, b) => {
+  // Sort notes: pinned first, then by timestamp
+  const sortedComments = [...notes].sort((a, b) => {
     if (a.isPinned && !b.isPinned) return -1;
     if (!a.isPinned && b.isPinned) return 1;
     return 0;
@@ -165,9 +165,9 @@ export default function CommentsScreen() {
             <Ionicons name="close" size={24} color="#333" />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Comments</Text>
+            <Text style={styles.headerTitle}>Notes</Text>
             <Text style={styles.commentCount}>
-              {getTotalCommentCount()} comments
+              {getTotalCommentCount()} notes
             </Text>
           </View>
           <View style={styles.closeButton} />
@@ -178,29 +178,29 @@ export default function CommentsScreen() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
-          {/* Comments List */}
+          {/* Notes List */}
           <ScrollView
             style={styles.commentsList}
             contentContainerStyle={styles.commentsListContent}
             showsVerticalScrollIndicator={false}
           >
-            {sortedComments.map((comment) => (
-              <View key={comment.id}>
+            {sortedComments.map((note) => (
+              <View key={note.id}>
                 <View
                   style={[
                     styles.commentItem,
-                    comment.isPinned && styles.pinnedCommentItem,
+                    note.isPinned && styles.pinnedCommentItem,
                   ]}
                 >
                   <View style={styles.commentAvatar}>
                     <Text style={styles.commentAvatarText}>
-                      {comment.author.initial}
+                      {note.author.initial}
                     </Text>
                   </View>
                   <View style={styles.commentContent}>
                     <View style={styles.commentHeader}>
                       <View style={styles.commentHeaderLeft}>
-                        {comment.isPinned && (
+                        {note.isPinned && (
                           <Ionicons
                             name="pin"
                             size={14}
@@ -209,31 +209,29 @@ export default function CommentsScreen() {
                           />
                         )}
                         <Text style={styles.commentAuthor}>
-                          {comment.author.name}
+                          {note.author.name}
                         </Text>
                       </View>
                       <View style={styles.commentHeaderRight}>
                         <Text style={styles.commentTimestamp}>
-                          {comment.timestamp}
+                          {note.timestamp}
                         </Text>
                         <TouchableOpacity
                           style={styles.pinButton}
-                          onPress={() => togglePin(comment.id)}
+                          onPress={() => togglePin(note.id)}
                         >
                           <Ionicons
-                            name={comment.isPinned ? "pin" : "pin-outline"}
+                            name={note.isPinned ? "pin" : "pin-outline"}
                             size={16}
-                            color={comment.isPinned ? "#4A90E2" : "#999"}
+                            color={note.isPinned ? "#4A90E2" : "#999"}
                           />
                         </TouchableOpacity>
                       </View>
                     </View>
-                    <Text style={styles.commentText}>{comment.text}</Text>
+                    <Text style={styles.commentText}>{note.text}</Text>
                     <TouchableOpacity
                       style={styles.replyButton}
-                      onPress={() =>
-                        handleReply(comment.id, comment.author.name)
-                      }
+                      onPress={() => handleReply(note.id, note.author.name)}
                     >
                       <Ionicons
                         name="chatbubble-outline"
@@ -246,9 +244,9 @@ export default function CommentsScreen() {
                 </View>
 
                 {/* Replies */}
-                {comment.replies && comment.replies.length > 0 && (
+                {note.replies && note.replies.length > 0 && (
                   <View style={styles.repliesContainer}>
-                    {comment.replies.map((reply) => (
+                    {note.replies.map((reply) => (
                       <View key={reply.id} style={styles.replyItem}>
                         <View style={styles.replyAvatar}>
                           <Text style={styles.replyAvatarText}>
@@ -268,7 +266,7 @@ export default function CommentsScreen() {
                           <TouchableOpacity
                             style={styles.replyButton}
                             onPress={() =>
-                              handleReply(comment.id, reply.author.name)
+                              handleReply(note.id, reply.author.name)
                             }
                           >
                             <Ionicons
@@ -308,7 +306,7 @@ export default function CommentsScreen() {
                 placeholder={
                   replyingTo
                     ? `Reply to ${replyingTo.authorName}...`
-                    : "Add a comment..."
+                    : "Add a note..."
                 }
                 placeholderTextColor="#999"
                 value={newComment}

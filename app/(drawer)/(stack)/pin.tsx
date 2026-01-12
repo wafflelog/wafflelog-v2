@@ -315,7 +315,7 @@ export default function PinScreen() {
           </View>
           <TouchableOpacity
             style={styles.editNotesButton}
-            onPress={() => router.push(`/comments`)}
+            onPress={() => router.push(`/notes`)}
           >
             <Ionicons name="pencil-outline" size={18} color="#4A90E2" />
             <Text style={styles.editNotesText}>Edit Notes</Text>

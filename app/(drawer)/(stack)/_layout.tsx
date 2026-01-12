@@ -3,13 +3,14 @@ import { Stack } from "expo-router";
 export default function Layout() {
   return (
     <Stack>
-      <Stack.Screen name="index" />
       <Stack.Screen name="trip" />
       <Stack.Screen name="pin" />
-      <Stack.Screen name="user" />
       <Stack.Screen name="place-search" />
+      <Stack.Screen name="companions" />
+      <Stack.Screen name="documents" />
+      <Stack.Screen name="expenses" />
       <Stack.Screen
-        name="comments"
+        name="notes"
         options={{
           presentation: "modal",
         }}
