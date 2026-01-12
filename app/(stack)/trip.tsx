@@ -18,10 +18,11 @@ export default function TripScreen() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const carouselRef = useRef<FlatList>(null);
 
   // Dummy data - places grouped by day
-  const tripDays = [
+  const tripDaysData = [
     {
       day: 1,
       date: "Mar 10, 2024",
@@ -98,6 +99,38 @@ export default function TripScreen() {
     },
   ];
 
+  // Extract all unique categories
+  const allCategories = Array.from(
+    new Set(
+      tripDaysData.flatMap((day) => day.places.map((place) => place.category))
+    )
+  ).sort();
+
+  // Filter trip days based on selected categories
+  const tripDays =
+    selectedCategories.length > 0
+      ? tripDaysData
+          .map((day) => ({
+            ...day,
+            places: day.places.filter((place) =>
+              selectedCategories.includes(place.category)
+            ),
+          }))
+          .filter((day) => day.places.length > 0) // Remove days with no places after filtering
+      : tripDaysData;
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  const clearFilters = () => {
+    setSelectedCategories([]);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
@@ -168,11 +201,53 @@ export default function TripScreen() {
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
         >
+          {/* Category Filter */}
+          <View style={styles.filterSection}>
+            <View style={styles.filterHeader}>
+              <Text style={styles.filterTitle}>Filter by Category</Text>
+              {selectedCategories.length > 0 && (
+                <TouchableOpacity onPress={clearFilters}>
+                  <Text style={styles.clearFilterText}>Clear</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterChipsContainer}
+            >
+              {allCategories.map((category) => {
+                const isSelected = selectedCategories.includes(category);
+                return (
+                  <TouchableOpacity
+                    key={category}
+                    style={[
+                      styles.filterChip,
+                      isSelected && styles.filterChipActive,
+                    ]}
+                    onPress={() => toggleCategory(category)}
+                  >
+                    <Ionicons
+                      name="pricetag"
+                      size={14}
+                      color={isSelected ? "#4A90E2" : "#666"}
+                    />
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        isSelected && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {category}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
           {/* Trip Overview */}
           <View style={styles.overviewSection}>
-            <View style={styles.overviewImagePlaceholder}>
-              <Ionicons name="image-outline" size={60} color="#999" />
-            </View>
             <View style={styles.overviewInfo}>
               <View style={styles.overviewBadge}>
                 <Ionicons name="radio-button-on" size={12} color="#4A90E2" />
@@ -626,6 +701,58 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#666",
     marginLeft: 12,
+  },
+  filterSection: {
+    backgroundColor: "#fff",
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  filterHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+  },
+  clearFilterText: {
+    fontSize: 14,
+    color: "#4A90E2",
+    fontWeight: "500",
+  },
+  filterChipsContainer: {
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+  filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#F5F7FA",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    gap: 6,
+    marginRight: 8,
+  },
+  filterChipActive: {
+    backgroundColor: "#E8F2FF",
+    borderColor: "#4A90E2",
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#666",
+  },
+  filterChipTextActive: {
+    color: "#4A90E2",
+    fontWeight: "600",
   },
   section: {
     paddingTop: 24,

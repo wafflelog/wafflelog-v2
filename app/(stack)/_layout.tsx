@@ -7,6 +7,13 @@ export default function Layout() {
       <Stack.Screen name="trip" />
       <Stack.Screen name="pin" />
       <Stack.Screen name="user" />
+      <Stack.Screen name="place-search" />
+      <Stack.Screen
+        name="comments"
+        options={{
+          presentation: "modal",
+        }}
+      />
     </Stack>
   );
 }

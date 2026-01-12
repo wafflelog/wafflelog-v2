@@ -146,7 +146,10 @@ export default function PinScreen() {
           </View>
           <View style={styles.locationCard}>
             <Text style={styles.address}>{pinData.address}</Text>
-            <TouchableOpacity style={styles.mapButton}>
+            <TouchableOpacity
+              style={styles.mapButton}
+              onPress={() => router.push(`/place-search`)}
+            >
               <Ionicons name="map-outline" size={18} color="#4A90E2" />
               <Text style={styles.mapButtonText}>Open in Maps</Text>
             </TouchableOpacity>
@@ -310,7 +313,10 @@ export default function PinScreen() {
           <View style={styles.notesCard}>
             <Text style={styles.notesText}>{pinData.notes}</Text>
           </View>
-          <TouchableOpacity style={styles.editNotesButton}>
+          <TouchableOpacity
+            style={styles.editNotesButton}
+            onPress={() => router.push(`/comments`)}
+          >
             <Ionicons name="pencil-outline" size={18} color="#4A90E2" />
             <Text style={styles.editNotesText}>Edit Notes</Text>
           </TouchableOpacity>
