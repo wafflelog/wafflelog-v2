@@ -8,12 +8,18 @@ import { StyleSheet, Text, TouchableOpacity } from "react-native";
 export function DrawerContent(props: DrawerContentComponentProps) {
   const links = [
     {
+      label: "Back to Trip",
+      onPress: () => router.push("/trip"),
+    },
+    {
       label: "Companions",
-      onPress: () => router.push("/companions"),
+      onPress: () => {
+        router.push("/companions");
+      },
     },
     {
       label: "Checklist",
-      onPress: () => router.push("/"),
+      onPress: () => router.push("/checklist"),
     },
     {
       label: "All Documents",
@@ -25,7 +31,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
     },
     {
       label: "All Images",
-      onPress: () => router.push("/"),
+      onPress: () => router.push("/images"),
     },
     {
       label: "Pinned Notes",
@@ -33,14 +39,20 @@ export function DrawerContent(props: DrawerContentComponentProps) {
     },
     {
       label: "All Reference Links",
-      onPress: () => router.push("/"),
+      onPress: () => router.push("/reference-links"),
     },
   ];
 
   return (
     <DrawerContentScrollView contentContainerStyle={styles.container}>
       {links.map((link) => (
-        <TouchableOpacity key={link.label} onPress={link.onPress}>
+        <TouchableOpacity
+          key={link.label}
+          onPress={() => {
+            link.onPress();
+            props.navigation.closeDrawer();
+          }}
+        >
           <Text>{link.label}</Text>
         </TouchableOpacity>
       ))}

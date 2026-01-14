@@ -60,16 +60,23 @@ export default function PinScreen() {
       { id: 2, name: "Map.pdf", type: "pdf" },
     ],
     links: [
-      { id: 1, title: "Official Website", url: "https://sagradafamilia.org" },
+      {
+        id: 1,
+        title: "Official Website",
+        url: "https://sagradafamilia.org",
+        caption: "Book tickets and learn about visiting hours",
+      },
       {
         id: 2,
         title: "Wikipedia",
         url: "https://en.wikipedia.org/wiki/Sagrada_Família",
+        caption: "Detailed history and architectural information",
       },
       {
         id: 3,
         title: "TripAdvisor Reviews",
         url: "https://tripadvisor.com/sagrada-familia",
+        caption: "Read reviews and tips from other travelers",
       },
     ],
     notes:
@@ -290,6 +297,9 @@ export default function PinScreen() {
                 </View>
                 <View style={styles.linkInfo}>
                   <Text style={styles.linkTitle}>{link.title}</Text>
+                  {link.caption && (
+                    <Text style={styles.linkCaption}>{link.caption}</Text>
+                  )}
                   <Text style={styles.linkUrl} numberOfLines={1}>
                     {link.url}
                   </Text>
@@ -737,6 +747,12 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#333",
     marginBottom: 2,
+  },
+  linkCaption: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 4,
+    lineHeight: 16,
   },
   linkUrl: {
     fontSize: 12,

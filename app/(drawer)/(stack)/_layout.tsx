@@ -9,6 +9,9 @@ export default function Layout() {
       <Stack.Screen name="companions" />
       <Stack.Screen name="documents" />
       <Stack.Screen name="expenses" />
+      <Stack.Screen name="images" />
+      <Stack.Screen name="reference-links" />
+      <Stack.Screen name="checklist" />
       <Stack.Screen
         name="notes"
         options={{

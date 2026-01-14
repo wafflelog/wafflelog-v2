@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -25,7 +26,7 @@ const CURRENT_USER = "Sarah"; // Current logged-in user
 export default function ExpensesScreen() {
   const router = useRouter();
 
-  // Dummy data - expenses from all pins in the trip
+  // Dummy data - expenses from all pins in the trip (with multiple currencies)
   const [expenses] = useState<Expense[]>([
     {
       id: "1",
@@ -108,21 +109,77 @@ export default function ExpensesScreen() {
       pinId: "8",
       pinName: "Magic Fountain",
     },
+    {
+      id: "10",
+      description: "Hotel booking",
+      amount: 120,
+      currency: "USD",
+      paidBy: "Sarah",
+      pinId: "1",
+      pinName: "Sagrada Família",
+    },
+    {
+      id: "11",
+      description: "Flight tickets",
+      amount: 450,
+      currency: "USD",
+      paidBy: "Mike",
+      pinId: "1",
+      pinName: "Sagrada Família",
+    },
+    {
+      id: "12",
+      description: "Travel insurance",
+      amount: 85,
+      currency: "USD",
+      paidBy: "David",
+      pinId: "2",
+      pinName: "Park Güell",
+    },
   ]);
 
-  // Calculate totals
-  const totalSpending = expenses.reduce(
-    (sum, expense) => sum + expense.amount,
-    0
+  // Group expenses by currency and calculate totals per currency
+  const expensesByCurrency = expenses.reduce((acc, expense) => {
+    if (!acc[expense.currency]) {
+      acc[expense.currency] = [];
+    }
+    acc[expense.currency].push(expense);
+    return acc;
+  }, {} as Record<string, Expense[]>);
+
+  const currencies = Object.keys(expensesByCurrency).sort();
+  const [selectedCurrency, setSelectedCurrency] = useState<string>(
+    currencies[0] || ""
   );
-  const userPaid = expenses
-    .filter((expense) => expense.paidBy === CURRENT_USER)
-    .reduce((sum, expense) => sum + expense.amount, 0);
-  const userOwed = expenses
-    .filter((expense) => expense.paidBy !== CURRENT_USER)
-    .reduce((sum, expense) => sum + expense.amount / 4, 0); // Assuming 4 people split expenses
-  const netBalance = userPaid - userOwed;
-  const currency = expenses[0]?.currency || "EUR";
+
+  // Filter expenses by selected currency
+  const filteredExpenses = expenses.filter(
+    (expense) => expense.currency === selectedCurrency
+  );
+
+  // Calculate totals per currency
+  const currencyTotals = currencies.map((currency) => {
+    const currencyExpenses = expensesByCurrency[currency];
+    const totalSpending = currencyExpenses.reduce(
+      (sum, expense) => sum + expense.amount,
+      0
+    );
+    const userPaid = currencyExpenses
+      .filter((expense) => expense.paidBy === CURRENT_USER)
+      .reduce((sum, expense) => sum + expense.amount, 0);
+    const userOwed = currencyExpenses
+      .filter((expense) => expense.paidBy !== CURRENT_USER)
+      .reduce((sum, expense) => sum + expense.amount / 4, 0); // Assuming 4 people split expenses
+    const netBalance = userPaid - userOwed;
+
+    return {
+      currency,
+      totalSpending,
+      userPaid,
+      userOwed,
+      netBalance,
+    };
+  });
 
   const handleExpensePress = (expense: Expense) => {
     router.push(`/pin?id=${expense.pinId}`);
@@ -149,63 +206,106 @@ export default function ExpensesScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Summary Section */}
-      <View style={styles.summarySection}>
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>Total Spending</Text>
-              <Text style={styles.summaryAmount}>
-                {totalSpending} {currency}
-              </Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>You Paid</Text>
-              <Text style={[styles.summaryAmount, styles.summaryPaid]}>
-                {userPaid} {currency}
-              </Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>You Owe</Text>
+      {/* Currency Tabs */}
+      <View style={styles.tabsContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsContent}
+        >
+          {currencies.map((currency) => (
+            <TouchableOpacity
+              key={currency}
+              style={[
+                styles.tab,
+                selectedCurrency === currency && styles.tabActive,
+              ]}
+              onPress={() => setSelectedCurrency(currency)}
+            >
               <Text
                 style={[
-                  styles.summaryAmount,
-                  netBalance >= 0
-                    ? styles.summaryOwed
-                    : styles.summaryOwedNegative,
+                  styles.tabText,
+                  selectedCurrency === currency && styles.tabTextActive,
                 ]}
               >
-                {netBalance >= 0 ? "-" : ""}
-                {Math.abs(netBalance).toFixed(2)} {currency}
+                {currency}
               </Text>
-            </View>
-          </View>
-          {netBalance < 0 && (
-            <View style={styles.netBalanceBadge}>
-              <Ionicons name="arrow-down" size={14} color="#FF6B6B" />
-              <Text style={styles.netBalanceText}>
-                You owe {Math.abs(netBalance).toFixed(2)} {currency}
-              </Text>
-            </View>
-          )}
-          {netBalance > 0 && (
-            <View style={styles.netBalanceBadgePositive}>
-              <Ionicons name="arrow-up" size={14} color="#4A90E2" />
-              <Text style={styles.netBalanceTextPositive}>
-                You are owed {netBalance.toFixed(2)} {currency}
-              </Text>
-            </View>
-          )}
-        </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {/* Expenses List */}
       <FlatList
-        data={expenses}
+        data={filteredExpenses}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <View style={styles.summarySection}>
+            {(() => {
+              const totals = currencyTotals.find(
+                (t) => t.currency === selectedCurrency
+              );
+              if (!totals) return null;
+              return (
+                <View style={styles.summaryCard}>
+                  <View style={styles.currencyHeader}>
+                    <Text style={styles.currencyLabel}>{totals.currency}</Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <View style={styles.summaryItem}>
+                      <Text style={styles.summaryLabel}>Total Spending</Text>
+                      <Text style={styles.summaryAmount}>
+                        {totals.totalSpending.toFixed(2)} {totals.currency}
+                      </Text>
+                    </View>
+                    <View style={styles.summaryDivider} />
+                    <View style={styles.summaryItem}>
+                      <Text style={styles.summaryLabel}>You Paid</Text>
+                      <Text style={[styles.summaryAmount, styles.summaryPaid]}>
+                        {totals.userPaid.toFixed(2)} {totals.currency}
+                      </Text>
+                    </View>
+                    <View style={styles.summaryDivider} />
+                    <View style={styles.summaryItem}>
+                      <Text style={styles.summaryLabel}>You Owe</Text>
+                      <Text
+                        style={[
+                          styles.summaryAmount,
+                          totals.netBalance >= 0
+                            ? styles.summaryOwed
+                            : styles.summaryOwedNegative,
+                        ]}
+                      >
+                        {totals.netBalance >= 0 ? "-" : ""}
+                        {Math.abs(totals.netBalance).toFixed(2)}{" "}
+                        {totals.currency}
+                      </Text>
+                    </View>
+                  </View>
+                  {totals.netBalance < 0 && (
+                    <View style={styles.netBalanceBadge}>
+                      <Ionicons name="arrow-down" size={14} color="#FF6B6B" />
+                      <Text style={styles.netBalanceText}>
+                        You owe {Math.abs(totals.netBalance).toFixed(2)}{" "}
+                        {totals.currency}
+                      </Text>
+                    </View>
+                  )}
+                  {totals.netBalance > 0 && (
+                    <View style={styles.netBalanceBadgePositive}>
+                      <Ionicons name="arrow-up" size={14} color="#4A90E2" />
+                      <Text style={styles.netBalanceTextPositive}>
+                        You are owed {totals.netBalance.toFixed(2)}{" "}
+                        {totals.currency}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })()}
+          </View>
+        }
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.expenseItem}
@@ -290,16 +390,62 @@ const styles = StyleSheet.create({
   addButton: {
     padding: 4,
   },
+  tabsContainer: {
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  tabsContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  tab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "#F5F7FA",
+    marginRight: 8,
+  },
+  tabActive: {
+    backgroundColor: "#E8F2FF",
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#666",
+  },
+  tabTextActive: {
+    color: "#4A90E2",
+    fontWeight: "600",
+  },
   summarySection: {
     padding: 20,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
+    gap: 16,
   },
   summaryCard: {
     backgroundColor: "#F5F7FA",
     borderRadius: 12,
     padding: 16,
+  },
+  currencyHeader: {
+    marginBottom: 12,
+  },
+  currencyLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#4A90E2",
+    textTransform: "uppercase",
+  },
+  currencyDivider: {
+    height: 1,
+    backgroundColor: "#E0E0E0",
+    marginTop: 16,
+    marginBottom: -16,
+    marginHorizontal: -16,
   },
   summaryRow: {
     flexDirection: "row",
