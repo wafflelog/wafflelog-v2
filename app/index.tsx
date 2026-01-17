@@ -1,3 +1,5 @@
+import TripCard from "@/components/card/trip";
+import { TRIPS } from "@/data";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
@@ -61,7 +63,9 @@ export default function IndexScreen() {
 
         {/* Ongoing Trip */}
         <View style={styles.section}>
+          <TripCard trip={TRIPS[0]} variant="hero" />
           <Text style={styles.sectionTitle}>Ongoing Trip</Text>
+
           <TouchableOpacity
             style={styles.ongoingTripCard}
             onPress={() => router.push("/trip")}
