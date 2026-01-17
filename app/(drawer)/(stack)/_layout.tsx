@@ -12,6 +12,7 @@ export default function Layout() {
       <Stack.Screen name="images" />
       <Stack.Screen name="reference-links" />
       <Stack.Screen name="checklist" />
+      <Stack.Screen name="pinned-notes" />
       <Stack.Screen
         name="notes"
         options={{

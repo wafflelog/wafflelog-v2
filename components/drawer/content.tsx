@@ -35,7 +35,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
     },
     {
       label: "Pinned Notes",
-      onPress: () => router.push("/"),
+      onPress: () => router.push("/pinned-notes"),
     },
     {
       label: "All Reference Links",
