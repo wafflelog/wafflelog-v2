@@ -1,25 +1,20 @@
 import { IconPinCategory } from "@/components/icon/pin-category";
 import { UIText } from "@/components/ui/text";
-import { colors, getColor } from "@/constants/theme";
+import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
 import { formatTime } from "@/lib/utils";
 import { type Pin } from "@/types/pin";
 
-import { useRouter } from "expo-router";
 import { ChevronRight as ChevronRightIcon } from "lucide-react-native";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 type CardPinRegularProps = {
   pin: Pin;
+  onPress: () => void;
 };
 
-export const CardPinRegular = ({ pin }: CardPinRegularProps) => {
-  const router = useRouter();
-
+export const CardPinRegular = ({ pin, onPress }: CardPinRegularProps) => {
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={() => router.push("/pin")}
-    >
+    <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.iconContainer}>
         <IconPinCategory category={pin.category} />
       </View>
@@ -47,16 +42,9 @@ export const CardPinRegular = ({ pin }: CardPinRegularProps) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 16,
+    ...getCardBasicStyle("sm"),
     flexDirection: "row",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
     gap: 10,
   },
   iconContainer: {

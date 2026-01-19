@@ -6,6 +6,7 @@ export default function Layout() {
       <Stack.Screen name="trip" options={{ headerShown: false }} />
       <Stack.Screen name="trip/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="pin" options={{ headerShown: false }} />
+      <Stack.Screen name="pin/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="place-search" />
       <Stack.Screen name="companions" options={{ headerShown: false }} />
       <Stack.Screen name="documents" options={{ headerShown: false }} />

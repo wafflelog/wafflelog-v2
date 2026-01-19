@@ -1,6 +1,6 @@
 import { ListUsersHorizontalIcons } from "@/components/list/users/horizontal-icons";
 import { UIText } from "@/components/ui/text";
-import { colors, getColor } from "@/constants/theme";
+import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
 import { formatDate } from "@/lib/utils";
 import { type Trip } from "@/types/trip";
 
@@ -50,17 +50,10 @@ export const CardTripRegular = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#fff",
-    borderLeftWidth: 2,
-    borderRadius: 8,
-    padding: 16,
+    ...getCardBasicStyle("md"),
     flexDirection: "row",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    borderLeftWidth: 2,
   },
   content: {
     flexDirection: "column",

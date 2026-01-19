@@ -35,6 +35,20 @@ export const PINS = [
     category: CATEGORIES[0],
     address: "Carrer de Mallorca, 401, 08013 Barcelona, Spain",
     time: new Date("2024-03-11 09:00:00").toISOString(),
+    referenceLinks: [
+      {
+        id: "reference-link-1",
+        title: "Official Website",
+        url: "https://sagradafamilia.org",
+        caption: "Book tickets and learn about visiting hours",
+      },
+      {
+        id: "reference-link-2",
+        title: "Wikipedia",
+        url: "https://en.wikipedia.org/wiki/Sagrada_Família",
+        caption: "Detailed history and architectural information",
+      },
+    ],
   },
   {
     id: "pin-2",
@@ -42,6 +56,7 @@ export const PINS = [
     category: CATEGORIES[1],
     address: "08024 Barcelona",
     time: new Date("2024-03-11 09:00:00").toISOString(),
+    referenceLinks: [],
   },
   {
     id: "pin-3",
@@ -49,6 +64,7 @@ export const PINS = [
     category: CATEGORIES[2],
     address: "La Rambla, 91",
     time: new Date("2024-03-12 09:00:00").toISOString(),
+    referenceLinks: [],
   },
   {
     id: "pin-4",
@@ -56,6 +72,7 @@ export const PINS = [
     category: CATEGORIES[3],
     address: "La Rambla, 91",
     time: new Date("2024-03-12 09:00:00").toISOString(),
+    referenceLinks: [],
   },
   {
     id: "pin-5",
@@ -63,5 +80,6 @@ export const PINS = [
     category: CATEGORIES[4],
     address: "La Rambla, 91",
     time: new Date("2024-03-13 09:00:00").toISOString(),
+    referenceLinks: [],
   },
 ] as const satisfies Pin[];

@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 // Replace with your Google Places API key
 // For production, use environment variables or secure storage
-const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
+const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 interface Review {
   authorAttribution: {
