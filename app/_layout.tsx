@@ -8,7 +8,7 @@ import {
 import { Stack } from "expo-router";
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  useFonts({
     Montserrat_400Regular,
     Montserrat_500Medium,
     Montserrat_600SemiBold,
@@ -17,13 +17,9 @@ export default function RootLayout() {
 
   return (
     <Stack>
-      {fontsLoaded && (
-        <>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="user" />
-          <Stack.Screen name="(drawer)" />
-        </>
-      )}
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="user" options={{ headerShown: false }} />
+      <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
     </Stack>
   );
 }

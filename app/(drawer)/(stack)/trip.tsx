@@ -1,4 +1,7 @@
+import { CardPin } from "@/components/card/pin";
+import { PINS } from "@/data/pins";
 import { Ionicons } from "@expo/vector-icons";
+import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
@@ -16,6 +19,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function TripScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -145,7 +149,10 @@ export default function TripScreen() {
           <Text style={styles.headerTitle}>Barcelona Getaway</Text>
           <Text style={styles.headerSubtitle}>Mar 10 - Mar 17, 2024</Text>
         </View>
-        <TouchableOpacity style={styles.moreButton}>
+        <TouchableOpacity
+          style={styles.moreButton}
+          onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
+        >
           <Ionicons name="ellipsis-vertical" size={24} color="#333" />
         </TouchableOpacity>
       </View>
@@ -366,73 +373,9 @@ export default function TripScreen() {
 
                     {/* Places List */}
                     <View style={styles.placesList}>
-                      {dayData.places.map(
-                        (
-                          place: (typeof dayData.places)[0],
-                          placeIndex: number
-                        ) => (
-                          <View key={place.id}>
-                            {/* Timeline connector */}
-                            {placeIndex < dayData.places.length - 1 && (
-                              <View style={styles.timelineConnector} />
-                            )}
-                            <TouchableOpacity
-                              style={styles.placeCard}
-                              onPress={() => router.push(`/pin`)}
-                            >
-                              <View style={styles.placeIcon}>
-                                <Ionicons
-                                  name="location"
-                                  size={20}
-                                  color="#4A90E2"
-                                />
-                              </View>
-                              <View style={styles.placeInfo}>
-                                <Text style={styles.placeName}>
-                                  {place.name}
-                                </Text>
-                                <View style={styles.placeMeta}>
-                                  <View style={styles.placeCategory}>
-                                    <Ionicons
-                                      name="pricetag-outline"
-                                      size={12}
-                                      color="#666"
-                                    />
-                                    <Text style={styles.placeCategoryText}>
-                                      {place.category}
-                                    </Text>
-                                  </View>
-                                  <View style={styles.placeTime}>
-                                    <Ionicons
-                                      name="time-outline"
-                                      size={12}
-                                      color="#666"
-                                    />
-                                    <Text style={styles.placeTimeText}>
-                                      {place.time}
-                                    </Text>
-                                  </View>
-                                </View>
-                                <View style={styles.placeAddress}>
-                                  <Ionicons
-                                    name="location-outline"
-                                    size={12}
-                                    color="#999"
-                                  />
-                                  <Text style={styles.placeAddressText}>
-                                    {place.address}
-                                  </Text>
-                                </View>
-                              </View>
-                              <Ionicons
-                                name="chevron-forward"
-                                size={20}
-                                color="#999"
-                              />
-                            </TouchableOpacity>
-                          </View>
-                        )
-                      )}
+                      {PINS.map((pin) => (
+                        <CardPin key={pin.id} pin={pin} variant="regular" />
+                      ))}
                     </View>
                   </View>
                 </View>
@@ -832,6 +775,7 @@ const styles = StyleSheet.create({
   },
   placesList: {
     position: "relative",
+    gap: 10,
   },
   placeCard: {
     backgroundColor: "#fff",

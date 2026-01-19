@@ -1,3 +1,13 @@
+import { type Pin } from "./pin";
+import { type User } from "./user";
+
+export type TripDay = {
+  date: string;
+  isActive: boolean;
+  onPress: () => void;
+  pins: Pin[];
+};
+
 export type Trip = {
   id: string;
   title: string;
@@ -12,4 +22,6 @@ export type Trip = {
    */
   endDate: string;
   location: string;
+  companions: User[];
+  pins: Pin[];
 };

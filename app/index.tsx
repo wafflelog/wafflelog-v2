@@ -1,7 +1,6 @@
-import TripCard from "@/components/card/trip";
+import { CardTrip } from "@/components/card/trip";
 import { TRIPS } from "@/data";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import {
   ScrollView,
   StyleSheet,
@@ -12,7 +11,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function IndexScreen() {
-  const router = useRouter();
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView
@@ -63,59 +61,9 @@ export default function IndexScreen() {
 
         {/* Ongoing Trip */}
         <View style={styles.section}>
-          <TripCard trip={TRIPS[0]} variant="hero" />
           <Text style={styles.sectionTitle}>Ongoing Trip</Text>
 
-          <TouchableOpacity
-            style={styles.ongoingTripCard}
-            onPress={() => router.push("/trip")}
-          >
-            <View style={styles.ongoingTripImagePlaceholder}>
-              <Ionicons name="image-outline" size={50} color="#999" />
-            </View>
-            <View style={styles.ongoingTripInfo}>
-              <View style={styles.ongoingTripBadge}>
-                <Ionicons name="radio-button-on" size={12} color="#4A90E2" />
-                <Text style={styles.ongoingTripBadgeText}>In Progress</Text>
-              </View>
-              <Text style={styles.ongoingTripTitle}>Barcelona Getaway</Text>
-              <View style={styles.ongoingTripMeta}>
-                <Ionicons name="calendar-outline" size={16} color="#666" />
-                <Text style={styles.ongoingTripDate}>
-                  Mar 10 - Mar 17, 2024
-                </Text>
-              </View>
-              <View style={styles.ongoingTripMeta}>
-                <Ionicons name="location-outline" size={16} color="#666" />
-                <Text style={styles.ongoingTripLocation}>Barcelona, Spain</Text>
-              </View>
-              <View style={styles.ongoingTripProgress}>
-                <View style={styles.progressBar}>
-                  <View style={styles.progressFill} />
-                </View>
-                <Text style={styles.progressText}>Day 3 of 7</Text>
-              </View>
-              <View style={styles.friendsContainer}>
-                <View style={styles.friendAvatars}>
-                  <View style={styles.friendAvatar}>
-                    <Text style={styles.friendAvatarText}>S</Text>
-                  </View>
-                  <View
-                    style={[styles.friendAvatar, styles.friendAvatarOverlap]}
-                  >
-                    <Text style={styles.friendAvatarText}>M</Text>
-                  </View>
-                  <View
-                    style={[styles.friendAvatar, styles.friendAvatarOverlap]}
-                  >
-                    <Text style={styles.friendAvatarText}>J</Text>
-                  </View>
-                </View>
-                <Text style={styles.friendsCount}>+2 more</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color="#999" />
-          </TouchableOpacity>
+          <CardTrip trip={TRIPS[0]} variant="hero" />
         </View>
 
         {/* Upcoming Trips */}
@@ -127,70 +75,14 @@ export default function IndexScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.tripCard}>
-            <View style={styles.tripImagePlaceholder}>
-              <Ionicons name="image-outline" size={40} color="#999" />
-            </View>
-            <View style={styles.tripInfo}>
-              <Text style={styles.tripTitle}>Tokyo Adventure</Text>
-              <View style={styles.tripMeta}>
-                <Ionicons name="calendar-outline" size={14} color="#666" />
-                <Text style={styles.tripDate}>Mar 15 - Mar 22, 2024</Text>
-              </View>
-              <View style={styles.tripMeta}>
-                <Ionicons name="location-outline" size={14} color="#666" />
-                <Text style={styles.tripLocation}>Tokyo, Japan</Text>
-              </View>
-              <View style={styles.friendsContainer}>
-                <View style={styles.friendAvatars}>
-                  <View style={styles.friendAvatar}>
-                    <Text style={styles.friendAvatarText}>S</Text>
-                  </View>
-                  <View
-                    style={[styles.friendAvatar, styles.friendAvatarOverlap]}
-                  >
-                    <Text style={styles.friendAvatarText}>A</Text>
-                  </View>
-                  <View
-                    style={[styles.friendAvatar, styles.friendAvatarOverlap]}
-                  >
-                    <Text style={styles.friendAvatarText}>L</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.tripCard}>
-            <View style={styles.tripImagePlaceholder}>
-              <Ionicons name="image-outline" size={40} color="#999" />
-            </View>
-            <View style={styles.tripInfo}>
-              <Text style={styles.tripTitle}>Weekend in Paris</Text>
-              <View style={styles.tripMeta}>
-                <Ionicons name="calendar-outline" size={14} color="#666" />
-                <Text style={styles.tripDate}>Apr 5 - Apr 7, 2024</Text>
-              </View>
-              <View style={styles.tripMeta}>
-                <Ionicons name="location-outline" size={14} color="#666" />
-                <Text style={styles.tripLocation}>Paris, France</Text>
-              </View>
-              <View style={styles.friendsContainer}>
-                <View style={styles.friendAvatars}>
-                  <View style={styles.friendAvatar}>
-                    <Text style={styles.friendAvatarText}>S</Text>
-                  </View>
-                  <View
-                    style={[styles.friendAvatar, styles.friendAvatarOverlap]}
-                  >
-                    <Text style={styles.friendAvatarText}>R</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
+          {TRIPS.map((trip) => (
+            <CardTrip
+              key={trip.id}
+              trip={trip}
+              variant="regular"
+              color="turquoise"
+            />
+          ))}
         </View>
 
         {/* Past Trips */}
@@ -202,75 +94,14 @@ export default function IndexScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.tripCard}>
-            <View style={styles.tripImagePlaceholder}>
-              <Ionicons name="image-outline" size={40} color="#999" />
-            </View>
-            <View style={styles.tripInfo}>
-              <Text style={styles.tripTitle}>New York City</Text>
-              <View style={styles.tripMeta}>
-                <Ionicons name="calendar-outline" size={14} color="#666" />
-                <Text style={styles.tripDate}>Feb 20 - Feb 25, 2024</Text>
-              </View>
-              <View style={styles.tripMeta}>
-                <Ionicons name="location-outline" size={14} color="#666" />
-                <Text style={styles.tripLocation}>New York, USA</Text>
-              </View>
-              <View style={styles.friendsContainer}>
-                <View style={styles.friendAvatars}>
-                  <View style={styles.friendAvatar}>
-                    <Text style={styles.friendAvatarText}>S</Text>
-                  </View>
-                  <View
-                    style={[styles.friendAvatar, styles.friendAvatarOverlap]}
-                  >
-                    <Text style={styles.friendAvatarText}>M</Text>
-                  </View>
-                  <View
-                    style={[styles.friendAvatar, styles.friendAvatarOverlap]}
-                  >
-                    <Text style={styles.friendAvatarText}>K</Text>
-                  </View>
-                  <View
-                    style={[styles.friendAvatar, styles.friendAvatarOverlap]}
-                  >
-                    <Text style={styles.friendAvatarText}>D</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.tripCard}>
-            <View style={styles.tripImagePlaceholder}>
-              <Ionicons name="image-outline" size={40} color="#999" />
-            </View>
-            <View style={styles.tripInfo}>
-              <Text style={styles.tripTitle}>London Adventure</Text>
-              <View style={styles.tripMeta}>
-                <Ionicons name="calendar-outline" size={14} color="#666" />
-                <Text style={styles.tripDate}>Jan 10 - Jan 18, 2024</Text>
-              </View>
-              <View style={styles.tripMeta}>
-                <Ionicons name="location-outline" size={14} color="#666" />
-                <Text style={styles.tripLocation}>London, UK</Text>
-              </View>
-              <View style={styles.friendsContainer}>
-                <View style={styles.friendAvatars}>
-                  <View style={styles.friendAvatar}>
-                    <Text style={styles.friendAvatarText}>S</Text>
-                  </View>
-                  <View
-                    style={[styles.friendAvatar, styles.friendAvatarOverlap]}
-                  >
-                    <Text style={styles.friendAvatarText}>T</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
-          </TouchableOpacity>
+          {TRIPS.map((trip) => (
+            <CardTrip
+              key={trip.id}
+              trip={trip}
+              variant="regular"
+              color="purple"
+            />
+          ))}
         </View>
 
         {/* Stats Summary */}

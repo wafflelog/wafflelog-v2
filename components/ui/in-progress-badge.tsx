@@ -58,6 +58,8 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: getColor(colors.waffle),
     backgroundColor: getColor(colors.waffle, 0.2),
     paddingHorizontal: 12,
     paddingVertical: 2,
@@ -68,7 +70,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: getColor(colors.orange),
+    backgroundColor: getColor(colors.red),
   },
   text: {
     color: getColor(colors.orange),

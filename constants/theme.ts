@@ -5,7 +5,8 @@ export const colors = {
   purple: [82, 72, 156],
   red: [254, 74, 73],
   pineGreen: [50, 98, 115],
-  textLightGrey: [70, 70, 70],
+  paleGrey: [220, 220, 220],
+  textLightGrey: [100, 100, 100],
   textDarkGrey: [50, 50, 50],
 } as const satisfies Record<string, [number, number, number]>;
 

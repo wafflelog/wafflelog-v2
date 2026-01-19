@@ -14,6 +14,7 @@ export default function Layout() {
         options={{
           drawerLabel: "Home",
           title: "Home",
+          headerShown: false,
         }}
       />
     </Drawer>

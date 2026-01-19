@@ -1,6 +1,4 @@
 import { ListUsersHorizontalIcons } from "@/components/list/users/horizontal-icons";
-import { UIInProgressBadge } from "@/components/ui/in-progress-badge";
-import { UIProgressBar } from "@/components/ui/progress-bar";
 import { UIText } from "@/components/ui/text";
 import { colors, getColor } from "@/constants/theme";
 import { formatDate } from "@/lib/utils";
@@ -12,16 +10,23 @@ import {
 } from "lucide-react-native";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
-type CardTripHeroProps = {
+type CardTripRegularProps = {
   trip: Trip;
   onPress: () => void;
+  color?: keyof typeof colors;
 };
 
-export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
+export const CardTripRegular = ({
+  trip,
+  onPress,
+  color = "waffle",
+}: CardTripRegularProps) => {
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity
+      style={[styles.container, { borderLeftColor: getColor(colors[color]) }]}
+      onPress={onPress}
+    >
       <View style={styles.content}>
-        <UIInProgressBadge containerStyle={styles.inProgress} />
         <UIText style={styles.title} weight="700">
           {trip.title}
         </UIText>
@@ -34,15 +39,10 @@ export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
           <MapPinIcon size={16} color={getColor(colors.pineGreen)} />
           <UIText style={styles.locationText}>{trip.location}</UIText>
         </View>
-
-        <View style={styles.progressContainer}>
-          <UIProgressBar progress={50} height={6} />
-          <UIText style={styles.progressText}>Day 3 of 7</UIText>
-        </View>
         <ListUsersHorizontalIcons users={trip.companions} max={3} />
       </View>
       <View style={styles.chevronContainer}>
-        <ChevronRightIcon size={36} color={getColor(colors.waffle)} />
+        <ChevronRightIcon size={36} color={getColor(colors[color])} />
       </View>
     </TouchableOpacity>
   );
@@ -51,17 +51,16 @@ export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 20,
-    paddingRight: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
-    borderWidth: 2,
-    borderColor: getColor(colors.waffle),
+    borderLeftWidth: 2,
+    borderRadius: 8,
+    padding: 16,
     flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   content: {
     flexDirection: "column",
@@ -69,15 +68,12 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingRight: 10,
   },
-  inProgress: {
-    alignSelf: "flex-start",
-  },
   title: {
-    fontSize: 20,
+    fontSize: 16,
     color: getColor(colors.textDarkGrey),
   },
   date: {
-    fontSize: 14,
+    fontSize: 12,
     color: getColor(colors.textLightGrey),
   },
   locationContainer: {
@@ -86,15 +82,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   locationText: {
-    fontSize: 14,
-    color: getColor(colors.textLightGrey),
-  },
-  progressContainer: {
-    flexDirection: "column",
-    gap: 4,
-  },
-  progressText: {
-    fontSize: 14,
+    fontSize: 12,
     color: getColor(colors.textLightGrey),
   },
   chevronContainer: {

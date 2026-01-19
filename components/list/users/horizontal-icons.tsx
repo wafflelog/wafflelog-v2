@@ -41,7 +41,7 @@ export const ListUsersHorizontalIcons = ({
       ))}
       {users.length > max && (
         <View style={styles.moreContainer}>
-          <UIText style={styles.moreText}>+{users.length - max} more</UIText>
+          <UIText style={styles.moreText}>+{users.length - max} others</UIText>
         </View>
       )}
     </View>
