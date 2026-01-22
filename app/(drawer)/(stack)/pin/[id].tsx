@@ -5,6 +5,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { CardPinDocumentRegular } from "@/components/card/pin/document/regular";
+import { CardPinExpenseRegular } from "@/components/card/pin/expense/regular";
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
 import { CardPinReferenceLinkRegular } from "@/components/card/pin/reference-link/regular";
 import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
@@ -66,6 +68,16 @@ export default function PinScreen() {
                 Expenses
               </UIText>
             </View>
+            <View style={styles.sectionCard}>
+              {pin.expenses.map((expense, index) => (
+                <View key={expense.id}>
+                  <CardPinExpenseRegular expense={expense} onPress={() => {}} />
+                  {index < pin.expenses.length - 1 && (
+                    <View style={styles.divider} />
+                  )}
+                </View>
+              ))}
+            </View>
           </View>
           <View style={styles.images}>
             <View style={styles.sectionHeader}>
@@ -82,6 +94,19 @@ export default function PinScreen() {
                 Documents
               </UIText>
             </View>
+            <View style={styles.sectionCard}>
+              {pin.documents.map((document, index) => (
+                <View key={document.id}>
+                  <CardPinDocumentRegular
+                    document={document}
+                    onPress={() => {}}
+                  />
+                  {index < pin.documents.length - 1 && (
+                    <View style={styles.divider} />
+                  )}
+                </View>
+              ))}
+            </View>
           </View>
           <View style={styles.referenceLinks}>
             <View style={styles.sectionHeader}>
@@ -90,7 +115,7 @@ export default function PinScreen() {
                 Reference Links
               </UIText>
             </View>
-            <View style={styles.referenceLinksCard}>
+            <View style={styles.sectionCard}>
               {pin.referenceLinks.map((referenceLink, index) => (
                 <View key={referenceLink.id}>
                   <CardPinReferenceLinkRegular
@@ -141,7 +166,7 @@ const styles = StyleSheet.create({
   images: {},
   docs: {},
   referenceLinks: {},
-  referenceLinksCard: {
+  sectionCard: {
     gap: 12,
     ...getCardBasicStyle("md"),
   },

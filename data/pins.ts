@@ -1,4 +1,5 @@
 import { Pin, PinCategory } from "@/types/pin";
+import { USERS } from "./users";
 
 const CATEGORIES: PinCategory[] = [
   {
@@ -49,6 +50,38 @@ export const PINS = [
         caption: "Detailed history and architectural information",
       },
     ],
+    documents: [
+      {
+        id: "document-1",
+        fileName: "Tickets.pdf",
+        mimeType: "application/pdf",
+        url: "https://sagradafamilia.org/tickets",
+        caption: "Book tickets and learn about visiting hours",
+      },
+      {
+        id: "document-2",
+        fileName: "Map.pdf",
+        mimeType: "application/pdf",
+        url: "https://sagradafamilia.org/map",
+        caption: "Map of the Sagrada Família",
+      },
+    ],
+    expenses: [
+      {
+        id: "expense-1",
+        description: "Entrance Ticket",
+        amount: 26,
+        currency: "EUR",
+        paidBy: USERS[0],
+      },
+      {
+        id: "expense-2",
+        description: "Audio Guide",
+        amount: 7,
+        currency: "EUR",
+        paidBy: USERS[1],
+      },
+    ],
   },
   {
     id: "pin-2",
@@ -57,6 +90,8 @@ export const PINS = [
     address: "08024 Barcelona",
     time: new Date("2024-03-11 09:00:00").toISOString(),
     referenceLinks: [],
+    documents: [],
+    expenses: [],
   },
   {
     id: "pin-3",
@@ -65,6 +100,8 @@ export const PINS = [
     address: "La Rambla, 91",
     time: new Date("2024-03-12 09:00:00").toISOString(),
     referenceLinks: [],
+    documents: [],
+    expenses: [],
   },
   {
     id: "pin-4",
@@ -73,6 +110,8 @@ export const PINS = [
     address: "La Rambla, 91",
     time: new Date("2024-03-12 09:00:00").toISOString(),
     referenceLinks: [],
+    documents: [],
+    expenses: [],
   },
   {
     id: "pin-5",
@@ -81,5 +120,7 @@ export const PINS = [
     address: "La Rambla, 91",
     time: new Date("2024-03-13 09:00:00").toISOString(),
     referenceLinks: [],
+    documents: [],
+    expenses: [],
   },
 ] as const satisfies Pin[];

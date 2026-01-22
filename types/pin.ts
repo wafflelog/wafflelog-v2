@@ -1,10 +1,45 @@
 import { colors } from "@/constants/theme";
+import { type User } from "./user";
+
+type Currency =
+  | "EUR"
+  | "USD"
+  | "GBP"
+  | "JPY"
+  | "CAD"
+  | "AUD"
+  | "CHF"
+  | "CNY"
+  | "HKD"
+  | "INR"
+  | "MXN"
+  | "NZD"
+  | "RUB"
+  | "SAR"
+  | "SGD"
+  | "ZAR";
 
 export type ReferenceLink = {
   id: string;
   title: string;
   url: string;
   caption?: string;
+};
+
+export type Document = {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  url: string;
+  caption?: string;
+};
+
+export type Expense = {
+  id: string;
+  description: string;
+  amount: number;
+  currency: Currency;
+  paidBy: User;
 };
 
 export type Pin = {
@@ -14,6 +49,8 @@ export type Pin = {
   address: string;
   time: string;
   referenceLinks: ReferenceLink[];
+  documents: Document[];
+  expenses: Expense[];
 };
 
 export type PinCategory = {
