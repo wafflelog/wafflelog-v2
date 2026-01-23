@@ -1,12 +1,20 @@
 import { HeaderPin } from "@/components/header/pin";
 import { UIText } from "@/components/ui/text";
 import { PINS } from "@/data/pins";
+import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CardPinDocumentRegular } from "@/components/card/pin/document/regular";
 import { CardPinExpenseRegular } from "@/components/card/pin/expense/regular";
+import { CardPinImageRegular } from "@/components/card/pin/image/regular";
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
 import { CardPinReferenceLinkRegular } from "@/components/card/pin/reference-link/regular";
 import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
@@ -24,6 +32,7 @@ export default function PinScreen() {
   const router = useRouter();
   const pin = PINS.find((pin) => pin.id === id);
   const color = getColor(colors.purple);
+  const navigation = useNavigation();
 
   if (!pin) {
     return <UIText>Pin not found</UIText>;
@@ -34,7 +43,7 @@ export default function PinScreen() {
       <HeaderPin
         pin={pin}
         onBackPress={() => router.back()}
-        onMorePress={() => {}}
+        onMorePress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
       />
       <TouchableOpacity onPress={() => router.push("/pin")}>
         <UIText>Design</UIText>
@@ -51,7 +60,12 @@ export default function PinScreen() {
                 Location
               </UIText>
             </View>
-            <CardPinLocationRegular pin={pin} onPress={() => {}} />
+            <CardPinLocationRegular
+              pin={pin}
+              onPress={() => {
+                router.push(`/place-search`);
+              }}
+            />
           </View>
           <View style={styles.notes}>
             <View style={styles.sectionHeader}>
@@ -85,6 +99,19 @@ export default function PinScreen() {
               <UIText style={styles.sectionTitle} weight="600">
                 Images
               </UIText>
+            </View>
+            <View style={styles.sectionCard}>
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.imageList}
+                data={pin.images}
+                renderItem={({ item }) => (
+                  <View key={item.id} style={styles.imageCard}>
+                    <CardPinImageRegular image={item} onPress={() => {}} />
+                  </View>
+                )}
+              />
             </View>
           </View>
           <View style={styles.docs}>
@@ -153,6 +180,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    marginBottom: 12,
   },
   map: {
     width: "100%",
@@ -164,11 +192,19 @@ const styles = StyleSheet.create({
   notes: {},
   expenses: {},
   images: {},
+  imageList: {
+    gap: 12,
+  },
+  imageCard: {
+    width: 120,
+    height: 120,
+    backgroundColor: "red",
+  },
   docs: {},
   referenceLinks: {},
   sectionCard: {
     gap: 12,
-    ...getCardBasicStyle("md"),
+    ...getCardBasicStyle("sm"),
   },
   divider: {
     height: 1,

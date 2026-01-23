@@ -19,6 +19,22 @@ type Currency =
   | "SGD"
   | "ZAR";
 
+type Location = {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+};
+
+export type Image = {
+  id: string;
+  url: string;
+  caption?: string;
+  width: number;
+  height: number;
+};
+
 export type ReferenceLink = {
   id: string;
   title: string;
@@ -46,11 +62,12 @@ export type Pin = {
   id: string;
   name: string;
   category: PinCategory;
-  address: string;
+  location: Location;
   time: string;
   referenceLinks: ReferenceLink[];
   documents: Document[];
   expenses: Expense[];
+  images: Image[];
 };
 
 export type PinCategory = {

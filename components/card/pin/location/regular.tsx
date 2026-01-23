@@ -15,7 +15,7 @@ export function CardPinLocationRegular({
 }: CardPinLocationRegularProps) {
   return (
     <View style={styles.container}>
-      <UIText>{pin.address}</UIText>
+      <UIText>{pin.location.address}</UIText>
       <TouchableOpacity style={styles.button} onPress={onPress}>
         <MapIcon size={16} color={getColor(colors.pineGreen)} />
         <UIText>Open in Maps</UIText>
