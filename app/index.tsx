@@ -1,4 +1,5 @@
 import { CardTrip } from "@/components/card/trip";
+import { TitleRegular } from "@/components/title/regular";
 import { TRIPS } from "@/data";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -42,14 +43,16 @@ export default function IndexScreen() {
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <TitleRegular size="xl" style={styles.sectionTitle}>
+            Quick Actions
+          </TitleRegular>
           <View style={styles.quickActions}>
             <TouchableOpacity style={[styles.actionCard, styles.primaryAction]}>
               <Ionicons name="add-circle" size={22} color="#fff" />
               <Text style={styles.primaryActionText}>New Trip</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionCard}>
-              <Ionicons name="map-outline" size={22} color="#4A90E2" />
+              <Ionicons name="map-outline" size={22} color="#5b6570" />
               <Text style={styles.actionText}>Explore</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionCard}>
@@ -61,7 +64,9 @@ export default function IndexScreen() {
 
         {/* Ongoing Trip */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ongoing Trip</Text>
+          <TitleRegular size="xl" style={styles.sectionTitle}>
+            Ongoing Trip
+          </TitleRegular>
 
           <CardTrip trip={TRIPS[0]} variant="hero" />
         </View>
@@ -69,7 +74,9 @@ export default function IndexScreen() {
         {/* Upcoming Trips */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Upcoming Trips</Text>
+            <TitleRegular size="xl" style={styles.sectionTitle}>
+              Upcoming Trips
+            </TitleRegular>
             <TouchableOpacity>
               <Text style={styles.seeAllText}>See All</Text>
             </TouchableOpacity>
@@ -183,9 +190,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
     marginBottom: 12,
   },
   seeAllText: {

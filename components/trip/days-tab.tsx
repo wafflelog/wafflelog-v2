@@ -1,8 +1,8 @@
-import { UIText } from "@/components/ui/text";
-import { colors, getColor } from "@/constants/theme";
+import { colors, gaps, getColor } from "@/constants/theme";
 import { formatDate } from "@/lib/utils";
 import { TripDay } from "@/types/trip";
 import { ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import { TitleRegular } from "../title/regular";
 
 type TripDaysTabProps = {
   tripDays: TripDay[];
@@ -24,18 +24,20 @@ export const TripDaysTab = ({ tripDays }: TripDaysTabProps) => {
             tripDay.onPress();
           }}
         >
-          <UIText
-            style={[styles.text, tripDay.isActive && styles.activeText]}
+          <TitleRegular
+            size="md"
+            style={tripDay.isActive && styles.activeText}
             weight="600"
           >
             Day {index + 1}
-          </UIText>
-          <UIText
-            style={[styles.date, tripDay.isActive && styles.activeDate]}
+          </TitleRegular>
+          <TitleRegular
+            size="xs"
+            style={[tripDay.isActive && styles.activeDate]}
             weight="500"
           >
             {formatDate(tripDay.date, "short")}
-          </UIText>
+          </TitleRegular>
         </TouchableOpacity>
       ))}
     </ScrollView>
@@ -52,24 +54,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: "center",
+    gap: gaps.xxs,
   },
   tabItemActive: {
-    // borderWidth: 1,
-    // borderColor: getColor(colors.waffle),
     backgroundColor: getColor(colors.waffle),
-  },
-  text: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: getColor(colors.textLightGrey),
   },
   activeText: {
     color: "white",
-  },
-  date: {
-    fontSize: 12,
-    color: getColor(colors.textLightGrey),
-    marginTop: 2,
   },
   activeDate: {
     color: "white",

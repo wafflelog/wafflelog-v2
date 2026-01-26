@@ -1,33 +1,43 @@
-import { UIText } from "@/components/ui/text";
-import { colors, getColor } from "@/constants/theme";
+import { TitleRegular } from "@/components/title/regular";
+import { colors, gaps, getColor } from "@/constants/theme";
 import { type Document } from "@/types/pin";
 import {
   ExternalLink as ExternalLinkIcon,
   FileText as FileTextIcon,
 } from "lucide-react-native";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+} from "react-native";
 
-type CardPinDocumentRegularProps = {
+type CardDocumentRegularProps = {
   document: Document;
   onPress: () => void;
+  containerStyle?: StyleProp<ViewStyle>;
 };
 
-export function CardPinDocumentRegular({
+export function CardDocumentRegular({
   document,
   onPress,
-}: CardPinDocumentRegularProps) {
+  containerStyle,
+}: CardDocumentRegularProps) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, containerStyle]}>
       <View style={styles.iconContainer}>
         <FileTextIcon size={20} color={getColor(colors.pineGreen)} />
       </View>
 
       <View style={styles.content}>
-        <UIText style={styles.title} weight="600">
+        <TitleRegular size="md" weight="600">
           {document.fileName}
-        </UIText>
-        <UIText style={styles.caption}>{document.caption}</UIText>
-        <UIText style={styles.url}>{document.mimeType.toUpperCase()}</UIText>
+        </TitleRegular>
+        <TitleRegular size="xs">{document.caption}</TitleRegular>
+        <TitleRegular size="xxs">
+          {document.mimeType.toUpperCase()}
+        </TitleRegular>
       </View>
 
       <TouchableOpacity style={styles.button} onPress={onPress}>
@@ -41,7 +51,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: gaps.sm,
   },
   iconContainer: {
     width: 40,
@@ -54,16 +64,7 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: "column",
     flex: 1,
-  },
-  title: {
-    fontSize: 14,
-  },
-  caption: {
-    fontSize: 12,
-  },
-  url: {
-    fontSize: 12,
-    color: getColor(colors.purple),
+    gap: gaps.xxs,
   },
   button: {
     flexDirection: "row",

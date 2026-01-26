@@ -4,6 +4,7 @@ import { colors, getColor } from "@/constants/theme";
 import { type PinCategory } from "@/types/pin";
 import { useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { TitleRegular } from "../title/regular";
 
 export const TripCategoryFilter = ({
   categories,
@@ -17,9 +18,7 @@ export const TripCategoryFilter = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <UIText style={styles.sectionTitle} weight="600">
-          Filter by category
-        </UIText>
+        <TitleRegular size="lg">Filter by category</TitleRegular>
         {selectedCategories.length > 0 && (
           <TouchableOpacity onPress={() => setSelectedCategories([])}>
             <UIText style={styles.clear} weight="600">
@@ -85,7 +84,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: getColor(colors.paleGrey),
+    borderColor: getColor(colors.whiteGrey),
     // backgroundColor: getColor(colors.waffle, 0.2),
   },
   itemActive: {

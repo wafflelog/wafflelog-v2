@@ -3,20 +3,16 @@ import { UIText } from "@/components/ui/text";
 import { PINS } from "@/data/pins";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-  FlatList,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { CardPinDocumentRegular } from "@/components/card/pin/document/regular";
-import { CardPinExpenseRegular } from "@/components/card/pin/expense/regular";
-import { CardPinImageRegular } from "@/components/card/pin/image/regular";
+import { ButtonAdd } from "@/components/button/add";
+import { CardDocumentRegular } from "@/components/card/document/regular";
+import { CardExpenseRegular } from "@/components/card/expense/regular";
+import { CardImageRegular } from "@/components/card/image/regular";
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
-import { CardPinReferenceLinkRegular } from "@/components/card/pin/reference-link/regular";
+import { CardPinReferenceLinkRegular } from "@/components/card/reference-link/regular";
+import { TitleRegular } from "@/components/title/regular";
 import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
 import {
   FileText as FileTextIcon,
@@ -39,7 +35,7 @@ export default function PinScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <HeaderPin
         pin={pin}
         onBackPress={() => router.back()}
@@ -52,13 +48,10 @@ export default function PinScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.map}></View>
         <View style={styles.content}>
-          <View style={styles.info}></View>
-          <View style={styles.location}>
+          <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <MapPinIcon size={24} color={color} />
-              <UIText style={styles.sectionTitle} weight="600">
-                Location
-              </UIText>
+              <TitleRegular size="lg">Location</TitleRegular>
             </View>
             <CardPinLocationRegular
               pin={pin}
@@ -67,80 +60,72 @@ export default function PinScreen() {
               }}
             />
           </View>
-          <View style={styles.notes}>
-            <View style={styles.sectionHeader}>
-              <SquarePenIcon size={24} color={color} />
-              <UIText style={styles.sectionTitle} weight="600">
-                Notes
-              </UIText>
-            </View>
-          </View>
-          <View style={styles.expenses}>
+
+          <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <WalletIcon size={24} color={color} />
-              <UIText style={styles.sectionTitle} weight="600">
-                Expenses
-              </UIText>
+              <TitleRegular size="lg">Expenses</TitleRegular>
             </View>
             <View style={styles.sectionCard}>
               {pin.expenses.map((expense, index) => (
                 <View key={expense.id}>
-                  <CardPinExpenseRegular expense={expense} onPress={() => {}} />
+                  <CardExpenseRegular expense={expense} onPress={() => {}} />
                   {index < pin.expenses.length - 1 && (
                     <View style={styles.divider} />
                   )}
                 </View>
               ))}
             </View>
+            <ButtonAdd text="Add Expense" onPress={() => {}} />
           </View>
-          <View style={styles.images}>
+
+          <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <ImageIcon size={24} color={color} />
-              <UIText style={styles.sectionTitle} weight="600">
-                Images
-              </UIText>
+              <TitleRegular size="lg">Images</TitleRegular>
             </View>
             <View style={styles.sectionCard}>
-              <FlatList
+              <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.imageList}
-                data={pin.images}
-                renderItem={({ item }) => (
-                  <View key={item.id} style={styles.imageCard}>
-                    <CardPinImageRegular image={item} onPress={() => {}} />
+              >
+                {pin.images.map((image) => (
+                  <View key={image.id} style={styles.imageCard}>
+                    <CardImageRegular image={image} onPress={() => {}} />
                   </View>
-                )}
-              />
+                ))}
+                <ButtonAdd
+                  style={styles.addImageButton}
+                  text="Add Image"
+                  onPress={() => {}}
+                />
+              </ScrollView>
             </View>
           </View>
-          <View style={styles.docs}>
+
+          <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <FileTextIcon size={24} color={color} />
-              <UIText style={styles.sectionTitle} weight="600">
-                Documents
-              </UIText>
+              <TitleRegular size="lg">Documents</TitleRegular>
             </View>
             <View style={styles.sectionCard}>
               {pin.documents.map((document, index) => (
                 <View key={document.id}>
-                  <CardPinDocumentRegular
-                    document={document}
-                    onPress={() => {}}
-                  />
+                  <CardDocumentRegular document={document} onPress={() => {}} />
                   {index < pin.documents.length - 1 && (
                     <View style={styles.divider} />
                   )}
                 </View>
               ))}
             </View>
+            <ButtonAdd text="Add Document" onPress={() => {}} />
           </View>
-          <View style={styles.referenceLinks}>
+
+          <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Link2Icon size={24} color={color} />
-              <UIText style={styles.sectionTitle} weight="600">
-                Reference Links
-              </UIText>
+              <TitleRegular size="lg">Reference Links</TitleRegular>
             </View>
             <View style={styles.sectionCard}>
               {pin.referenceLinks.map((referenceLink, index) => (
@@ -155,9 +140,17 @@ export default function PinScreen() {
                 </View>
               ))}
             </View>
+            <ButtonAdd text="Add Reference Link" onPress={() => {}} />
           </View>
         </View>
       </ScrollView>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push("/notes")}
+        activeOpacity={0.8}
+      >
+        <SquarePenIcon size={24} color="#fff" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -172,10 +165,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 20,
   },
-  sectionTitle: {
-    fontSize: 18,
-    color: getColor(colors.textLightGrey),
-  },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -187,11 +176,6 @@ const styles = StyleSheet.create({
     aspectRatio: 1.5,
     backgroundColor: "red",
   },
-  info: {},
-  location: {},
-  notes: {},
-  expenses: {},
-  images: {},
   imageList: {
     gap: 12,
   },
@@ -200,8 +184,9 @@ const styles = StyleSheet.create({
     height: 120,
     backgroundColor: "red",
   },
-  docs: {},
-  referenceLinks: {},
+  section: {
+    gap: 6,
+  },
   sectionCard: {
     gap: 12,
     ...getCardBasicStyle("sm"),
@@ -210,5 +195,21 @@ const styles = StyleSheet.create({
     height: 1,
     marginTop: 12,
     backgroundColor: getColor(colors.textLightGrey, 0.2),
+  },
+  fab: {
+    position: "absolute",
+    bottom: 24,
+    right: 20,
+    width: 56,
+    height: 56,
+    alignItems: "center",
+    justifyContent: "center",
+    ...getCardBasicStyle("lg"),
+    backgroundColor: getColor(colors.purple),
+    borderRadius: "50%",
+  },
+  addImageButton: {
+    width: 120,
+    flexDirection: "column",
   },
 });

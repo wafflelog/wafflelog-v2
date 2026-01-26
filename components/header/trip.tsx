@@ -8,7 +8,7 @@ import {
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type HeaderTripProps = {
-  trip: Trip;
+  trip?: Trip;
   onBackPress: () => void;
   onMorePress: () => void;
 };
@@ -23,12 +23,14 @@ export const HeaderTrip = ({
       <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
         <ChevronLeftIcon size={24} color={getColor(colors.textDarkGrey)} />
       </TouchableOpacity>
-      <View style={styles.headerContent}>
-        <Text style={styles.headerTitle}>{trip.title}</Text>
-        <Text style={styles.headerSubtitle}>
-          {formatDate(trip.startDate)} - {formatDate(trip.endDate)}
-        </Text>
-      </View>
+      {trip && (
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>{trip.title}</Text>
+          <Text style={styles.headerSubtitle}>
+            {formatDate(trip.startDate)} - {formatDate(trip.endDate)}
+          </Text>
+        </View>
+      )}
       <TouchableOpacity style={styles.moreButton} onPress={onMorePress}>
         <MenuIcon size={24} color={getColor(colors.textDarkGrey)} />
       </TouchableOpacity>

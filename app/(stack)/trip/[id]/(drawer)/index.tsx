@@ -1,4 +1,5 @@
 import { HeaderTrip } from "@/components/header/trip";
+import { TitleRegular } from "@/components/title/regular";
 import { TripCategoryFilter } from "@/components/trip/category-filter";
 import { TripDaysTab } from "@/components/trip/days-tab";
 import { TripPinsList } from "@/components/trip/pins-list";
@@ -19,7 +20,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function TripScreen() {
+export default function TripIndexScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
@@ -62,7 +63,14 @@ export default function TripScreen() {
   }, [trip]);
 
   if (!trip) {
-    return <UIText>Trip not found</UIText>;
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <HeaderTrip
+          onBackPress={() => router.back()}
+          onMorePress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
+        />
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -78,7 +86,7 @@ export default function TripScreen() {
         contentContainerStyle={styles.content}
       >
         <View style={styles.top}>
-          <TouchableOpacity onPress={() => router.push("/trip")}>
+          <TouchableOpacity onPress={() => router.push(`/trip/${id}`)}>
             <UIText>Design</UIText>
           </TouchableOpacity>
 
@@ -86,9 +94,7 @@ export default function TripScreen() {
         </View>
 
         <View style={styles.itinerary}>
-          <UIText style={styles.sectionTitle} weight="600">
-            Itinerary
-          </UIText>
+          <TitleRegular size="lg">Itinerary</TitleRegular>
           <TripDaysTab tripDays={tripDays} />
         </View>
         <TripPinsList

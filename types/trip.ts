@@ -1,5 +1,18 @@
-import { type Pin } from "./pin";
+import {
+  type Document,
+  type Expense,
+  type Image,
+  type Pin,
+  type ReferenceLink,
+} from "./pin";
 import { type User } from "./user";
+
+export type ChecklistItem = {
+  id: string;
+  title: string;
+  completed: boolean;
+  createdBy: User;
+};
 
 export type TripDay = {
   date: string;
@@ -24,4 +37,9 @@ export type Trip = {
   location: string;
   companions: User[];
   pins: Pin[];
+  checklistItems: ChecklistItem[];
+  referenceLinks: ReferenceLink[];
+  documents: Document[];
+  images: Image[];
+  expenses: Expense[];
 };

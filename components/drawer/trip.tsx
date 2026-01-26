@@ -5,11 +5,39 @@ import {
 import { router } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 
-export function DrawerContent(props: DrawerContentComponentProps) {
+interface DrawerTripProps extends DrawerContentComponentProps {
+  id?: string;
+}
+
+export function DrawerTrip({ id, navigation }: DrawerTripProps) {
+  if (!id) {
+    return null;
+  }
+
   const links = [
     {
       label: "Back to Trip",
-      onPress: () => router.push("/trip/1/index"),
+      onPress: () => router.push(`/trip/${id}`),
+    },
+    {
+      label: "Trip Checklist",
+      onPress: () => router.push(`/trip/${id}/checklist`),
+    },
+    {
+      label: "Links",
+      onPress: () => router.push(`/trip/${id}/links`),
+    },
+    {
+      label: "Trip Documents",
+      onPress: () => router.push(`/trip/${id}/documents`),
+    },
+    {
+      label: "Trip Images",
+      onPress: () => router.push(`/trip/${id}/images`),
+    },
+    {
+      label: "Trip Expenses",
+      onPress: () => router.push(`/trip/${id}/expenses`),
     },
     {
       label: "Companions",
@@ -20,10 +48,6 @@ export function DrawerContent(props: DrawerContentComponentProps) {
     {
       label: "Checklist",
       onPress: () => router.push("/checklist"),
-    },
-    {
-      label: "Trip Checklist",
-      onPress: () => router.push("/trip/1/checklist"),
     },
     {
       label: "All Documents",
@@ -54,7 +78,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
           key={link.label}
           onPress={() => {
             link.onPress();
-            props.navigation.closeDrawer();
+            navigation.closeDrawer();
           }}
         >
           <Text>{link.label}</Text>

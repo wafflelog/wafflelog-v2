@@ -258,7 +258,7 @@ export default function UserScreen() {
               <TouchableOpacity
                 key={trip.id}
                 style={styles.tripCard}
-                onPress={() => router.push("/trip")}
+                onPress={() => {}}
               >
                 <View style={styles.tripImagePlaceholder}>
                   <Ionicons name="image-outline" size={40} color="#999" />
@@ -291,7 +291,7 @@ export default function UserScreen() {
               <TouchableOpacity
                 key={trip.id}
                 style={styles.tripCard}
-                onPress={() => router.push("/trip")}
+                onPress={() => {}}
               >
                 <View style={styles.tripImagePlaceholder}>
                   <Ionicons name="image-outline" size={40} color="#999" />
@@ -328,7 +328,7 @@ export default function UserScreen() {
               <TouchableOpacity
                 key={trip.id}
                 style={styles.tripCard}
-                onPress={() => router.push("/trip")}
+                onPress={() => {}}
               >
                 <View style={styles.tripImagePlaceholder}>
                   <Ionicons name="image-outline" size={40} color="#999" />

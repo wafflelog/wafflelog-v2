@@ -5,10 +5,40 @@ export const colors = {
   purple: [82, 72, 156],
   red: [254, 74, 73],
   pineGreen: [50, 98, 115],
-  paleGrey: [220, 220, 220],
+  whiteGrey: [220, 220, 220],
+  paleGrey: [180, 180, 180],
   textLightGrey: [100, 100, 100],
   textDarkGrey: [50, 50, 50],
+  white: [255, 255, 255],
+  black: [0, 0, 0],
 } as const satisfies Record<string, [number, number, number]>;
+
+export const borderRadiuses = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  full: 9999,
+};
+
+export const fontSizes = {
+  xxs: 10,
+  xs: 12,
+  sm: 14,
+  md: 16,
+  lg: 18,
+  xl: 20,
+  xxl: 24,
+};
+
+export const gaps = {
+  xxs: 4,
+  xs: 8,
+  sm: 12,
+  md: 16,
+  lg: 20,
+  xl: 24,
+};
 
 export const getColor = (color: [number, number, number], alpha?: number) => {
   if (alpha) {
@@ -18,11 +48,6 @@ export const getColor = (color: [number, number, number], alpha?: number) => {
 };
 
 export const getCardBasicStyle = (size: "sm" | "md" | "lg") => {
-  const paddings = {
-    sm: 12,
-    md: 16,
-    lg: 20,
-  };
   const shadows = {
     sm: {
       shadowColor: "#000",
@@ -56,15 +81,11 @@ export const getCardBasicStyle = (size: "sm" | "md" | "lg") => {
     md: 4,
     lg: 5,
   };
-  const borderRadiuses = {
-    sm: 8,
-    md: 12,
-    lg: 16,
-  };
+
   return {
     backgroundColor: "#fff",
     borderRadius: borderRadiuses[size],
-    padding: paddings[size],
+    padding: gaps[size],
     shadowColor: shadows[size].shadowColor,
     shadowOffset: shadows[size].shadowOffset,
     shadowOpacity: shadows[size].shadowOpacity,

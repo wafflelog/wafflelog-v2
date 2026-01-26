@@ -1,5 +1,5 @@
-import { UIText } from "@/components/ui/text";
-import { colors, getColor } from "@/constants/theme";
+import { TitleRegular } from "@/components/title/regular";
+import { colors, gaps, getColor } from "@/constants/theme";
 import { type ReferenceLink } from "@/types/pin";
 import {
   ExternalLink as ExternalLinkIcon,
@@ -23,11 +23,13 @@ export function CardPinReferenceLinkRegular({
       </View>
 
       <View style={styles.content}>
-        <UIText style={styles.title} weight="600">
+        <TitleRegular size="md" weight="600">
           {referenceLink.title}
-        </UIText>
-        <UIText style={styles.caption}>{referenceLink.caption}</UIText>
-        <UIText style={styles.url}>{referenceLink.url}</UIText>
+        </TitleRegular>
+        <TitleRegular size="xs">{referenceLink.caption}</TitleRegular>
+        <TitleRegular size="xs" color={colors.purple}>
+          {referenceLink.url}
+        </TitleRegular>
       </View>
 
       <TouchableOpacity style={styles.button} onPress={onPress}>
@@ -41,7 +43,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: gaps.sm,
   },
   iconContainer: {
     width: 40,
@@ -54,16 +56,7 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: "column",
     flex: 1,
-  },
-  title: {
-    fontSize: 14,
-  },
-  caption: {
-    fontSize: 12,
-  },
-  url: {
-    fontSize: 12,
-    color: getColor(colors.purple),
+    gap: gaps.xxs,
   },
   button: {
     flexDirection: "row",

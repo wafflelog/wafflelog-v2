@@ -1,8 +1,8 @@
 import { ListUsersHorizontalIcons } from "@/components/list/users/horizontal-icons";
+import { TitleRegular } from "@/components/title/regular";
 import { UIInProgressBadge } from "@/components/ui/in-progress-badge";
 import { UIProgressBar } from "@/components/ui/progress-bar";
-import { UIText } from "@/components/ui/text";
-import { colors, getColor } from "@/constants/theme";
+import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
 import { formatDate } from "@/lib/utils";
 import { type Trip } from "@/types/trip";
 
@@ -22,22 +22,20 @@ export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.content}>
         <UIInProgressBadge containerStyle={styles.inProgress} />
-        <UIText style={styles.title} weight="700">
-          {trip.title}
-        </UIText>
+        <TitleRegular size="lg">{trip.title}</TitleRegular>
 
-        <UIText style={styles.date}>
-          {formatDate(trip.startDate)} - {formatDate(trip.endDate)}
-        </UIText>
+        <TitleRegular size="sm">{`${formatDate(trip.startDate)} - ${formatDate(
+          trip.endDate
+        )}`}</TitleRegular>
 
         <View style={styles.locationContainer}>
           <MapPinIcon size={16} color={getColor(colors.pineGreen)} />
-          <UIText style={styles.locationText}>{trip.location}</UIText>
+          <TitleRegular size="sm">{trip.location}</TitleRegular>
         </View>
 
         <View style={styles.progressContainer}>
           <UIProgressBar progress={50} height={6} />
-          <UIText style={styles.progressText}>Day 3 of 7</UIText>
+          <TitleRegular size="sm">Day 3 of 7</TitleRegular>
         </View>
         <ListUsersHorizontalIcons users={trip.companions} max={3} />
       </View>
@@ -50,52 +48,29 @@ export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 20,
     paddingRight: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
     borderWidth: 2,
     borderColor: getColor(colors.waffle),
     flexDirection: "row",
+    ...getCardBasicStyle("lg"),
   },
   content: {
     flexDirection: "column",
     flex: 1,
-    gap: 10,
+    gap: gaps.sm,
     paddingRight: 10,
   },
   inProgress: {
     alignSelf: "flex-start",
-  },
-  title: {
-    fontSize: 20,
-    color: getColor(colors.textDarkGrey),
-  },
-  date: {
-    fontSize: 14,
-    color: getColor(colors.textLightGrey),
   },
   locationContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
   },
-  locationText: {
-    fontSize: 14,
-    color: getColor(colors.textLightGrey),
-  },
   progressContainer: {
     flexDirection: "column",
     gap: 4,
-  },
-  progressText: {
-    fontSize: 14,
-    color: getColor(colors.textLightGrey),
   },
   chevronContainer: {
     flexDirection: "column",

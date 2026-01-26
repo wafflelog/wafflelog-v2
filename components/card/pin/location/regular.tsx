@@ -1,5 +1,5 @@
-import { UIText } from "@/components/ui/text";
-import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
+import { TitleRegular } from "@/components/title/regular";
+import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
 import { type Pin } from "@/types/pin";
 import { Map as MapIcon } from "lucide-react-native";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
@@ -15,10 +15,12 @@ export function CardPinLocationRegular({
 }: CardPinLocationRegularProps) {
   return (
     <View style={styles.container}>
-      <UIText>{pin.location.address}</UIText>
+      <TitleRegular size="sm">{pin.location.address}</TitleRegular>
       <TouchableOpacity style={styles.button} onPress={onPress}>
         <MapIcon size={16} color={getColor(colors.pineGreen)} />
-        <UIText>Open in Maps</UIText>
+        <TitleRegular size="xs" weight="600">
+          Open in Maps
+        </TitleRegular>
       </TouchableOpacity>
     </View>
   );
@@ -27,6 +29,7 @@ export function CardPinLocationRegular({
 const styles = StyleSheet.create({
   container: {
     ...getCardBasicStyle("md"),
+    gap: gaps.sm,
   },
   button: {
     flexDirection: "row",

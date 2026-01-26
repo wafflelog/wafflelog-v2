@@ -1,18 +1,18 @@
-import { UIText } from "@/components/ui/text";
-import { colors, getColor } from "@/constants/theme";
+import { TitleRegular } from "@/components/title/regular";
+import { colors, gaps, getColor } from "@/constants/theme";
 import { type Expense } from "@/types/pin";
 import { DollarSign as DollarSignIcon } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 
-type CardPinExpenseRegularProps = {
+type CardExpenseRegularProps = {
   expense: Expense;
   onPress: () => void;
 };
 
-export function CardPinExpenseRegular({
+export function CardExpenseRegular({
   expense,
   onPress,
-}: CardPinExpenseRegularProps) {
+}: CardExpenseRegularProps) {
   return (
     <View style={styles.container}>
       <View style={styles.iconContainer}>
@@ -20,17 +20,17 @@ export function CardPinExpenseRegular({
       </View>
 
       <View style={styles.content}>
-        <UIText style={styles.title} weight="600">
+        <TitleRegular size="md" weight="600">
           {expense.description}
-        </UIText>
+        </TitleRegular>
 
-        <UIText style={styles.url}>Paid by {expense.paidBy.fullname}</UIText>
+        <TitleRegular size="xs">Paid by {expense.paidBy.fullname}</TitleRegular>
       </View>
 
       <View style={styles.right}>
-        <UIText style={styles.amount} weight="600">
+        <TitleRegular size="md" weight="600">
           {expense.amount} {expense.currency.toUpperCase()}
-        </UIText>
+        </TitleRegular>
       </View>
     </View>
   );
@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: gaps.sm,
   },
   iconContainer: {
     width: 40,
@@ -53,16 +53,6 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: "column",
     flex: 1,
-  },
-  title: {
-    fontSize: 14,
-  },
-  amount: {
-    fontSize: 13,
-  },
-  url: {
-    fontSize: 12,
-    color: getColor(colors.purple),
   },
   right: {
     flexDirection: "row",

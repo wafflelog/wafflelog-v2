@@ -1,6 +1,6 @@
 import { IconPinCategory } from "@/components/icon/pin-category";
-import { UIText } from "@/components/ui/text";
-import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
+import { TitleRegular } from "@/components/title/regular";
+import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
 import { formatTime } from "@/lib/utils";
 import { type Pin } from "@/types/pin";
 
@@ -20,17 +20,9 @@ export const CardPinRegular = ({ pin, onPress }: CardPinRegularProps) => {
       </View>
 
       <View style={styles.content}>
-        <UIText style={styles.title} weight="600">
-          {pin.name}
-        </UIText>
+        <TitleRegular size="md">{pin.name}</TitleRegular>
 
-        <UIText style={styles.date}>{formatTime(pin.time)}</UIText>
-
-        {/* <View style={styles.locationContainer}>
-          <MapPinIcon size={16} color={getColor(colors.pineGreen)} />
-          <UIText style={styles.locationText}>{pin.address}</UIText>
-        </View> */}
-        {/* <ListUsersHorizontalIcons users={trip.companions} max={3} /> */}
+        <TitleRegular size="xs">{formatTime(pin.time)}</TitleRegular>
       </View>
 
       <View style={styles.chevronContainer}>
@@ -45,7 +37,7 @@ const styles = StyleSheet.create({
     ...getCardBasicStyle("sm"),
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: gaps.sm,
   },
   iconContainer: {
     width: 40,
@@ -60,23 +52,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 6,
     paddingRight: 10,
-  },
-  title: {
-    fontSize: 14,
-    color: getColor(colors.textDarkGrey),
-  },
-  date: {
-    fontSize: 12,
-    color: getColor(colors.textLightGrey),
-  },
-  locationContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  locationText: {
-    fontSize: 12,
-    color: getColor(colors.textLightGrey),
   },
   chevronContainer: {
     flexDirection: "column",
