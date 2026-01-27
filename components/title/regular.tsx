@@ -3,7 +3,7 @@ import { colors, fontSizes, getColor } from "@/constants/theme";
 import { StyleProp, StyleSheet, TextStyle } from "react-native";
 
 type TitleRegularProps = {
-  size?: "xxs" | "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "xxs" | "xs" | "sm" | "md" | "lg" | "xl" | "xxl";
   children: React.ReactNode;
   color?: [number, number, number];
   style?: StyleProp<TextStyle>;
@@ -17,6 +17,7 @@ const fontWeights = {
   md: "500",
   lg: "600",
   xl: "700",
+  xxl: "700",
 } as const satisfies Record<string, string>;
 
 export function TitleRegular({

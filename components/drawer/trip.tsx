@@ -3,12 +3,14 @@ import {
   DrawerContentScrollView,
 } from "@react-navigation/drawer";
 import { router } from "expo-router";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import {
   DrawerItemRegular,
   type DrawerItem,
 } from "@/components/drawer/item/regular";
+import { TitleRegular } from "@/components/title/regular";
+import { colors, gaps, getColor } from "@/constants/theme";
 import {
   ChevronRightIcon,
   FileTextIcon,
@@ -113,27 +115,49 @@ export function DrawerTrip({ id, navigation }: DrawerTripProps) {
   ];
 
   return (
-    <DrawerContentScrollView contentContainerStyle={styles.container}>
-      {links.map((link) => (
-        <DrawerItemRegular
-          key={link.id}
-          item={{
-            ...link,
-            isActive: activeLink === link.id,
-            onPress: () => {
-              setActiveLink(link.id);
-              link.onPress();
-            },
-          }}
-        />
-      ))}
+    <DrawerContentScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
+      <View style={styles.header}>
+        <TitleRegular size="xxl" weight="600" color={colors.waffle}>
+          Wafflelog
+        </TitleRegular>
+      </View>
+      <View style={styles.divider} />
+      <View style={styles.links}>
+        {links.map((link) => (
+          <DrawerItemRegular
+            key={link.id}
+            item={{
+              ...link,
+              isActive: activeLink === link.id,
+              onPress: () => {
+                setActiveLink(link.id);
+                link.onPress();
+              },
+            }}
+          />
+        ))}
+      </View>
     </DrawerContentScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    paddingHorizontal: gaps.sm,
+    paddingVertical: gaps.sm,
+  },
+  content: {
+    gap: gaps.lg,
+  },
+  links: {
     gap: 2,
+  },
+  header: {},
+  divider: {
+    height: 1,
+    backgroundColor: getColor(colors.paleGrey, 0.5),
   },
 });
