@@ -34,7 +34,12 @@ export default function TripLinksScreen() {
           <View key={item.id} style={styles.link}>
             <CardPinReferenceLinkRegular
               referenceLink={item}
-              onPress={() => {}}
+              onPress={() => {
+                router.push({
+                  pathname: "/web-viewer",
+                  params: { url: item.url, title: item.title },
+                });
+              }}
             />
           </View>
         )}

@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
   FlatList,
-  Linking,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -99,9 +98,10 @@ export default function ReferenceLinksScreen() {
   ];
 
   const handleLinkPress = (link: ReferenceLink) => {
-    Linking.openURL(link.url).catch((err) =>
-      console.error("Failed to open URL:", err)
-    );
+    router.push({
+      pathname: "/web-viewer",
+      params: { url: link.url, title: link.title },
+    });
   };
 
   const handlePinPress = (pinId: string) => {

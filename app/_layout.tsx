@@ -5,7 +5,7 @@ import {
   Montserrat_700Bold,
   useFonts,
 } from "@expo-google-fonts/montserrat";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 
 export default function RootLayout() {
   useFonts({
@@ -14,6 +14,7 @@ export default function RootLayout() {
     Montserrat_600SemiBold,
     Montserrat_700Bold,
   });
+  const router = useRouter();
 
   return (
     <Stack>
@@ -21,6 +22,13 @@ export default function RootLayout() {
       <Stack.Screen name="user" options={{ headerShown: false }} />
       <Stack.Screen name="(stack)" options={{ headerShown: false }} />
       <Stack.Screen name="image-viewer" options={{ presentation: "modal" }} />
+      <Stack.Screen
+        name="web-viewer"
+        options={{
+          presentation: "fullScreenModal",
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

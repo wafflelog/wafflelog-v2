@@ -132,7 +132,12 @@ export default function PinScreen() {
                 <View key={referenceLink.id}>
                   <CardPinReferenceLinkRegular
                     referenceLink={referenceLink}
-                    onPress={() => {}}
+                    onPress={() => {
+                      router.push({
+                        pathname: "/web-viewer",
+                        params: { url: referenceLink.url, title: referenceLink.title },
+                      });
+                    }}
                   />
                   {index < pin.referenceLinks.length - 1 && (
                     <View style={styles.divider} />
