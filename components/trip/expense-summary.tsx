@@ -25,7 +25,7 @@ export function TripExpenseSummary() {
   const renderColumn = (
     label: string,
     amount: string,
-    color: [number, number, number]
+    color: [number, number, number],
   ) => {
     return (
       <View style={styles.column}>
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     ...getCardBasicStyle("md"),
     backgroundColor: getColor(colors.pineGreen, 0.15),
     gap: gaps.sm,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: getColor(colors.pineGreen, 0.3),
   },
   header: {},

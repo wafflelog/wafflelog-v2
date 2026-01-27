@@ -27,13 +27,14 @@ export const ListUsersHorizontalIcons = ({
         <CardUserIcon
           key={user.id}
           user={user}
-          size={32}
+          size="md"
+          radius="full"
           containerStyle={[
             styles.icon,
             {
               marginLeft: index !== 0 ? -8 : 0,
               backgroundColor: getColor(
-                availableColors[index % availableColors.length]
+                availableColors[index % availableColors.length],
               ),
             },
           ]}

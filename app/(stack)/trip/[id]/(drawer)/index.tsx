@@ -3,7 +3,6 @@ import { TitleRegular } from "@/components/title/regular";
 import { TripCategoryFilter } from "@/components/trip/category-filter";
 import { TripDaysTab } from "@/components/trip/days-tab";
 import { TripPinsList } from "@/components/trip/pins-list";
-import { UIText } from "@/components/ui/text";
 import { colors, getColor } from "@/constants/theme";
 import { TRIPS } from "@/data";
 import { PinCategory } from "@/types/pin";
@@ -11,13 +10,7 @@ import { DrawerActions, useNavigation } from "@react-navigation/native";
 import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef, useState } from "react";
-import {
-  FlatList,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { FlatList, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TripIndexScreen() {
@@ -39,7 +32,7 @@ export default function TripIndexScreen() {
       date: dayjs(trip.startDate).add(index, "day").toISOString(),
       isActive: selectedDayIndex === index,
       pins: trip.pins.filter((pin) =>
-        dayjs(pin.time).isSame(dayjs(trip.startDate).add(index, "day"), "day")
+        dayjs(pin.time).isSame(dayjs(trip.startDate).add(index, "day"), "day"),
       ),
       onPress: () => {
         setSelectedDayIndex(index);
@@ -86,10 +79,6 @@ export default function TripIndexScreen() {
         contentContainerStyle={styles.content}
       >
         <View style={styles.top}>
-          <TouchableOpacity onPress={() => router.push(`/trip/${id}`)}>
-            <UIText>Design</UIText>
-          </TouchableOpacity>
-
           <TripCategoryFilter categories={allCategories} />
         </View>
 

@@ -21,6 +21,10 @@ export type TripDay = {
   pins: Pin[];
 };
 
+export type Companion = User & {
+  state: "INVITED" | "ACCEPTED" | "REJECTED";
+};
+
 export type Trip = {
   id: string;
   title: string;
@@ -35,7 +39,7 @@ export type Trip = {
    */
   endDate: string;
   location: string;
-  companions: User[];
+  companions: Companion[];
   pins: Pin[];
   checklistItems: ChecklistItem[];
   referenceLinks: ReferenceLink[];

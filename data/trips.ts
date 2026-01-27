@@ -1,7 +1,24 @@
-import { type Trip } from "@/types/trip";
+import { type Companion, type Trip } from "@/types/trip";
 import { PINS } from "./pins";
 import { USERS } from "./users";
 
+const COMPANIONS: Companion[] = [
+  {
+    id: "companion-1",
+    fullname: "John Doe",
+    state: "INVITED",
+  },
+  {
+    id: "companion-2",
+    fullname: "Mike Johnson",
+    state: "REJECTED",
+  },
+  {
+    id: "companion-3",
+    fullname: "Jessica Chen",
+    state: "ACCEPTED",
+  },
+];
 export const TRIPS = [
   {
     id: "1",
@@ -9,7 +26,7 @@ export const TRIPS = [
     startDate: new Date("2024-03-11").toISOString(),
     endDate: new Date("2024-03-17").toISOString(),
     location: "Barcelona, Spain",
-    companions: [USERS[0], USERS[1], USERS[2], USERS[3], USERS[4]],
+    companions: COMPANIONS,
     pins: PINS,
     checklistItems: [
       {
@@ -94,7 +111,7 @@ export const TRIPS = [
     startDate: new Date("2024-03-11").toISOString(),
     endDate: new Date("2024-03-18").toISOString(),
     location: "London, UK",
-    companions: [USERS[2], USERS[3], USERS[4]],
+    companions: COMPANIONS,
     pins: PINS,
     checklistItems: [],
     referenceLinks: [],
@@ -108,7 +125,7 @@ export const TRIPS = [
     startDate: new Date("2024-03-11").toISOString(),
     endDate: new Date("2024-03-17").toISOString(),
     location: "Tokyo, Japan",
-    companions: [USERS[0], USERS[1]],
+    companions: COMPANIONS,
     pins: PINS,
     checklistItems: [],
     referenceLinks: [],

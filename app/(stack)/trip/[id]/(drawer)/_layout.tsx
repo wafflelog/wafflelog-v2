@@ -57,6 +57,13 @@ export default function Layout() {
           headerShown: false,
         }}
       />
+      <Drawer.Screen
+        name="companions"
+        options={{
+          title: "Companions",
+          headerShown: false,
+        }}
+      />
     </Drawer>
   );
 }

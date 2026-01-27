@@ -40,6 +40,10 @@ export function DrawerTrip({ id, navigation }: DrawerTripProps) {
       onPress: () => router.push(`/trip/${id}/expenses`),
     },
     {
+      label: "Trip Companions",
+      onPress: () => router.push(`/trip/${id}/companions`),
+    },
+    {
       label: "Companions",
       onPress: () => {
         router.push("/companions");
