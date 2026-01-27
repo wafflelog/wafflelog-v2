@@ -20,6 +20,7 @@ export default function RootLayout() {
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="user" options={{ headerShown: false }} />
       <Stack.Screen name="(stack)" options={{ headerShown: false }} />
+      <Stack.Screen name="image-viewer" options={{ presentation: "modal" }} />
     </Stack>
   );
 }

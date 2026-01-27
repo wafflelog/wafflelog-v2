@@ -2,7 +2,8 @@ import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import { type Image } from "@/types/pin";
 import { Image as ExpoImage } from "expo-image";
-import { StyleSheet, View } from "react-native";
+import { useRouter } from "expo-router";
+import { StyleSheet, TouchableOpacity } from "react-native";
 
 type CardImageRegularProps = {
   image: Image;
@@ -15,15 +16,22 @@ export function CardImageRegular({
   showCaption = false,
   onPress,
 }: CardImageRegularProps) {
+  const router = useRouter();
+
   return (
-    <View style={styles.container}>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={() =>
+        router.push(`/image-viewer?url=${encodeURIComponent(image.url)}`)
+      }
+    >
       <ExpoImage style={styles.image} source={image.url} contentFit="cover" />
       {showCaption && (
         <TitleRegular size="xs" style={styles.caption}>
           {image.caption}
         </TitleRegular>
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
