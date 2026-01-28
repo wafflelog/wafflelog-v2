@@ -27,7 +27,7 @@ export const ListUsersHorizontalIcons = ({
         <CardUserIcon
           key={user.id}
           user={user}
-          size="md"
+          size="sm"
           radius="full"
           containerStyle={[
             styles.icon,

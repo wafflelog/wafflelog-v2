@@ -22,10 +22,15 @@ export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.content}>
         <UIInProgressBadge containerStyle={styles.inProgress} />
-        <TitleRegular size="lg">{trip.title}</TitleRegular>
+        <TitleRegular size="lg" weight="500">
+          {trip.title}
+        </TitleRegular>
 
-        <TitleRegular size="sm">{`${formatDate(trip.startDate)} - ${formatDate(
-          trip.endDate
+        <TitleRegular
+          size="sm"
+          color={colors.paleGrey}
+        >{`${formatDate(trip.startDate)} - ${formatDate(
+          trip.endDate,
         )}`}</TitleRegular>
 
         <View style={styles.locationContainer}>
@@ -40,7 +45,7 @@ export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
         <ListUsersHorizontalIcons users={trip.companions} max={3} />
       </View>
       <View style={styles.chevronContainer}>
-        <ChevronRightIcon size={36} color={getColor(colors.waffle)} />
+        <ChevronRightIcon size={24} color={getColor(colors.waffle)} />
       </View>
     </TouchableOpacity>
   );
@@ -49,19 +54,20 @@ export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
 const styles = StyleSheet.create({
   container: {
     paddingRight: 4,
-    borderWidth: 2,
+    // borderWidth: 2,
     borderColor: getColor(colors.waffle),
     flexDirection: "row",
-    ...getCardBasicStyle("lg"),
+    ...getCardBasicStyle("md"),
   },
   content: {
     flexDirection: "column",
     flex: 1,
-    gap: gaps.sm,
+    gap: gaps.xxs,
     paddingRight: 10,
   },
   inProgress: {
     alignSelf: "flex-start",
+    marginBottom: gaps.xs,
   },
   locationContainer: {
     flexDirection: "row",
@@ -71,6 +77,7 @@ const styles = StyleSheet.create({
   progressContainer: {
     flexDirection: "column",
     gap: 4,
+    marginBottom: gaps.xs,
   },
   chevronContainer: {
     flexDirection: "column",

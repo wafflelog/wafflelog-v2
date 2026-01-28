@@ -11,7 +11,7 @@ type CardUserIconProps = {
 };
 
 const sizes = {
-  sm: 20,
+  sm: 30,
   md: 40,
   lg: 60,
 } as const satisfies Record<"sm" | "md" | "lg", number>;

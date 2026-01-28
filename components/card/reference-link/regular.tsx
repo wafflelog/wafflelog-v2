@@ -1,6 +1,7 @@
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import { type ReferenceLink } from "@/types/pin";
+import { useRouter } from "expo-router";
 import {
   ExternalLink as ExternalLinkIcon,
   Globe as GlobeIcon,
@@ -9,15 +10,25 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 type CardPinReferenceLinkRegularProps = {
   referenceLink: ReferenceLink;
-  onPress: () => void;
+  onPress?: () => void;
 };
 
 export function CardPinReferenceLinkRegular({
   referenceLink,
   onPress,
 }: CardPinReferenceLinkRegularProps) {
+  const router = useRouter();
   return (
-    <View style={styles.container}>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={() => {
+        router.push({
+          pathname: "/web-viewer",
+          params: { url: referenceLink.url, title: referenceLink.title },
+        });
+        onPress?.();
+      }}
+    >
       <View style={styles.iconContainer}>
         <GlobeIcon size={20} color={getColor(colors.pineGreen)} />
       </View>
@@ -32,10 +43,10 @@ export function CardPinReferenceLinkRegular({
         </TitleRegular>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={onPress}>
+      <View style={styles.button}>
         <ExternalLinkIcon size={16} color={getColor(colors.pineGreen)} />
-      </TouchableOpacity>
-    </View>
+      </View>
+    </TouchableOpacity>
   );
 }
 

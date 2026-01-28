@@ -1,8 +1,17 @@
 import { CardTrip } from "@/components/card/trip";
 import { TitleRegular } from "@/components/title/regular";
+import { colors, gaps, getColor } from "@/constants/theme";
 import { TRIPS } from "@/data";
-import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import {
+  Bell as BellIcon,
+  Calendar as CalendarIcon,
+  MapPin as MapPinIcon,
+  Plane as PlaneIcon,
+  Plus as PlusIcon,
+} from "lucide-react-native";
+import {
+  ImageBackground,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,124 +21,198 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function IndexScreen() {
+  const router = useRouter();
+
+  // Get time-based greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
+  };
+
+  // Get days until next trip
+  const daysUntilNextTrip = 17;
+  const ongoingTrips = TRIPS.slice(0, 1);
+  const upcomingTrips = TRIPS.slice(1, 3);
+  const pastTrips = TRIPS.slice(3);
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
+      {/* Branding Header */}
+      <View style={styles.brandingHeader}>
+        <TitleRegular size="xl" style={styles.brandingText}>
+          Wafflelog
+        </TitleRegular>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <Text style={styles.greeting}>Good morning!</Text>
-            <Text style={styles.userName}>Sarah</Text>
-            <View style={styles.headerMeta}>
-              <View style={styles.headerMetaItem}>
-                <Ionicons name="calendar-outline" size={14} color="#666" />
-                <Text style={styles.headerMetaText}>
-                  Monday, March 13, 2024
-                </Text>
-              </View>
-              <View style={styles.headerMetaItem}>
-                <Ionicons name="location-outline" size={14} color="#666" />
-                <Text style={styles.headerMetaText}>Barcelona, Spain</Text>
-              </View>
+        {/* Header Banner with Greeting */}
+        <ImageBackground
+          source={{
+            uri: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&q=80",
+          }}
+          style={styles.headerBanner}
+          imageStyle={styles.headerBannerImage}
+        >
+          <View style={styles.headerBannerOverlay} />
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <Text style={styles.greeting}>{getGreeting()}!</Text>
+              <Text style={styles.userName}>Sarah</Text>
+              {ongoingTrips.length > 0 && (
+                <View style={styles.currentLocationBadge}>
+                  <MapPinIcon size={14} color={getColor(colors.waffle)} />
+                  <Text style={styles.currentLocationText}>
+                    Currently in {ongoingTrips[0].location}
+                  </Text>
+                </View>
+              )}
+              {daysUntilNextTrip !== null && daysUntilNextTrip > 0 && (
+                <View style={styles.countdownBadge}>
+                  <CalendarIcon size={14} color={getColor(colors.turquoise)} />
+                  <Text style={styles.countdownText}>
+                    {daysUntilNextTrip} {daysUntilNextTrip > 1 ? "days" : "day"}{" "}
+                    until next trip
+                  </Text>
+                </View>
+              )}
             </View>
-          </View>
-          <TouchableOpacity style={styles.profileButton}>
-            <Ionicons name="person-circle-outline" size={32} color="#333" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <TitleRegular size="xl" style={styles.sectionTitle}>
-            Quick Actions
-          </TitleRegular>
-          <View style={styles.quickActions}>
-            <TouchableOpacity style={[styles.actionCard, styles.primaryAction]}>
-              <Ionicons name="add-circle" size={22} color="#fff" />
-              <Text style={styles.primaryActionText}>New Trip</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
-              <Ionicons name="map-outline" size={22} color="#5b6570" />
-              <Text style={styles.actionText}>Explore</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionCard}>
-              <Ionicons name="bookmark-outline" size={22} color="#4A90E2" />
-              <Text style={styles.actionText}>Saved</Text>
+            <TouchableOpacity
+              style={styles.notificationButton}
+              onPress={() => router.push("/notification-center")}
+            >
+              <BellIcon size={24} color="#fff" />
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>3</Text>
+              </View>
             </TouchableOpacity>
           </View>
-        </View>
+        </ImageBackground>
 
         {/* Ongoing Trip */}
-        <View style={styles.section}>
-          <TitleRegular size="xl" style={styles.sectionTitle}>
-            Ongoing Trip
-          </TitleRegular>
-
-          <CardTrip trip={TRIPS[0]} variant="hero" />
-        </View>
+        {ongoingTrips.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <TitleRegular
+                size="lg"
+                style={[
+                  styles.sectionTitle,
+                  { borderColor: getColor(colors.waffle) },
+                ]}
+              >
+                Ongoing Trip
+              </TitleRegular>
+            </View>
+            <View style={styles.sectionContent}>
+              <CardTrip trip={ongoingTrips[0]} variant="hero" />
+            </View>
+          </View>
+        )}
 
         {/* Upcoming Trips */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <TitleRegular size="xl" style={styles.sectionTitle}>
-              Upcoming Trips
-            </TitleRegular>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>See All</Text>
-            </TouchableOpacity>
+        {upcomingTrips.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <TitleRegular
+                size="lg"
+                style={[
+                  styles.sectionTitle,
+                  { borderColor: getColor(colors.turquoise) },
+                ]}
+              >
+                Upcoming Trips
+              </TitleRegular>
+              {upcomingTrips.length > 2 ? (
+                <TouchableOpacity>
+                  <Text style={styles.seeAllText}>View All</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            <View style={styles.sectionContent}>
+              {upcomingTrips.slice(0, 2).map((trip) => (
+                <CardTrip
+                  key={trip.id}
+                  trip={trip}
+                  variant="regular"
+                  color="turquoise"
+                />
+              ))}
+            </View>
           </View>
-
-          {TRIPS.map((trip) => (
-            <CardTrip
-              key={trip.id}
-              trip={trip}
-              variant="regular"
-              color="turquoise"
-            />
-          ))}
-        </View>
+        )}
 
         {/* Past Trips */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Past Trips</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>View All</Text>
-            </TouchableOpacity>
-          </View>
-
-          {TRIPS.map((trip) => (
-            <CardTrip
-              key={trip.id}
-              trip={trip}
-              variant="regular"
-              color="purple"
-            />
-          ))}
-        </View>
-
-        {/* Stats Summary */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Travel Stats</Text>
-          <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>12</Text>
-              <Text style={styles.statLabel}>Trips</Text>
+        {pastTrips.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <TitleRegular
+                size="lg"
+                style={[
+                  styles.sectionTitle,
+                  { borderColor: getColor(colors.purple) },
+                ]}
+              >
+                Past Trips
+              </TitleRegular>
+              {pastTrips.length > 2 ? (
+                <TouchableOpacity>
+                  <Text style={styles.seeAllText}>View All</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>8</Text>
-              <Text style={styles.statLabel}>Countries</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statNumber}>45</Text>
-              <Text style={styles.statLabel}>Cities</Text>
+            <View style={styles.sectionContent}>
+              {pastTrips.slice(0, 2).map((trip) => (
+                <CardTrip
+                  key={trip.id}
+                  trip={trip}
+                  variant="regular"
+                  color="purple"
+                />
+              ))}
             </View>
           </View>
-        </View>
+        )}
+
+        {/* Empty State */}
+        {ongoingTrips.length === 0 &&
+          upcomingTrips.length === 0 &&
+          pastTrips.length === 0 && (
+            <View style={styles.emptyState}>
+              <PlaneIcon size={64} color={getColor(colors.paleGrey)} />
+              <Text style={styles.emptyStateTitle}>No trips yet</Text>
+              <Text style={styles.emptyStateText}>
+                Start planning your next adventure!
+              </Text>
+              <TouchableOpacity
+                style={styles.emptyStateButton}
+                onPress={() => {
+                  // TODO: Navigate to create trip
+                }}
+              >
+                <Text style={styles.emptyStateButtonText}>
+                  Create Your First Trip
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
       </ScrollView>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => {
+          // TODO: Navigate to create trip
+        }}
+        activeOpacity={0.8}
+      >
+        <PlusIcon size={20} color="#fff" />
+        <Text style={styles.fabText}>New Trip</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -139,282 +222,200 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F5F7FA",
   },
+  brandingHeader: {
+    backgroundColor: "#fff",
+    paddingHorizontal: gaps.md,
+    paddingVertical: gaps.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: getColor(colors.whiteGrey),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  brandingText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: getColor(colors.waffle),
+    letterSpacing: -0.5,
+  },
   scrollView: {
     flex: 1,
   },
+  scrollViewContent: {
+    // gap: gaps.sm,
+    paddingBottom: gaps.xl,
+  },
+  headerBanner: {
+    paddingTop: gaps.md,
+    paddingBottom: gaps.xl + gaps.md,
+    minHeight: 200,
+  },
+  headerBannerImage: {
+    resizeMode: "cover",
+  },
+  headerBannerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
   header: {
+    position: "relative",
+    zIndex: 1,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingHorizontal: gaps.md,
+    paddingTop: gaps.md,
+    paddingBottom: gaps.sm,
   },
   headerContent: {
     flex: 1,
   },
   greeting: {
     fontSize: 16,
-    color: "#666",
+    color: "#fff",
     marginBottom: 4,
+    fontWeight: "500",
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   userName: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: "bold",
-    color: "#333",
-    marginBottom: 8,
+    color: "#fff",
+    marginBottom: gaps.sm,
+    textShadowColor: "rgba(0, 0, 0, 0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  headerMeta: {
-    gap: 8,
-  },
-  headerMetaItem: {
+  currentLocationBadge: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    paddingHorizontal: gaps.sm,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    marginBottom: gaps.xs,
   },
-  headerMetaText: {
+  currentLocationText: {
     fontSize: 13,
-    color: "#666",
+    color: getColor(colors.textDarkGrey),
+    fontWeight: "600",
     marginLeft: 6,
   },
-  profileButton: {
-    padding: 4,
+  countdownBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    paddingHorizontal: gaps.sm,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+  },
+  countdownText: {
+    fontSize: 13,
+    color: getColor(colors.textDarkGrey),
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  notificationButton: {
+    padding: gaps.xs,
+    position: "relative",
+  },
+  notificationBadge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: getColor(colors.red),
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  notificationBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  fab: {
+    position: "absolute",
+    bottom: gaps.lg,
+    right: gaps.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: gaps.md,
+    paddingVertical: gaps.sm,
+    borderRadius: 32,
+    backgroundColor: getColor(colors.waffle),
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    gap: gaps.xs,
+  },
+  fabText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+    marginRight: gaps.xs,
   },
   section: {
-    paddingHorizontal: 20,
-    marginTop: 24,
+    paddingHorizontal: gaps.md,
+    marginTop: gaps.lg,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: gaps.md,
   },
   sectionTitle: {
-    marginBottom: 12,
+    borderBottomWidth: 1,
+    paddingBottom: gaps.xs,
+  },
+  sectionContent: {
+    gap: gaps.md,
   },
   seeAllText: {
     fontSize: 14,
-    color: "#4A90E2",
+    color: getColor(colors.turquoise),
     fontWeight: "600",
   },
-  quickActions: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  actionCard: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 12,
+  emptyState: {
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingVertical: gaps.xl * 2,
+    paddingHorizontal: gaps.md,
   },
-  primaryAction: {
-    backgroundColor: "#4A90E2",
+  emptyStateTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: getColor(colors.textDarkGrey),
+    marginTop: gaps.md,
+    marginBottom: gaps.xs,
   },
-  actionText: {
-    marginTop: 6,
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#4A90E2",
+  emptyStateText: {
+    fontSize: 16,
+    color: getColor(colors.textLightGrey),
+    textAlign: "center",
+    marginBottom: gaps.lg,
   },
-  primaryActionText: {
-    marginTop: 6,
-    fontSize: 11,
-    fontWeight: "600",
+  emptyStateButton: {
+    backgroundColor: getColor(colors.waffle),
+    paddingHorizontal: gaps.lg,
+    paddingVertical: gaps.md,
+    borderRadius: 12,
+  },
+  emptyStateButtonText: {
     color: "#fff",
-  },
-  tripCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  tripImagePlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    backgroundColor: "#F0F0F0",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  tripInfo: {
-    flex: 1,
-  },
-  tripTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 8,
-  },
-  tripMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  tripDate: {
-    fontSize: 14,
-    color: "#666",
-    marginLeft: 6,
-  },
-  tripLocation: {
-    fontSize: 14,
-    color: "#666",
-    marginLeft: 6,
-  },
-  friendsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  friendAvatars: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  friendAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#4A90E2",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: "#fff",
-  },
-  friendAvatarOverlap: {
-    marginLeft: -8,
-  },
-  friendAvatarText: {
-    fontSize: 10,
+    fontSize: 16,
     fontWeight: "600",
-    color: "#fff",
-  },
-  friendsCount: {
-    fontSize: 12,
-    color: "#666",
-    marginLeft: 8,
-  },
-  ongoingTripCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
-    borderWidth: 2,
-    borderColor: "#4A90E2",
-  },
-  ongoingTripImagePlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 12,
-    backgroundColor: "#F0F0F0",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
-  },
-  ongoingTripInfo: {
-    flex: 1,
-  },
-  ongoingTripBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#E8F2FF",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-    marginBottom: 8,
-  },
-  ongoingTripBadgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#4A90E2",
-    marginLeft: 4,
-  },
-  ongoingTripTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 10,
-  },
-  ongoingTripMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  ongoingTripDate: {
-    fontSize: 15,
-    color: "#666",
-    marginLeft: 8,
-  },
-  ongoingTripLocation: {
-    fontSize: 15,
-    color: "#666",
-    marginLeft: 8,
-  },
-  ongoingTripProgress: {
-    marginTop: 12,
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: "#E0E0E0",
-    borderRadius: 3,
-    overflow: "hidden",
-    marginBottom: 6,
-  },
-  progressFill: {
-    height: "100%",
-    width: "43%",
-    backgroundColor: "#4A90E2",
-    borderRadius: 3,
-  },
-  progressText: {
-    fontSize: 12,
-    color: "#666",
-    fontWeight: "500",
-  },
-  statsContainer: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 20,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statNumber: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#4A90E2",
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: "#666",
   },
 });

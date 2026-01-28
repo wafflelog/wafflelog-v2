@@ -23,24 +23,27 @@ export const CardTripRegular = ({
 }: CardTripRegularProps) => {
   return (
     <TouchableOpacity
-      style={[styles.container, { borderLeftColor: getColor(colors[color]) }]}
+      style={[styles.container, { borderColor: getColor(colors[color]) }]}
       onPress={onPress}
     >
       <View style={styles.content}>
-        <TitleRegular size="lg">{trip.title}</TitleRegular>
+        <TitleRegular size="md">{trip.title}</TitleRegular>
 
-        <TitleRegular size="sm">{`${formatDate(trip.startDate)} - ${formatDate(
-          trip.endDate
+        <TitleRegular
+          size="xs"
+          color={colors.paleGrey}
+        >{`${formatDate(trip.startDate)} - ${formatDate(
+          trip.endDate,
         )}`}</TitleRegular>
 
         <View style={styles.locationContainer}>
           <MapPinIcon size={16} color={getColor(colors.pineGreen)} />
-          <TitleRegular size="sm">{trip.location}</TitleRegular>
+          <TitleRegular size="xs">{trip.location}</TitleRegular>
         </View>
         <ListUsersHorizontalIcons users={trip.companions} max={3} />
       </View>
       <View style={styles.chevronContainer}>
-        <ChevronRightIcon size={36} color={getColor(colors[color])} />
+        <ChevronRightIcon size={24} color={getColor(colors[color])} />
       </View>
     </TouchableOpacity>
   );
@@ -48,15 +51,15 @@ export const CardTripRegular = ({
 
 const styles = StyleSheet.create({
   container: {
-    ...getCardBasicStyle("md"),
+    ...getCardBasicStyle("sm"),
     flexDirection: "row",
     alignItems: "center",
-    borderLeftWidth: 2,
+    // borderWidth: 1,
   },
   content: {
     flexDirection: "column",
     flex: 1,
-    gap: gaps.sm,
+    gap: gaps.xxs,
     paddingRight: 10,
   },
   locationContainer: {

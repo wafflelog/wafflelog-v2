@@ -30,16 +30,11 @@ export default function TripDocumentsScreen() {
       <FlatList
         contentContainerStyle={styles.documents}
         data={trip.documents}
-        numColumns={2}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View key={item.id} style={styles.item}>
             <View style={styles.document}>
-              <CardDocument
-                document={item}
-                variant="square"
-                onPress={() => {}}
-              />
+              <CardDocument document={item} variant="regular" />
             </View>
           </View>
         )}
@@ -57,11 +52,9 @@ const styles = StyleSheet.create({
     padding: gaps.md,
   },
   item: {
-    width: "50%",
     paddingHorizontal: gaps.xs,
   },
   document: {
     ...getCardBasicStyle("sm"),
-    height: "100%",
   },
 });

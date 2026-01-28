@@ -1,3 +1,4 @@
+import { CardDocument } from "@/components/card/document";
 import { HeaderPin } from "@/components/header/pin";
 import { UIText } from "@/components/ui/text";
 import { PINS } from "@/data/pins";
@@ -7,7 +8,6 @@ import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ButtonAdd } from "@/components/button/add";
-import { CardDocumentRegular } from "@/components/card/document/regular";
 import { CardExpenseRegular } from "@/components/card/expense/regular";
 import { CardImageRegular } from "@/components/card/image/regular";
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
@@ -112,7 +112,7 @@ export default function PinScreen() {
             <View style={styles.sectionCard}>
               {pin.documents.map((document, index) => (
                 <View key={document.id}>
-                  <CardDocumentRegular document={document} onPress={() => {}} />
+                  <CardDocument document={document} variant="regular" />
                   {index < pin.documents.length - 1 && (
                     <View style={styles.divider} />
                   )}
@@ -130,15 +130,7 @@ export default function PinScreen() {
             <View style={styles.sectionCard}>
               {pin.referenceLinks.map((referenceLink, index) => (
                 <View key={referenceLink.id}>
-                  <CardPinReferenceLinkRegular
-                    referenceLink={referenceLink}
-                    onPress={() => {
-                      router.push({
-                        pathname: "/web-viewer",
-                        params: { url: referenceLink.url, title: referenceLink.title },
-                      });
-                    }}
-                  />
+                  <CardPinReferenceLinkRegular referenceLink={referenceLink} />
                   {index < pin.referenceLinks.length - 1 && (
                     <View style={styles.divider} />
                   )}

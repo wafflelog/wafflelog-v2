@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
 export default function WebViewerScreen() {
@@ -27,41 +27,45 @@ export default function WebViewerScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={styles.header}>
-        <TitleRegular size="md" weight="600" style={styles.headerTitle}>
-          {params.title}
-        </TitleRegular>
-        <TouchableOpacity onPress={() => router.back()}>
-          <XIcon size={24} color={getColor(colors.pineGreen)} />
-        </TouchableOpacity>
-      </View>
-      <WebView
-        source={{ uri: url }}
-        style={styles.webview}
-        onLoadStart={() => setLoading(true)}
-        onLoadEnd={() => setLoading(false)}
-        onError={() => setLoading(false)}
-        startInLoadingState={true}
-        renderLoading={() => (
-          <View style={styles.loadingContainer}>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+        <View style={styles.header}>
+          <TitleRegular size="md" weight="600" style={styles.headerTitle}>
+            {params.title}
+          </TitleRegular>
+          <TouchableOpacity onPress={() => router.back()}>
+            <XIcon size={24} color={getColor(colors.pineGreen)} />
+          </TouchableOpacity>
+        </View>
+        <WebView
+          source={{ uri: url }}
+          style={styles.webview}
+          onLoadStart={() => setLoading(true)}
+          onLoadEnd={() => setLoading(false)}
+          onError={(error) => {
+            setLoading(false);
+            console.error("Error loading web view", error);
+          }}
+          startInLoadingState={true}
+          renderLoading={() => (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={getColor(colors.purple)} />
+            </View>
+          )}
+        />
+        {loading && (
+          <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color={getColor(colors.purple)} />
           </View>
         )}
-      />
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={getColor(colors.purple)} />
-        </View>
-      )}
-    </SafeAreaView>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: getColor(colors.white),
   },
   header: {
     flexDirection: "row",
@@ -75,9 +79,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#333",
   },
-  webview: {
-    flex: 1,
-  },
+  webview: {},
   loadingContainer: {
     position: "absolute",
     top: 0,

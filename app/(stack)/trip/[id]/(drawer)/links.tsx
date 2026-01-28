@@ -32,15 +32,7 @@ export default function TripLinksScreen() {
         data={trip.referenceLinks}
         renderItem={({ item }) => (
           <View key={item.id} style={styles.link}>
-            <CardPinReferenceLinkRegular
-              referenceLink={item}
-              onPress={() => {
-                router.push({
-                  pathname: "/web-viewer",
-                  params: { url: item.url, title: item.title },
-                });
-              }}
-            />
+            <CardPinReferenceLinkRegular referenceLink={item} />
           </View>
         )}
       />

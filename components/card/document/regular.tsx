@@ -25,7 +25,10 @@ export function CardDocumentRegular({
   containerStyle,
 }: CardDocumentRegularProps) {
   return (
-    <View style={[styles.container, containerStyle]}>
+    <TouchableOpacity
+      style={[styles.container, containerStyle]}
+      onPress={onPress}
+    >
       <View style={styles.iconContainer}>
         <FileTextIcon size={20} color={getColor(colors.pineGreen)} />
       </View>
@@ -40,10 +43,10 @@ export function CardDocumentRegular({
         </TitleRegular>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={onPress}>
+      <View style={styles.button}>
         <ExternalLinkIcon size={16} color={getColor(colors.pineGreen)} />
-      </TouchableOpacity>
-    </View>
+      </View>
+    </TouchableOpacity>
   );
 }
 
