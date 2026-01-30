@@ -58,6 +58,13 @@ export type Expense = {
   paidBy: User;
 };
 
+export type Note = {
+  id: string;
+  text: string;
+  createdAt: string;
+  createdBy: User;
+};
+
 export type Pin = {
   id: string;
   name: string;

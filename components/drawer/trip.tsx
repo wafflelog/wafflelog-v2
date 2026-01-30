@@ -75,43 +75,6 @@ export function DrawerTrip({ id, navigation }: DrawerTripProps) {
       icon: (color) => <UsersIcon size={20} color={color} />,
       onPress: () => router.push(`/trip/${id}/companions`),
     },
-    {
-      id: "8",
-      label: "Companions",
-      onPress: () => {
-        router.push("/companions");
-      },
-    },
-    {
-      id: "9",
-      label: "Checklist",
-      onPress: () => router.push("/checklist"),
-    },
-    {
-      id: "10",
-      label: "All Documents",
-      onPress: () => router.push("/documents"),
-    },
-    {
-      id: "11",
-      label: "All Expenses",
-      onPress: () => router.push("/expenses"),
-    },
-    {
-      id: "12",
-      label: "All Images",
-      onPress: () => router.push("/images"),
-    },
-    {
-      id: "13",
-      label: "Pinned Notes",
-      onPress: () => router.push("/pinned-notes"),
-    },
-    {
-      id: "14",
-      label: "All Reference Links",
-      onPress: () => router.push("/reference-links"),
-    },
   ];
 
   return (

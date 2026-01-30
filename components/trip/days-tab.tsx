@@ -1,4 +1,4 @@
-import { colors, gaps, getColor } from "@/constants/theme";
+import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
 import { formatDate } from "@/lib/utils";
 import { TripDay } from "@/types/trip";
 import { ScrollView, StyleSheet, TouchableOpacity } from "react-native";
@@ -25,7 +25,7 @@ export const TripDaysTab = ({ tripDays }: TripDaysTabProps) => {
           }}
         >
           <TitleRegular
-            size="md"
+            size="sm"
             style={tripDay.isActive && styles.activeText}
             weight="600"
           >
@@ -50,9 +50,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tabItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: gaps.sm,
+    paddingVertical: gaps.xs,
+    borderRadius: borderRadiuses.sm,
     alignItems: "center",
     gap: gaps.xxs,
   },

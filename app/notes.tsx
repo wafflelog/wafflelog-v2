@@ -3,7 +3,6 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -101,7 +100,7 @@ export default function CommentsScreen() {
             };
           }
           return note;
-        })
+        }),
       );
       setReplyingTo(null);
     } else {
@@ -131,7 +130,7 @@ export default function CommentsScreen() {
           };
         }
         return note;
-      })
+      }),
     );
   };
 
@@ -149,190 +148,183 @@ export default function CommentsScreen() {
   });
 
   return (
-    <Modal
-      visible={true}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={() => router.back()}
-    >
-      <SafeAreaView style={styles.container} edges={["top"]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="close" size={24} color="#333" />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Notes</Text>
-            <Text style={styles.commentCount}>
-              {getTotalCommentCount()} notes
-            </Text>
-          </View>
-          <View style={styles.closeButton} />
-        </View>
-
-        <KeyboardAvoidingView
-          style={styles.keyboardView}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => router.back()}
         >
-          {/* Notes List */}
-          <ScrollView
-            style={styles.commentsList}
-            contentContainerStyle={styles.commentsListContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {sortedComments.map((note) => (
-              <View key={note.id}>
-                <View
-                  style={[
-                    styles.commentItem,
-                    note.isPinned && styles.pinnedCommentItem,
-                  ]}
-                >
-                  <View style={styles.commentAvatar}>
-                    <Text style={styles.commentAvatarText}>
-                      {note.author.initial}
-                    </Text>
+          <Ionicons name="close" size={24} color="#333" />
+        </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Notes</Text>
+          <Text style={styles.commentCount}>
+            {getTotalCommentCount()} notes
+          </Text>
+        </View>
+        <View style={styles.closeButton} />
+      </View>
+
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        {/* Notes List */}
+        <ScrollView
+          style={styles.commentsList}
+          contentContainerStyle={styles.commentsListContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {sortedComments.map((note) => (
+            <View key={note.id}>
+              <View
+                style={[
+                  styles.commentItem,
+                  note.isPinned && styles.pinnedCommentItem,
+                ]}
+              >
+                <View style={styles.commentAvatar}>
+                  <Text style={styles.commentAvatarText}>
+                    {note.author.initial}
+                  </Text>
+                </View>
+                <View style={styles.commentContent}>
+                  <View style={styles.commentHeader}>
+                    <View style={styles.commentHeaderLeft}>
+                      {note.isPinned && (
+                        <Ionicons
+                          name="pin"
+                          size={14}
+                          color="#4A90E2"
+                          style={styles.pinIcon}
+                        />
+                      )}
+                      <Text style={styles.commentAuthor}>
+                        {note.author.name}
+                      </Text>
+                    </View>
+                    <View style={styles.commentHeaderRight}>
+                      <Text style={styles.commentTimestamp}>
+                        {note.timestamp}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.pinButton}
+                        onPress={() => togglePin(note.id)}
+                      >
+                        <Ionicons
+                          name={note.isPinned ? "pin" : "pin-outline"}
+                          size={16}
+                          color={note.isPinned ? "#4A90E2" : "#999"}
+                        />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                  <View style={styles.commentContent}>
-                    <View style={styles.commentHeader}>
-                      <View style={styles.commentHeaderLeft}>
-                        {note.isPinned && (
-                          <Ionicons
-                            name="pin"
-                            size={14}
-                            color="#4A90E2"
-                            style={styles.pinIcon}
-                          />
-                        )}
-                        <Text style={styles.commentAuthor}>
-                          {note.author.name}
+                  <Text style={styles.commentText}>{note.text}</Text>
+                  <TouchableOpacity
+                    style={styles.replyButton}
+                    onPress={() => handleReply(note.id, note.author.name)}
+                  >
+                    <Ionicons
+                      name="chatbubble-outline"
+                      size={14}
+                      color="#4A90E2"
+                    />
+                    <Text style={styles.replyButtonText}>Reply</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Replies */}
+              {note.replies && note.replies.length > 0 && (
+                <View style={styles.repliesContainer}>
+                  {note.replies.map((reply) => (
+                    <View key={reply.id} style={styles.replyItem}>
+                      <View style={styles.replyAvatar}>
+                        <Text style={styles.replyAvatarText}>
+                          {reply.author.initial}
                         </Text>
                       </View>
-                      <View style={styles.commentHeaderRight}>
-                        <Text style={styles.commentTimestamp}>
-                          {note.timestamp}
-                        </Text>
+                      <View style={styles.replyContent}>
+                        <View style={styles.replyHeader}>
+                          <Text style={styles.replyAuthor}>
+                            {reply.author.name}
+                          </Text>
+                          <Text style={styles.replyTimestamp}>
+                            {reply.timestamp}
+                          </Text>
+                        </View>
+                        <Text style={styles.replyText}>{reply.text}</Text>
                         <TouchableOpacity
-                          style={styles.pinButton}
-                          onPress={() => togglePin(note.id)}
+                          style={styles.replyButton}
+                          onPress={() =>
+                            handleReply(note.id, reply.author.name)
+                          }
                         >
                           <Ionicons
-                            name={note.isPinned ? "pin" : "pin-outline"}
-                            size={16}
-                            color={note.isPinned ? "#4A90E2" : "#999"}
+                            name="chatbubble-outline"
+                            size={14}
+                            color="#4A90E2"
                           />
+                          <Text style={styles.replyButtonText}>Reply</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
-                    <Text style={styles.commentText}>{note.text}</Text>
-                    <TouchableOpacity
-                      style={styles.replyButton}
-                      onPress={() => handleReply(note.id, note.author.name)}
-                    >
-                      <Ionicons
-                        name="chatbubble-outline"
-                        size={14}
-                        color="#4A90E2"
-                      />
-                      <Text style={styles.replyButtonText}>Reply</Text>
-                    </TouchableOpacity>
-                  </View>
+                  ))}
                 </View>
+              )}
+            </View>
+          ))}
+        </ScrollView>
 
-                {/* Replies */}
-                {note.replies && note.replies.length > 0 && (
-                  <View style={styles.repliesContainer}>
-                    {note.replies.map((reply) => (
-                      <View key={reply.id} style={styles.replyItem}>
-                        <View style={styles.replyAvatar}>
-                          <Text style={styles.replyAvatarText}>
-                            {reply.author.initial}
-                          </Text>
-                        </View>
-                        <View style={styles.replyContent}>
-                          <View style={styles.replyHeader}>
-                            <Text style={styles.replyAuthor}>
-                              {reply.author.name}
-                            </Text>
-                            <Text style={styles.replyTimestamp}>
-                              {reply.timestamp}
-                            </Text>
-                          </View>
-                          <Text style={styles.replyText}>{reply.text}</Text>
-                          <TouchableOpacity
-                            style={styles.replyButton}
-                            onPress={() =>
-                              handleReply(note.id, reply.author.name)
-                            }
-                          >
-                            <Ionicons
-                              name="chatbubble-outline"
-                              size={14}
-                              color="#4A90E2"
-                            />
-                            <Text style={styles.replyButtonText}>Reply</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                )}
+        {/* Input Section */}
+        <View style={styles.inputContainer}>
+          {replyingTo && (
+            <View style={styles.replyingToContainer}>
+              <View style={styles.replyingToContent}>
+                <Ionicons name="arrow-back" size={14} color="#4A90E2" />
+                <Text style={styles.replyingToText}>
+                  Replying to {replyingTo.authorName}
+                </Text>
               </View>
-            ))}
-          </ScrollView>
-
-          {/* Input Section */}
-          <View style={styles.inputContainer}>
-            {replyingTo && (
-              <View style={styles.replyingToContainer}>
-                <View style={styles.replyingToContent}>
-                  <Ionicons name="arrow-back" size={14} color="#4A90E2" />
-                  <Text style={styles.replyingToText}>
-                    Replying to {replyingTo.authorName}
-                  </Text>
-                </View>
-                <TouchableOpacity onPress={cancelReply}>
-                  <Ionicons name="close" size={18} color="#666" />
-                </TouchableOpacity>
-              </View>
-            )}
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder={
-                  replyingTo
-                    ? `Reply to ${replyingTo.authorName}...`
-                    : "Add a note..."
-                }
-                placeholderTextColor="#999"
-                value={newComment}
-                onChangeText={setNewComment}
-                multiline
-                maxLength={500}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  !newComment.trim() && styles.sendButtonDisabled,
-                ]}
-                onPress={handleAddComment}
-                disabled={!newComment.trim()}
-              >
-                <Ionicons
-                  name="send"
-                  size={20}
-                  color={newComment.trim() ? "#fff" : "#999"}
-                />
+              <TouchableOpacity onPress={cancelReply}>
+                <Ionicons name="close" size={18} color="#666" />
               </TouchableOpacity>
             </View>
+          )}
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.input}
+              placeholder={
+                replyingTo
+                  ? `Reply to ${replyingTo.authorName}...`
+                  : "Add a note..."
+              }
+              placeholderTextColor="#999"
+              value={newComment}
+              onChangeText={setNewComment}
+              multiline
+              maxLength={500}
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                !newComment.trim() && styles.sendButtonDisabled,
+              ]}
+              onPress={handleAddComment}
+              disabled={!newComment.trim()}
+            >
+              <Ionicons
+                name="send"
+                size={20}
+                color={newComment.trim() ? "#fff" : "#999"}
+              />
+            </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </Modal>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

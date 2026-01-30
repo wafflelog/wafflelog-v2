@@ -1,0 +1,55 @@
+import { CardUserIcon } from "@/components/card/user/icon";
+import { TitleRegular } from "@/components/title/regular";
+import { gaps } from "@/constants/theme";
+import { formatCreatedAt } from "@/lib/utils";
+import { type Note } from "@/types/pin";
+import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+
+type CardNoteRegularProps = {
+  note: Note;
+  containerStyle?: StyleProp<ViewStyle>;
+};
+
+export function CardNoteRegular({
+  note,
+  containerStyle,
+}: CardNoteRegularProps) {
+  return (
+    <View style={[styles.container, containerStyle]}>
+      <View style={styles.userContainer}>
+        <CardUserIcon user={note.createdBy} radius="full" />
+      </View>
+      <View style={styles.content}>
+        <View style={styles.metadata}>
+          <TitleRegular size="xs">{note.createdBy.fullname}</TitleRegular>
+          <TitleRegular size="xxs">
+            {formatCreatedAt(note.createdAt)}
+          </TitleRegular>
+        </View>
+        <TitleRegular size="sm">{note.text}</TitleRegular>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: gaps.xs,
+  },
+  userContainer: {
+    flexShrink: 0,
+  },
+  content: {
+    flexDirection: "column",
+    gap: gaps.xxs,
+    flex: 1,
+  },
+  metadata: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: gaps.xxs,
+  },
+});

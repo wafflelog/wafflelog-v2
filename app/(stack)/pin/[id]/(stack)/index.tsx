@@ -23,7 +23,7 @@ import {
   Wallet as WalletIcon,
 } from "lucide-react-native";
 
-export default function PinScreen() {
+export default function PinIndexScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const pin = PINS.find((pin) => pin.id === id);
@@ -41,9 +41,6 @@ export default function PinScreen() {
         onBackPress={() => router.back()}
         onMorePress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
       />
-      <TouchableOpacity onPress={() => router.push("/pin")}>
-        <UIText>Design</UIText>
-      </TouchableOpacity>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.map}></View>
@@ -143,7 +140,7 @@ export default function PinScreen() {
       </ScrollView>
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => router.push("/notes")}
+        onPress={() => router.push(`/pin/${id}/notes`)}
         activeOpacity={0.8}
       >
         <SquarePenIcon size={24} color="#fff" />

@@ -7,8 +7,8 @@ export default function Layout() {
         name="trip/[id]/(drawer)"
         options={{ headerShown: false }}
       />
-      <Stack.Screen name="pin" options={{ headerShown: false }} />
-      <Stack.Screen name="pin/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="pin/[id]/(stack)" options={{ headerShown: false }} />
+
       <Stack.Screen name="place-search" />
       <Stack.Screen name="companions" options={{ headerShown: false }} />
       <Stack.Screen name="documents" options={{ headerShown: false }} />
@@ -17,12 +17,6 @@ export default function Layout() {
       <Stack.Screen name="reference-links" options={{ headerShown: false }} />
       <Stack.Screen name="checklist" options={{ headerShown: false }} />
       <Stack.Screen name="pinned-notes" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="notes"
-        options={{
-          presentation: "modal",
-        }}
-      />
     </Stack>
   );
 }

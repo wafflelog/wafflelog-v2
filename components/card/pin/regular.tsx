@@ -20,7 +20,9 @@ export const CardPinRegular = ({ pin, onPress }: CardPinRegularProps) => {
       </View>
 
       <View style={styles.content}>
-        <TitleRegular size="md">{pin.name}</TitleRegular>
+        <TitleRegular size="sm" weight="500">
+          {pin.name}
+        </TitleRegular>
 
         <TitleRegular size="xs">{formatTime(pin.time)}</TitleRegular>
       </View>
