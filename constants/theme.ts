@@ -2,6 +2,7 @@ export const colors = {
   waffle: [255, 179, 0],
   orange: [255, 128, 0],
   turquoise: [42, 183, 202],
+  blue: [50, 100, 150],
   purple: [82, 72, 156],
   red: [254, 74, 73],
   pineGreen: [50, 98, 115],
