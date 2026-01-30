@@ -1,8 +1,15 @@
 import { colors, getColor } from "@/constants/theme";
 import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { X as XIcon } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
-import { Dimensions, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  Dimensions,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import {
   Gesture,
   GestureDetector,
@@ -25,7 +32,15 @@ export default function ImageZoomScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ url?: string }>();
 
-  const imageUrl = params.url || "https://picsum.photos/seed/695/3000/2000";
+  const images = [
+    "https://picsum.photos/seed/695/3000/2000",
+    "https://picsum.photos/seed/696/3000/2000",
+    "https://picsum.photos/seed/697/3000/2000",
+    "https://picsum.photos/seed/698/3000/2000",
+    "https://picsum.photos/seed/699/3000/2000",
+  ];
+
+  const [imageUrl, setImageUrl] = useState(images[0]);
 
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
@@ -228,6 +243,12 @@ export default function ImageZoomScreen() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => router.back()}
+        >
+          <XIcon size={24} color={getColor(colors.white)} />
+        </TouchableOpacity>
         <View style={styles.overlay}>
           <GestureDetector gesture={composedGesture}>
             <Animated.View style={[styles.imageContainer, animatedStyle]}>
@@ -241,25 +262,17 @@ export default function ImageZoomScreen() {
             </Animated.View>
           </GestureDetector>
         </View>
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={() => router.back()}
-        >
-          <View style={styles.closeButtonContainer}>
-            <View
-              style={[
-                styles.closeButtonLine,
-                { transform: [{ rotate: "45deg" }] },
-              ]}
-            />
-            <View
-              style={[
-                styles.closeButtonLine,
-                { transform: [{ rotate: "-45deg" }] },
-              ]}
-            />
-          </View>
-        </TouchableOpacity>
+
+        <FlatList
+          horizontal
+          style={styles.thumbnails}
+          data={images}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => setImageUrl(item)}>
+              <ExpoImage source={{ uri: item }} style={styles.thumbnail} />
+            </TouchableOpacity>
+          )}
+        />
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -268,12 +281,14 @@ export default function ImageZoomScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    flexDirection: "column",
     backgroundColor: getColor(colors.black),
   },
   overlay: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    minHeight: 0, // Important for flex to work properly
   },
   imageContainer: {
     width: SCREEN_WIDTH,
@@ -297,17 +312,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     zIndex: 10,
   },
-  closeButtonContainer: {
-    width: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
+  thumbnails: {
+    height: 100,
+    flexShrink: 0,
+    flexGrow: 0,
   },
-  closeButtonLine: {
-    position: "absolute",
-    width: 16,
-    height: 2,
-    backgroundColor: getColor(colors.white),
+  thumbnail: {
+    width: 100,
+    height: 100,
   },
 });
