@@ -34,7 +34,7 @@ export function CardDocumentRegular({
       </View>
 
       <View style={styles.content}>
-        <TitleRegular size="md" weight="600">
+        <TitleRegular size="sm" weight="600">
           {document.fileName}
         </TitleRegular>
         <TitleRegular size="xs">{document.caption}</TitleRegular>

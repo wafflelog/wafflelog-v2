@@ -34,7 +34,7 @@ export function CardPinReferenceLinkRegular({
       </View>
 
       <View style={styles.content}>
-        <TitleRegular size="md" weight="600">
+        <TitleRegular size="sm" weight="600">
           {referenceLink.title}
         </TitleRegular>
         <TitleRegular size="xs">{referenceLink.caption}</TitleRegular>

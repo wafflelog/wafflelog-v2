@@ -41,7 +41,7 @@ export const CardTripChecklistItem = ({
         </TitleRegular>
       </View>
       <View style={styles.trash}>
-        <Trash2Icon size={24} color={getColor(colors.textLightGrey)} />
+        <Trash2Icon size={18} color={getColor(colors.textLightGrey)} />
       </View>
     </TouchableOpacity>
   );

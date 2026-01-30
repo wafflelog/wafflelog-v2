@@ -61,8 +61,12 @@ export default function ChatScreen() {
       </TouchableOpacity>
       <FlatList
         data={messages}
-        renderItem={({ item }) => (
-          <CardNoteRegular note={item} containerStyle={styles.note} />
+        renderItem={({ item, index }) => (
+          <CardNoteRegular
+            note={item}
+            containerStyle={styles.note}
+            variant={index % 2 === 0 ? "user" : "self"}
+          />
         )}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listStyle}

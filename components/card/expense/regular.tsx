@@ -20,7 +20,7 @@ export function CardExpenseRegular({
       </View>
 
       <View style={styles.content}>
-        <TitleRegular size="md" weight="600">
+        <TitleRegular size="sm" weight="600">
           {expense.description}
         </TitleRegular>
 
@@ -28,7 +28,7 @@ export function CardExpenseRegular({
       </View>
 
       <View style={styles.right}>
-        <TitleRegular size="md" weight="600">
+        <TitleRegular size="sm" weight="600">
           {expense.amount} {expense.currency.toUpperCase()}
         </TitleRegular>
       </View>
