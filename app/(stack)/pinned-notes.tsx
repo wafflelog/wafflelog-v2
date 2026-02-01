@@ -66,13 +66,9 @@ export default function PinnedNotesScreen() {
     },
   ];
 
-  const handleNotePress = (note: PinnedNote) => {
-    router.push(`/pin?id=${note.pinId}`);
-  };
+  const handleNotePress = (note: PinnedNote) => {};
 
-  const handlePinPress = (pinId: string) => {
-    router.push(`/pin?id=${pinId}`);
-  };
+  const handlePinPress = (pinId: string) => {};
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>

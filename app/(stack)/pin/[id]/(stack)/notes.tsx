@@ -1,21 +1,15 @@
 import { CardNoteRegular } from "@/components/card/note/regular";
-import { TitleRegular } from "@/components/title/regular";
 import { getCardBasicStyle } from "@/constants/theme";
-import { useRouter } from "expo-router";
-import {
-  FlatList,
-  Platform,
-  StatusBar,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { FlatList, Platform, StatusBar, StyleSheet, View } from "react-native";
 import { useKeyboardHandler } from "react-native-keyboard-controller";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
+
+import { UIInputText } from "@/components/ui/input/text";
+import { useState } from "react";
+
 const PADDING_BOTTOM = 32;
 
 const useGradualAnimation = () => {
@@ -33,9 +27,9 @@ const useGradualAnimation = () => {
   return { height };
 };
 
-export default function ChatScreen() {
+export default function NotesScreen() {
+  const [newNote, setNewNote] = useState("");
   const { height } = useGradualAnimation();
-  const router = useRouter();
   const fakeView = useAnimatedStyle(() => {
     return {
       height: Math.abs(height.value),
@@ -56,9 +50,6 @@ export default function ChatScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => router.push("/notes")}>
-        <TitleRegular>Design</TitleRegular>
-      </TouchableOpacity>
       <FlatList
         data={messages}
         renderItem={({ item, index }) => (
@@ -71,7 +62,11 @@ export default function ChatScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listStyle}
       />
-      <TextInput placeholder="Type a message..." style={styles.textInput} />
+      <UIInputText
+        placeholder="Type a message..."
+        value={newNote}
+        onChange={setNewNote}
+      />
 
       <Animated.View style={fakeView} />
     </View>
@@ -86,17 +81,6 @@ const styles = StyleSheet.create({
   listStyle: {
     padding: 16,
     gap: 16,
-  },
-  textInput: {
-    width: "95%",
-    height: 45,
-    borderWidth: 1,
-    borderRadius: 8,
-    borderColor: "#d8d8d8",
-    backgroundColor: "#fff",
-    padding: 8,
-    alignSelf: "center",
-    marginBottom: 8,
   },
   note: {
     ...getCardBasicStyle("sm"),

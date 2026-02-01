@@ -1,4 +1,6 @@
+import { ButtonFab } from "@/components/button/fab";
 import { CardTrip } from "@/components/card/trip";
+import { DialogNewTrip } from "@/components/dialog/new-trip";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import { TRIPS } from "@/data";
@@ -10,6 +12,7 @@ import {
   Plane as PlaneIcon,
   Plus as PlusIcon,
 } from "lucide-react-native";
+import { useState } from "react";
 import {
   ImageBackground,
   ScrollView,
@@ -22,6 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function IndexScreen() {
   const router = useRouter();
+  const [isDialogNewTripOpen, setIsDialogNewTripOpen] = useState(false);
 
   // Get time-based greeting
   const getGreeting = () => {
@@ -99,7 +103,8 @@ export default function IndexScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <TitleRegular
-                size="lg"
+                size="md"
+                weight="600"
                 style={[
                   styles.sectionTitle,
                   { borderColor: getColor(colors.waffle) },
@@ -119,7 +124,8 @@ export default function IndexScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <TitleRegular
-                size="lg"
+                size="md"
+                weight="600"
                 style={[
                   styles.sectionTitle,
                   { borderColor: getColor(colors.turquoise) },
@@ -151,7 +157,8 @@ export default function IndexScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <TitleRegular
-                size="lg"
+                size="md"
+                weight="600"
                 style={[
                   styles.sectionTitle,
                   { borderColor: getColor(colors.purple) },
@@ -202,17 +209,18 @@ export default function IndexScreen() {
           )}
       </ScrollView>
 
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.fab}
+      <ButtonFab
         onPress={() => {
           // TODO: Navigate to create trip
+          setIsDialogNewTripOpen(true);
         }}
-        activeOpacity={0.8}
-      >
-        <PlusIcon size={20} color="#fff" />
-        <Text style={styles.fabText}>New Trip</Text>
-      </TouchableOpacity>
+        text="New Trip"
+        icon={(color) => <PlusIcon size={20} color={color} />}
+      />
+      <DialogNewTrip
+        visible={isDialogNewTripOpen}
+        onDismiss={() => setIsDialogNewTripOpen(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -342,29 +350,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 10,
     fontWeight: "bold",
-  },
-  fab: {
-    position: "absolute",
-    bottom: gaps.lg,
-    right: gaps.lg,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: gaps.md,
-    paddingVertical: gaps.sm,
-    borderRadius: 32,
-    backgroundColor: getColor(colors.waffle),
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    gap: gaps.xs,
-  },
-  fabText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
-    marginRight: gaps.xs,
   },
   section: {
     paddingHorizontal: gaps.md,

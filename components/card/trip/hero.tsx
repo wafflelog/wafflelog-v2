@@ -22,25 +22,29 @@ export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.content}>
         <UIInProgressBadge containerStyle={styles.inProgress} />
-        <TitleRegular size="lg" weight="500">
+        <TitleRegular size="md" weight="600" color={colors.pineGreen}>
           {trip.title}
         </TitleRegular>
 
         <TitleRegular
-          size="sm"
-          color={colors.paleGrey}
+          size="xs"
+          color={colors.textLightGrey}
         >{`${formatDate(trip.startDate)} - ${formatDate(
           trip.endDate,
         )}`}</TitleRegular>
 
         <View style={styles.locationContainer}>
           <MapPinIcon size={16} color={getColor(colors.pineGreen)} />
-          <TitleRegular size="sm">{trip.location}</TitleRegular>
+          <TitleRegular size="xs" color={colors.textLightGrey}>
+            {trip.location}
+          </TitleRegular>
         </View>
 
         <View style={styles.progressContainer}>
           <UIProgressBar progress={50} height={6} />
-          <TitleRegular size="sm">Day 3 of 7</TitleRegular>
+          <TitleRegular size="xs" color={colors.textLightGrey}>
+            Day 3 of 7
+          </TitleRegular>
         </View>
         <ListUsersHorizontalIcons users={trip.companions} max={3} />
       </View>

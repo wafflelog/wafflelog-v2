@@ -1,12 +1,18 @@
+import { ButtonFab } from "@/components/button/fab";
 import { CardTripChecklistItem } from "@/components/card/checklist-item";
 import { HeaderTrip } from "@/components/header/trip";
 import { UITab } from "@/components/ui/tab";
 import { UIText } from "@/components/ui/text";
 import { gaps } from "@/constants/theme";
 import { TRIPS } from "@/data";
+import { ChecklistItem } from "@/types/trip";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { User as UserIcon, Users as UsersIcon } from "lucide-react-native";
+import {
+  Plus as PlusIcon,
+  User as UserIcon,
+  Users as UsersIcon,
+} from "lucide-react-native";
 import { useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -63,10 +69,18 @@ export default function TripChecklistScreen() {
 
       <FlatList
         contentContainerStyle={styles.checklist}
-        data={trip.checklistItems}
+        data={trip.checklistItems as ChecklistItem[]}
         renderItem={({ item }) => (
           <CardTripChecklistItem checklistItem={item} onPress={() => {}} />
         )}
+      />
+
+      <ButtonFab
+        onPress={() => {
+          console.log("Create Checklist Item");
+        }}
+        text="New Item"
+        icon={(color) => <PlusIcon size={20} color={color} />}
       />
     </SafeAreaView>
   );

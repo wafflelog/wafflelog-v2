@@ -1,3 +1,4 @@
+import { ButtonFab } from "@/components/button/fab";
 import { HeaderTrip } from "@/components/header/trip";
 import { TitleRegular } from "@/components/title/regular";
 import { TripCategoryFilter } from "@/components/trip/category-filter";
@@ -9,6 +10,7 @@ import { PinCategory } from "@/types/pin";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Plus as PlusIcon } from "lucide-react-native";
 import { useMemo, useRef, useState } from "react";
 import { FlatList, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -83,7 +85,9 @@ export default function TripIndexScreen() {
         </View>
 
         <View style={styles.itinerary}>
-          <TitleRegular size="lg">Itinerary</TitleRegular>
+          <TitleRegular size="md" weight="600">
+            Itinerary
+          </TitleRegular>
           <TripDaysTab tripDays={tripDays} />
         </View>
         <TripPinsList
@@ -92,6 +96,14 @@ export default function TripIndexScreen() {
           onSlideChanged={setSelectedDayIndex}
         />
       </ScrollView>
+      <ButtonFab
+        onPress={() => {
+          // TODO: Navigate to create trip
+          console.log("Create Trip");
+        }}
+        text="New Pin"
+        icon={(color) => <PlusIcon size={20} color={color} />}
+      />
     </SafeAreaView>
   );
 }

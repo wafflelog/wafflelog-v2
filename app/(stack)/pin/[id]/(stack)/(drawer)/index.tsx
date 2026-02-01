@@ -48,7 +48,9 @@ export default function PinIndexScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <MapPinIcon size={24} color={color} />
-              <TitleRegular size="lg">Location</TitleRegular>
+              <TitleRegular size="md" weight="600">
+                Location
+              </TitleRegular>
             </View>
             <CardPinLocationRegular
               pin={pin}
@@ -61,7 +63,9 @@ export default function PinIndexScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <WalletIcon size={24} color={color} />
-              <TitleRegular size="lg">Expenses</TitleRegular>
+              <TitleRegular size="md" weight="600">
+                Expenses
+              </TitleRegular>
             </View>
             <View style={styles.sectionCard}>
               {pin.expenses.map((expense, index) => (
@@ -79,7 +83,9 @@ export default function PinIndexScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <ImageIcon size={24} color={color} />
-              <TitleRegular size="lg">Images</TitleRegular>
+              <TitleRegular size="md" weight="600">
+                Images
+              </TitleRegular>
             </View>
             <View style={styles.sectionCard}>
               <ScrollView
@@ -104,7 +110,9 @@ export default function PinIndexScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <FileTextIcon size={24} color={color} />
-              <TitleRegular size="lg">Documents</TitleRegular>
+              <TitleRegular size="md" weight="600">
+                Documents
+              </TitleRegular>
             </View>
             <View style={styles.sectionCard}>
               {pin.documents.map((document, index) => (
@@ -122,7 +130,9 @@ export default function PinIndexScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Link2Icon size={24} color={color} />
-              <TitleRegular size="lg">Reference Links</TitleRegular>
+              <TitleRegular size="md" weight="600">
+                Reference Links
+              </TitleRegular>
             </View>
             <View style={styles.sectionCard}>
               {pin.referenceLinks.map((referenceLink, index) => (

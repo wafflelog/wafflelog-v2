@@ -27,18 +27,22 @@ export const CardTripRegular = ({
       onPress={onPress}
     >
       <View style={styles.content}>
-        <TitleRegular size="md">{trip.title}</TitleRegular>
+        <TitleRegular size="md" weight="600" color={colors.pineGreen}>
+          {trip.title}
+        </TitleRegular>
 
         <TitleRegular
           size="xs"
-          color={colors.paleGrey}
+          color={colors.textLightGrey}
         >{`${formatDate(trip.startDate)} - ${formatDate(
           trip.endDate,
         )}`}</TitleRegular>
 
         <View style={styles.locationContainer}>
           <MapPinIcon size={16} color={getColor(colors.pineGreen)} />
-          <TitleRegular size="xs">{trip.location}</TitleRegular>
+          <TitleRegular size="xs" color={colors.textLightGrey}>
+            {trip.location}
+          </TitleRegular>
         </View>
         <ListUsersHorizontalIcons users={trip.companions} max={3} />
       </View>

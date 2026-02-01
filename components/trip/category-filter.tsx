@@ -12,13 +12,15 @@ export const TripCategoryFilter = ({
   categories: PinCategory[];
 }) => {
   const [selectedCategories, setSelectedCategories] = useState<PinCategory[]>(
-    []
+    [],
   );
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TitleRegular size="lg">Filter by category</TitleRegular>
+        <TitleRegular size="md" weight="600">
+          Filter by category
+        </TitleRegular>
         {selectedCategories.length > 0 && (
           <TouchableOpacity onPress={() => setSelectedCategories([])}>
             <UIText style={styles.clear} weight="600">
