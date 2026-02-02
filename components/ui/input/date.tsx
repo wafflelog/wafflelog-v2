@@ -98,7 +98,13 @@ export const UIInputDate = ({
         </TouchableOpacity>
       </View>
       {showPicker && (
-        <Dialog visible={showPicker} onDismiss={() => setShowPicker(false)}>
+        <Dialog
+          visible={showPicker}
+          onDismiss={() => setShowPicker(false)}
+          title="Select Date"
+          confirmText="Select"
+          cancelText="Cancel"
+        >
           <DateTimePicker
             value={date}
             mode="date"

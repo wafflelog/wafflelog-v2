@@ -6,7 +6,9 @@ import {
   gaps,
   getColor,
 } from "@/constants/theme";
+import { getFontFamily } from "@/lib/utils";
 import {
+  KeyboardType,
   StyleProp,
   StyleSheet,
   TextInput,
@@ -20,6 +22,7 @@ type UIInputTextProps = {
   value?: string;
   onChange?: (text: string) => void;
   autoFocus?: boolean;
+  keyboardType?: KeyboardType;
 };
 
 export const UIInputText = ({
@@ -28,16 +31,18 @@ export const UIInputText = ({
   value,
   onChange,
   autoFocus,
+  keyboardType = "default",
 }: UIInputTextProps) => {
   const isEmpty = !value || value.length === 0;
 
   return (
     <View style={[styles.container, containerStyle]}>
       <TextInput
-        style={[styles.input]}
+        style={[styles.input, { fontFamily: getFontFamily("400") }]}
         value={value}
         onChangeText={onChange}
         autoFocus={autoFocus}
+        keyboardType={keyboardType}
       />
       {isEmpty && (
         <View style={styles.placeholderContainer} pointerEvents="none">

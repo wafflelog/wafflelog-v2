@@ -1,19 +1,23 @@
+import { ButtonFab } from "@/components/button/fab";
 import { CardExpenseRegular } from "@/components/card/expense/regular";
+import { DialogNewExpense } from "@/components/dialog/new-expense";
 import { HeaderTrip } from "@/components/header/trip";
 import { TripExpenseSummary } from "@/components/trip/expense-summary";
 import { UITab } from "@/components/ui/tab";
 import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { TRIPS } from "@/data";
+import { type Currency } from "@/types/pin";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Plus as PlusIcon } from "lucide-react-native";
 import { useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type Currency = "USD" | "EUR";
-
 export default function TripExpensesScreen() {
+  const [isDialogNewExpenseVisible, setIsDialogNewExpenseVisible] =
+    useState(false);
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
@@ -66,6 +70,17 @@ export default function TripExpensesScreen() {
           )}
         />
       </View>
+      <ButtonFab
+        onPress={() => {
+          setIsDialogNewExpenseVisible(true);
+        }}
+        text="New Expense"
+        icon={(color) => <PlusIcon size={20} color={color} />}
+      />
+      <DialogNewExpense
+        visible={isDialogNewExpenseVisible}
+        onDismiss={() => setIsDialogNewExpenseVisible(false)}
+      />
     </SafeAreaView>
   );
 }

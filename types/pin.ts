@@ -1,23 +1,26 @@
 import { colors } from "@/constants/theme";
 import { type User } from "./user";
 
-type Currency =
-  | "EUR"
-  | "USD"
-  | "GBP"
-  | "JPY"
-  | "CAD"
-  | "AUD"
-  | "CHF"
-  | "CNY"
-  | "HKD"
-  | "INR"
-  | "MXN"
-  | "NZD"
-  | "RUB"
-  | "SAR"
-  | "SGD"
-  | "ZAR";
+export const CURRENCIES = [
+  "EUR",
+  "USD",
+  "GBP",
+  "JPY",
+  "CAD",
+  "AUD",
+  "CHF",
+  "CNY",
+  "HKD",
+  "INR",
+  "MXN",
+  "NZD",
+  "RUB",
+  "SAR",
+  "SGD",
+  "ZAR",
+] as const;
+
+export type Currency = (typeof CURRENCIES)[number];
 
 type Location = {
   id: string;

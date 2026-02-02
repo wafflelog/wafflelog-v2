@@ -1,5 +1,6 @@
 import { ButtonFab } from "@/components/button/fab";
 import { CardTripChecklistItem } from "@/components/card/checklist-item";
+import { DialogNewChecklistItem } from "@/components/dialog/new-checklist-item";
 import { HeaderTrip } from "@/components/header/trip";
 import { UITab } from "@/components/ui/tab";
 import { UIText } from "@/components/ui/text";
@@ -25,6 +26,8 @@ export default function TripChecklistScreen() {
   const navigation = useNavigation();
 
   const [activeTab, setActiveTab] = useState<TabId>("my");
+  const [isDialogNewChecklistItemVisible, setIsDialogNewChecklistItemVisible] =
+    useState(false);
 
   const trip = TRIPS.find((trip) => trip.id === id);
 
@@ -77,10 +80,14 @@ export default function TripChecklistScreen() {
 
       <ButtonFab
         onPress={() => {
-          console.log("Create Checklist Item");
+          setIsDialogNewChecklistItemVisible(true);
         }}
         text="New Item"
         icon={(color) => <PlusIcon size={20} color={color} />}
+      />
+      <DialogNewChecklistItem
+        visible={isDialogNewChecklistItemVisible}
+        onDismiss={() => setIsDialogNewChecklistItemVisible(false)}
       />
     </SafeAreaView>
   );
