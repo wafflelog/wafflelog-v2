@@ -106,7 +106,11 @@ export function useSystemMessage() {
               ]}
               onPress={(e) => e.stopPropagation()}
             >
-              <Icon size={22} color={colors.white} style={styles.icon} />
+              <Icon
+                size={22}
+                color={getColor(colors.white)}
+                style={styles.icon}
+              />
               <UIText weight="500" style={styles.message}>
                 {message}
               </UIText>
@@ -138,7 +142,7 @@ const styles = StyleSheet.create({
     paddingVertical: gaps.sm,
     paddingHorizontal: gaps.md,
     borderRadius: borderRadiuses.md,
-    minWidth: 200,
+    minWidth: 250,
     maxWidth: "100%",
     ...getShadowStyle("md"),
   },

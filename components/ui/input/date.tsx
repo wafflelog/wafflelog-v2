@@ -14,9 +14,20 @@ import { Dialog } from "../dialog";
 
 type UIInputDateProps = {
   placeholder?: string;
-  value?: string; // ISO 8601 date string
-  onChange?: (date: string) => void; // Returns ISO 8601 date string
+  value?: string; // YYYY-MM-DD date string
+  onChange?: (date: string) => void; // Returns YYYY-MM-DD date string
   autoFocus?: boolean;
+};
+
+const toDateString = (input: Date) => dayjs(input).format("YYYY-MM-DD");
+
+const toPickerDate = (input?: string) => {
+  if (!input) {
+    return new Date();
+  }
+
+  const parsed = dayjs(input, "YYYY-MM-DD", true);
+  return parsed.isValid() ? parsed.toDate() : new Date();
 };
 
 export const UIInputDate = ({
@@ -26,18 +37,11 @@ export const UIInputDate = ({
   autoFocus = false,
 }: UIInputDateProps) => {
   const [showPicker, setShowPicker] = useState(false);
-  const [date, setDate] = useState<Date>(() => {
-    if (value) {
-      return new Date(value);
-    }
-    return new Date();
-  });
+  const [date, setDate] = useState<Date>(() => toPickerDate(value));
 
   // Sync date when value prop changes
   useEffect(() => {
-    if (value) {
-      setDate(new Date(value));
-    }
+    setDate(toPickerDate(value));
   }, [value]);
 
   const displayValue = value ? dayjs(value).format("DD/MM/YYYY") : "";
@@ -49,7 +53,7 @@ export const UIInputDate = ({
 
     if (selectedDate) {
       setDate(selectedDate);
-      onChange?.(selectedDate.toISOString());
+      onChange?.(toDateString(selectedDate));
     }
 
     if (Platform.OS === "ios") {
@@ -60,7 +64,7 @@ export const UIInputDate = ({
   const handleTodayPress = () => {
     const today = new Date();
     setDate(today);
-    onChange?.(today.toISOString());
+    onChange?.(toDateString(today));
     if (showPicker) {
       setShowPicker(false);
     }
