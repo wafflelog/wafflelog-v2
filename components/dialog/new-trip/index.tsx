@@ -1,9 +1,10 @@
+import { newTripFormSchema } from "./schema";
 import { Dialog } from "@/components/ui/dialog";
 import { UIInputDate } from "@/components/ui/input/date";
 import { UIInputText } from "@/components/ui/input/text";
 import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 
 type DialogNewTripProps = {
   visible: boolean;
@@ -15,8 +16,30 @@ export const DialogNewTrip = ({ visible, onDismiss }: DialogNewTripProps) => {
   const [tripStartDate, setTripStartDate] = useState("");
   const [tripEndDate, setTripEndDate] = useState("");
 
+  const handleConfirm = () => {
+    const result = newTripFormSchema.safeParse({
+      tripName,
+      tripStartDate,
+      tripEndDate,
+    });
+
+    if (!result.success) {
+      const message =
+        result.error.issues[0]?.message ?? "Check your trip details and try again.";
+      Alert.alert("Cannot create trip", message);
+      return;
+    }
+
+    // result.data is validated; wire persistence / navigation here
+  };
+
   return (
-    <Dialog visible={visible} onDismiss={onDismiss} title="New Trip">
+    <Dialog
+      visible={visible}
+      onDismiss={onDismiss}
+      title="New Trip"
+      onConfirm={handleConfirm}
+    >
       <View style={styles.content}>
         <UIInputText
           placeholder="Enter trip name!"

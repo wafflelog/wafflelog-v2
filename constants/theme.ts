@@ -48,7 +48,7 @@ export const getColor = (color: [number, number, number], alpha?: number) => {
   return `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
 };
 
-export const getCardBasicStyle = (size: "sm" | "md" | "lg") => {
+export const getShadowStyle = (size: "sm" | "md" | "lg" | "xl") => {
   const shadows = {
     sm: {
       shadowColor: "#000",
@@ -59,17 +59,23 @@ export const getCardBasicStyle = (size: "sm" | "md" | "lg") => {
     md: {
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
+      shadowOpacity: 0.2,
       shadowRadius: 8,
     },
     lg: {
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+    },
+    xl: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.4,
       shadowRadius: 8,
     },
   } as const satisfies Record<
-    "sm" | "md" | "lg",
+    "sm" | "md" | "lg" | "xl",
     {
       shadowColor: string;
       shadowOffset: { width: number; height: number };
@@ -81,16 +87,23 @@ export const getCardBasicStyle = (size: "sm" | "md" | "lg") => {
     sm: 3,
     md: 4,
     lg: 5,
+    xl: 6,
   };
 
   return {
-    backgroundColor: "#fff",
-    borderRadius: borderRadiuses[size],
-    padding: gaps[size],
     shadowColor: shadows[size].shadowColor,
     shadowOffset: shadows[size].shadowOffset,
     shadowOpacity: shadows[size].shadowOpacity,
     shadowRadius: shadows[size].shadowRadius,
     elevation: elevations[size],
+  };
+};
+
+export const getCardBasicStyle = (size: "sm" | "md" | "lg") => {
+  return {
+    ...getShadowStyle(size),
+    backgroundColor: "#fff",
+    borderRadius: borderRadiuses[size],
+    padding: gaps[size],
   };
 };
