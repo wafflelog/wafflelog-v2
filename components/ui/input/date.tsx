@@ -105,6 +105,7 @@ export const UIInputDate = ({
         <Dialog
           visible={showPicker}
           onDismiss={() => setShowPicker(false)}
+          onConfirm={() => setShowPicker(false)}
           title="Select Date"
           confirmText="Select"
           cancelText="Cancel"

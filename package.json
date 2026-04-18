@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "ts": "tsc --noEmit"
+    "ts": "tsc --noEmit",
+    "sb:gen": "supabase gen types typescript --project-id ssxixtnvqkvweywltxbb --schema public > ./lib/supabase/types.ts"
   },
   "dependencies": {
     "@expo-google-fonts/montserrat": "^0.4.2",
@@ -20,6 +21,8 @@
     "@react-navigation/drawer": "^7.7.11",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
+    "@supabase/supabase-js": "^2.103.3",
+    "@tanstack/react-query": "^5.99.0",
     "dayjs": "^1.11.19",
     "expo": "~54.0.31",
     "expo-constants": "~18.0.13",
@@ -28,6 +31,7 @@
     "expo-image": "~3.0.11",
     "expo-linking": "~8.0.11",
     "expo-router": "~6.0.21",
+    "expo-secure-store": "~15.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "expo-symbols": "~1.0.8",
@@ -53,6 +57,7 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "supabase": "^2.92.1",
     "typescript": "~5.9.2"
   },
   "private": true

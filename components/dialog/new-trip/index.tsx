@@ -3,6 +3,8 @@ import { UIInputDate } from "@/components/ui/input/date";
 import { UIInputText } from "@/components/ui/input/text";
 import { gaps } from "@/constants/theme";
 import { useSystemMessage } from "@/hook/use-system-message";
+import { createTrip } from "@/lib/supabase/actions";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { newTripFormSchema } from "./schema";
@@ -17,6 +19,22 @@ export const DialogNewTrip = ({ visible, onDismiss }: DialogNewTripProps) => {
   const [tripStartDate, setTripStartDate] = useState("");
   const [tripEndDate, setTripEndDate] = useState("");
   const { showMessage, SystemMessageModal } = useSystemMessage();
+  const createTripMutation = useMutation({
+    mutationFn: createTrip,
+    onSuccess: () => {
+      setTripName("");
+      setTripStartDate("");
+      setTripEndDate("");
+      onDismiss();
+      showMessage("Trip created", "info");
+    },
+    onError: (error) => {
+      console.error("Error creating trip:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to create trip";
+      showMessage(message, "error");
+    },
+  });
 
   const handleConfirm = () => {
     const result = newTripFormSchema.safeParse({
@@ -25,10 +43,6 @@ export const DialogNewTrip = ({ visible, onDismiss }: DialogNewTripProps) => {
       tripEndDate,
     });
 
-    console.log("startDate:", tripStartDate);
-    console.log("endDate:", tripEndDate);
-    console.log("Validation result:", result);
-
     if (!result.success) {
       const message =
         result.error.issues[0]?.message ??
@@ -36,8 +50,13 @@ export const DialogNewTrip = ({ visible, onDismiss }: DialogNewTripProps) => {
       showMessage(message, "error");
       return;
     }
+    console.log("Creating trip with:", result.data);
 
-    // result.data is validated; wire persistence / navigation here
+    createTripMutation.mutate({
+      title: result.data.tripName,
+      startDate: result.data.tripStartDate,
+      endDate: result.data.tripEndDate,
+    });
   };
 
   return (
@@ -66,8 +85,8 @@ export const DialogNewTrip = ({ visible, onDismiss }: DialogNewTripProps) => {
             onChange={setTripEndDate}
           />
         </View>
-        <SystemMessageModal />
       </Dialog>
+      <SystemMessageModal />
     </>
   );
 };
