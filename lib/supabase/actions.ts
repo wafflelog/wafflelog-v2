@@ -7,6 +7,11 @@ export type CreateTripInput = {
   endDate: string;
 };
 
+export type SignUpInput = {
+  email: string;
+  password: string;
+};
+
 export type TripRow = Tables<"trip">;
 
 const mapTripRow = (trip: TripRow) => ({
@@ -18,7 +23,7 @@ const mapTripRow = (trip: TripRow) => ({
   updatedAt: trip.updated_at,
 });
 
-export async function createTrip(input: CreateTripInput) {
+export async function actionCreateTrip(input: CreateTripInput) {
   const payload: TablesInsert<"trip"> = {
     title: input.title.trim(),
     start_date: input.startDate,
@@ -36,4 +41,17 @@ export async function createTrip(input: CreateTripInput) {
   }
 
   return mapTripRow(data);
+}
+
+export async function actionSignUpWithEmail(input: SignUpInput) {
+  const { data, error } = await supabase.auth.signUp({
+    email: input.email.trim(),
+    password: input.password,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }

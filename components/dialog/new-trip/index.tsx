@@ -3,7 +3,7 @@ import { UIInputDate } from "@/components/ui/input/date";
 import { UIInputText } from "@/components/ui/input/text";
 import { gaps } from "@/constants/theme";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { createTrip } from "@/lib/supabase/actions";
+import { actionCreateTrip } from "@/lib/supabase/actions";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -20,7 +20,7 @@ export const DialogNewTrip = ({ visible, onDismiss }: DialogNewTripProps) => {
   const [tripEndDate, setTripEndDate] = useState("");
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const createTripMutation = useMutation({
-    mutationFn: createTrip,
+    mutationFn: actionCreateTrip,
     onSuccess: () => {
       setTripName("");
       setTripStartDate("");
