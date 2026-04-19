@@ -1,22 +1,37 @@
+import { useAuthSession } from "@/hook/use-auth-session";
 import { Stack } from "expo-router";
 
 export default function Layout() {
+  const { isAuthenticated } = useAuthSession();
+
   return (
     <Stack>
-      <Stack.Screen
-        name="trip/[id]/(drawer)"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen name="pin/[id]/(stack)" options={{ headerShown: false }} />
-
-      <Stack.Screen name="place-search" />
-      <Stack.Screen name="companions" options={{ headerShown: false }} />
-      <Stack.Screen name="documents" options={{ headerShown: false }} />
-      <Stack.Screen name="expenses" options={{ headerShown: false }} />
-      <Stack.Screen name="images" options={{ headerShown: false }} />
-      <Stack.Screen name="reference-links" options={{ headerShown: false }} />
-      <Stack.Screen name="checklist" options={{ headerShown: false }} />
-      <Stack.Screen name="pinned-notes" options={{ headerShown: false }} />
+      <Stack.Protected guard={isAuthenticated}>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="user" options={{ headerShown: false }} />
+        <Stack.Screen name="(stack)" options={{ headerShown: false }} />
+        <Stack.Screen name="notes" options={{ headerShown: true }} />
+        <Stack.Screen
+          name="image-viewer"
+          options={{
+            presentation: "fullScreenModal",
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="web-viewer"
+          options={{
+            presentation: "fullScreenModal",
+            headerShown: false,
+          }}
+        />
+      </Stack.Protected>
+      <Stack.Protected guard={!isAuthenticated}>
+        <Stack.Screen
+          name="register"
+          options={{ headerShown: false, presentation: "modal" }}
+        />
+      </Stack.Protected>
     </Stack>
   );
 }

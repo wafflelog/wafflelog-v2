@@ -23,6 +23,7 @@ type UIInputTextProps = {
   onChange?: (text: string) => void;
   autoFocus?: boolean;
   keyboardType?: KeyboardType;
+  secureTextEntry?: boolean;
 };
 
 export const UIInputText = ({
@@ -32,6 +33,7 @@ export const UIInputText = ({
   onChange,
   autoFocus,
   keyboardType = "default",
+  secureTextEntry = false,
 }: UIInputTextProps) => {
   const isEmpty = !value || value.length === 0;
 
@@ -43,6 +45,7 @@ export const UIInputText = ({
         onChangeText={onChange}
         autoFocus={autoFocus}
         keyboardType={keyboardType}
+        secureTextEntry={secureTextEntry}
       />
       {isEmpty && (
         <View style={styles.placeholderContainer} pointerEvents="none">

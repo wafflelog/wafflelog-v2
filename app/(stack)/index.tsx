@@ -4,7 +4,8 @@ import { DialogNewTrip } from "@/components/dialog/new-trip";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import { TRIPS } from "@/data";
-import { useRouter } from "expo-router";
+import { useAuthSession } from "@/hook/use-auth-session";
+import { Redirect, useRouter } from "expo-router";
 import {
   Bell as BellIcon,
   Calendar as CalendarIcon,
@@ -25,7 +26,22 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function IndexScreen() {
   const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuthSession();
   const [isDialogNewTripOpen, setIsDialogNewTripOpen] = useState(false);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer} edges={["top"]}>
+        <TitleRegular size="lg" color={colors.textDarkGrey}>
+          Loading...
+        </TitleRegular>
+      </SafeAreaView>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Redirect href="/register" />;
+  }
 
   // Get time-based greeting
   const getGreeting = () => {
@@ -228,6 +244,12 @@ export default function IndexScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F5F7FA",
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "#F5F7FA",
   },
   brandingHeader: {

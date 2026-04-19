@@ -1,3 +1,4 @@
+import { AuthSessionProvider } from "@/hook/use-auth-session";
 import {
   Montserrat_400Regular,
   Montserrat_500Medium,
@@ -28,28 +29,13 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <KeyboardProvider>
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="user" options={{ headerShown: false }} />
-          <Stack.Screen name="(stack)" options={{ headerShown: false }} />
-          <Stack.Screen name="notes" options={{ headerShown: true }} />
-          <Stack.Screen
-            name="image-viewer"
-            options={{
-              presentation: "fullScreenModal",
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="web-viewer"
-            options={{
-              presentation: "fullScreenModal",
-              headerShown: false,
-            }}
-          />
-        </Stack>
-      </KeyboardProvider>
+      <AuthSessionProvider>
+        <KeyboardProvider>
+          <Stack>
+            <Stack.Screen name="(stack)" options={{ headerShown: false }} />
+          </Stack>
+        </KeyboardProvider>
+      </AuthSessionProvider>
     </QueryClientProvider>
   );
 }
