@@ -27,10 +27,8 @@ export default function Layout() {
         />
       </Stack.Protected>
       <Stack.Protected guard={!isAuthenticated}>
-        <Stack.Screen
-          name="register"
-          options={{ headerShown: false, presentation: "modal" }}
-        />
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="register" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>
   );

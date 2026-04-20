@@ -25,7 +25,7 @@ export const DialogNewTrip = ({ visible, onDismiss }: DialogNewTripProps) => {
       setTripName("");
       setTripStartDate("");
       setTripEndDate("");
-      onDismiss();
+      // onDismiss();
       showMessage("Trip created", "info");
     },
     onError: (error) => {
@@ -37,6 +37,12 @@ export const DialogNewTrip = ({ visible, onDismiss }: DialogNewTripProps) => {
   });
 
   const handleConfirm = () => {
+    console.log("Validating trip details:", {
+      tripName,
+      tripStartDate,
+      tripEndDate,
+    });
+
     const result = newTripFormSchema.safeParse({
       tripName,
       tripStartDate,
@@ -85,8 +91,8 @@ export const DialogNewTrip = ({ visible, onDismiss }: DialogNewTripProps) => {
             onChange={setTripEndDate}
           />
         </View>
+        <SystemMessageModal />
       </Dialog>
-      <SystemMessageModal />
     </>
   );
 };

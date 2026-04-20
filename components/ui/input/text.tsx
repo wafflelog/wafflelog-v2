@@ -24,6 +24,8 @@ type UIInputTextProps = {
   autoFocus?: boolean;
   keyboardType?: KeyboardType;
   secureTextEntry?: boolean;
+  autoCapitalize?: TextInput["props"]["autoCapitalize"];
+  autoCorrect?: boolean;
 };
 
 export const UIInputText = ({
@@ -34,6 +36,8 @@ export const UIInputText = ({
   autoFocus,
   keyboardType = "default",
   secureTextEntry = false,
+  autoCapitalize = "none",
+  autoCorrect = false,
 }: UIInputTextProps) => {
   const isEmpty = !value || value.length === 0;
 
@@ -46,6 +50,8 @@ export const UIInputText = ({
         autoFocus={autoFocus}
         keyboardType={keyboardType}
         secureTextEntry={secureTextEntry}
+        autoCapitalize={autoCapitalize}
+        autoCorrect={autoCorrect}
       />
       {isEmpty && (
         <View style={styles.placeholderContainer} pointerEvents="none">

@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "ts": "tsc --noEmit",
-    "sb:gen": "supabase gen types typescript --project-id ssxixtnvqkvweywltxbb --schema public > ./lib/supabase/types.ts"
+    "sb:gen": "supabase gen types typescript --project-id shscucanawhrjahqokvn --schema public > ./lib/supabase/types.ts"
   },
   "dependencies": {
     "@expo-google-fonts/montserrat": "^0.4.2",

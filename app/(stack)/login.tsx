@@ -9,39 +9,33 @@ import {
 } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { actionSignUpWithEmail } from "@/lib/supabase/actions";
+import { actionSignInWithEmail } from "@/lib/supabase/actions";
 import { useMutation } from "@tanstack/react-query";
 import { Link, Redirect, router } from "expo-router";
 import { useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, View } from "react-native";
 
-export default function RegisterScreen() {
+export default function LoginScreen() {
   const { isAuthenticated, isLoading } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const signUpMutation = useMutation({
-    mutationFn: actionSignUpWithEmail,
-    onSuccess: (data) => {
+  const signInMutation = useMutation({
+    mutationFn: actionSignInWithEmail,
+    onSuccess: () => {
       setPassword("");
-
-      if (data.session) {
-        showMessage("Account created", "info");
-        router.replace("/");
-        return;
-      }
-
-      showMessage("Check your email to confirm your account", "info");
+      showMessage("Welcome back", "info");
+      router.replace("/");
     },
     onError: (error) => {
       const message =
-        error instanceof Error ? error.message : "Failed to create account";
+        error instanceof Error ? error.message : "Failed to log in";
       showMessage(message, "error");
     },
   });
 
-  const handleRegister = () => {
+  const handleLogin = () => {
     if (!email.trim()) {
       showMessage("Enter your email", "error");
       return;
@@ -52,12 +46,7 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (password.length < 6) {
-      showMessage("Password must be at least 6 characters", "error");
-      return;
-    }
-
-    signUpMutation.mutate({
+    signInMutation.mutate({
       email,
       password,
     });
@@ -85,15 +74,14 @@ export default function RegisterScreen() {
           color={colors.textDarkGrey}
           style={styles.title}
         >
-          Welcome to Wafflelog
+          Welcome back
         </TitleRegular>
         <TitleRegular
           size="md"
           color={colors.textLightGrey}
           style={styles.subtitle}
         >
-          Create an account to save trips, sync your travel log, and unlock the
-          rest of the app.
+          Log in to continue to your trips and travel log.
         </TitleRegular>
       </View>
 
@@ -115,25 +103,23 @@ export default function RegisterScreen() {
           <Pressable
             style={[
               styles.primaryButton,
-              signUpMutation.isPending && styles.primaryButtonDisabled,
+              signInMutation.isPending && styles.primaryButtonDisabled,
             ]}
-            onPress={handleRegister}
-            disabled={signUpMutation.isPending}
+            onPress={handleLogin}
+            disabled={signInMutation.isPending}
           >
             <TitleRegular size="md" color={colors.white} weight="600">
-              {signUpMutation.isPending
-                ? "Creating account..."
-                : "Create account"}
+              {signInMutation.isPending ? "Logging in..." : "Log in"}
             </TitleRegular>
           </Pressable>
           <View style={styles.footer}>
             <TitleRegular size="sm" color={colors.textLightGrey}>
-              Already have an account?
+              Need an account?
             </TitleRegular>
-            <Link href="/login" asChild replace>
+            <Link href="/register" asChild replace>
               <Pressable>
                 <TitleRegular size="sm" color={colors.waffle} weight="600">
-                  Log in
+                  Register
                 </TitleRegular>
               </Pressable>
             </Link>
