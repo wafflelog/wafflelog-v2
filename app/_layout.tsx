@@ -1,4 +1,5 @@
 import { AuthSessionProvider } from "@/hook/use-auth-session";
+import { initializeDatabase } from "@/lib/sqlite/init";
 import {
   Montserrat_400Regular,
   Montserrat_500Medium,
@@ -8,6 +9,7 @@ import {
 } from "@expo-google-fonts/montserrat";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
+import { useEffect } from "react";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
 const queryClient = new QueryClient({
@@ -26,6 +28,12 @@ export default function RootLayout() {
     Montserrat_600SemiBold,
     Montserrat_700Bold,
   });
+
+  useEffect(() => {
+    initializeDatabase().catch((error) => {
+      console.error("Failed to initialize SQLite database", error);
+    });
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
