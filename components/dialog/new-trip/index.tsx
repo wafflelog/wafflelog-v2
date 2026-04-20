@@ -2,9 +2,10 @@ import { Dialog } from "@/components/ui/dialog";
 import { UIInputDate } from "@/components/ui/input/date";
 import { UIInputText } from "@/components/ui/input/text";
 import { gaps } from "@/constants/theme";
+import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { actionCreateTrip } from "@/lib/supabase/actions";
-import { useMutation } from "@tanstack/react-query";
+import { actionCreateLocalTrip } from "@/lib/sqlite/model/trip";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { newTripFormSchema } from "./schema";
@@ -15,18 +16,23 @@ type DialogNewTripProps = {
 };
 
 export const DialogNewTrip = ({ visible, onDismiss }: DialogNewTripProps) => {
+  const { session } = useAuthSession();
+  const queryClient = useQueryClient();
   const [tripName, setTripName] = useState("");
   const [tripStartDate, setTripStartDate] = useState("");
   const [tripEndDate, setTripEndDate] = useState("");
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const createTripMutation = useMutation({
-    mutationFn: actionCreateTrip,
+    mutationFn: actionCreateLocalTrip,
     onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["local-trips", session?.user.id],
+      });
       setTripName("");
       setTripStartDate("");
       setTripEndDate("");
-      // onDismiss();
-      showMessage("Trip created", "info");
+      onDismiss();
+      showMessage("Trip saved locally", "info");
     },
     onError: (error) => {
       console.error("Error creating trip:", error);
@@ -37,11 +43,10 @@ export const DialogNewTrip = ({ visible, onDismiss }: DialogNewTripProps) => {
   });
 
   const handleConfirm = () => {
-    console.log("Validating trip details:", {
-      tripName,
-      tripStartDate,
-      tripEndDate,
-    });
+    if (!session?.user.id) {
+      showMessage("You must be signed in to create a trip", "error");
+      return;
+    }
 
     const result = newTripFormSchema.safeParse({
       tripName,
@@ -56,9 +61,9 @@ export const DialogNewTrip = ({ visible, onDismiss }: DialogNewTripProps) => {
       showMessage(message, "error");
       return;
     }
-    console.log("Creating trip with:", result.data);
 
     createTripMutation.mutate({
+      userId: session.user.id,
       title: result.data.tripName,
       startDate: result.data.tripStartDate,
       endDate: result.data.tripEndDate,

@@ -5,6 +5,8 @@ import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import { TRIPS } from "@/data";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { actionListLocalTrips } from "@/lib/sqlite/model/trip";
+import { useQuery } from "@tanstack/react-query";
 import { Redirect, useRouter } from "expo-router";
 import {
   Bell as BellIcon,
@@ -13,7 +15,7 @@ import {
   Plane as PlaneIcon,
   Plus as PlusIcon,
 } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ImageBackground,
   ScrollView,
@@ -26,8 +28,26 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function IndexScreen() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuthSession();
+  const { session, isAuthenticated, isLoading } = useAuthSession();
   const [isDialogNewTripOpen, setIsDialogNewTripOpen] = useState(false);
+
+  const { data: tripData, error: tripError } = useQuery({
+    queryKey: ["local-trips", session?.user.id],
+    queryFn: () => actionListLocalTrips(session!.user.id),
+    enabled: Boolean(session?.user.id),
+  });
+
+  useEffect(() => {
+    if (tripData) {
+      console.log("Local trips:", tripData);
+    }
+  }, [tripData]);
+
+  useEffect(() => {
+    if (tripError) {
+      console.error("Failed to load local trips:", tripError);
+    }
+  }, [tripError]);
 
   if (isLoading) {
     return (
