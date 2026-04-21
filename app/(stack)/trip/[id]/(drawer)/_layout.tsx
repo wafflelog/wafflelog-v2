@@ -1,10 +1,13 @@
 import { DrawerTrip } from "@/components/drawer/trip";
-import { useLocalSearchParams } from "expo-router";
+import { DrawerToggleButton } from "@react-navigation/drawer";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
+import { Text, TouchableOpacity } from "react-native";
 
 export default function Layout() {
   // Get id from route params (available because we're nested under trip/[id])
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
 
   return (
     <Drawer
@@ -13,27 +16,30 @@ export default function Layout() {
       }}
       screenOptions={{
         drawerPosition: "right",
+        headerLeft: (props) => (
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text>Go Back</Text>
+          </TouchableOpacity>
+        ),
+        headerRight: () => <DrawerToggleButton />,
       }}
     >
       <Drawer.Screen
         name="index"
         options={{
           title: "Trip",
-          headerShown: false,
         }}
       />
       <Drawer.Screen
         name="checklist"
         options={{
           title: "Checklist",
-          headerShown: false,
         }}
       />
       <Drawer.Screen
         name="links"
         options={{
           title: "Links",
-          headerShown: false,
         }}
       />
       <Drawer.Screen

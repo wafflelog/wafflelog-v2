@@ -9,8 +9,16 @@ export default function Layout() {
       <Stack.Protected guard={isAuthenticated}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="user" options={{ headerShown: false }} />
-        <Stack.Screen name="(stack)" options={{ headerShown: false }} />
-        <Stack.Screen name="notes" options={{ headerShown: true }} />
+        <Stack.Screen
+          name="trip/[id]/(drawer)"
+          options={{ headerShown: true }}
+        />
+        <Stack.Screen name="pin/[id]/(stack)" options={{ headerShown: true }} />
+        <Stack.Screen
+          name="notification-center"
+          options={{ headerShown: false }}
+        />
+        {/* <Stack.Screen name="(stack)" options={{ headerShown: false }} /> */}
         <Stack.Screen
           name="image-viewer"
           options={{

@@ -1,4 +1,5 @@
 import { DrawerPin } from "@/components/drawer/pin";
+import { DrawerToggleButton } from "@react-navigation/drawer";
 import { useLocalSearchParams } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 
@@ -11,9 +12,10 @@ export default function Layout() {
       }}
       screenOptions={{
         drawerPosition: "right",
+        headerLeft: () => <DrawerToggleButton />,
       }}
     >
-      <Drawer.Screen name="index" options={{ headerShown: false }} />
+      <Drawer.Screen name="index" options={{ headerShown: true }} />
     </Drawer>
   );
 }
