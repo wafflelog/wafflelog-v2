@@ -14,5 +14,18 @@ export async function initializeDatabase() {
       last_synced_at text,
       sync_error text
     );
+
+    create table if not exists checklist_item (
+      id text primary key not null,
+      trip_id text not null,
+      user_id text not null,
+      title text not null,
+      completed integer not null default 0,
+      created_at text not null,
+      updated_at text not null,
+      sync_status text not null,
+      last_synced_at text,
+      sync_error text
+    );
   `);
 }

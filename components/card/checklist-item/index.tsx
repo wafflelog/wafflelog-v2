@@ -1,6 +1,6 @@
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
-import { type ChecklistItem } from "@/types/trip";
+import { type ChecklistItem } from "@/types";
 import { Check as CheckIcon, Trash2 as Trash2Icon } from "lucide-react-native";
 
 import { StyleSheet, TouchableOpacity, View } from "react-native";

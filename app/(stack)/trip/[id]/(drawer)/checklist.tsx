@@ -6,8 +6,13 @@ import { UITab } from "@/components/ui/tab";
 import { UIText } from "@/components/ui/text";
 import { gaps } from "@/constants/theme";
 import { TRIPS } from "@/data";
-import { ChecklistItem } from "@/types/trip";
+import { useAuthSession } from "@/hook/use-auth-session";
+import {
+  actionListLocalChecklistItems,
+  actionToggleLocalChecklistItemCompleted,
+} from "@/lib/sqlite/model/checklist-item";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Plus as PlusIcon,
@@ -24,10 +29,27 @@ export default function TripChecklistScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
+  const { session } = useAuthSession();
+  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<TabId>("my");
   const [isDialogNewChecklistItemVisible, setIsDialogNewChecklistItemVisible] =
     useState(false);
+
+  const { data: checklistData } = useQuery({
+    queryKey: ["local-checklist-items", String(id), session?.user.id],
+    queryFn: () => actionListLocalChecklistItems(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
+
+  const toggleChecklistItemMutation = useMutation({
+    mutationFn: actionToggleLocalChecklistItemCompleted,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["local-checklist-items", String(id), session?.user.id],
+      });
+    },
+  });
 
   const trip = TRIPS.find((trip) => trip.id === id);
 
@@ -72,9 +94,12 @@ export default function TripChecklistScreen() {
 
       <FlatList
         contentContainerStyle={styles.checklist}
-        data={trip.checklistItems as ChecklistItem[]}
+        data={checklistData}
         renderItem={({ item }) => (
-          <CardTripChecklistItem checklistItem={item} onPress={() => {}} />
+          <CardTripChecklistItem
+            checklistItem={item}
+            onPress={() => toggleChecklistItemMutation.mutate(item.id)}
+          />
         )}
       />
 
@@ -86,6 +111,7 @@ export default function TripChecklistScreen() {
         icon={(color) => <PlusIcon size={20} color={color} />}
       />
       <DialogNewChecklistItem
+        tripId={String(id)}
         visible={isDialogNewChecklistItemVisible}
         onDismiss={() => setIsDialogNewChecklistItemVisible(false)}
       />
