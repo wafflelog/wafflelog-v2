@@ -131,3 +131,38 @@ export async function actionListLocalTrips(userId: string) {
 
   return rows.map(mapLocalTripRow);
 }
+
+export async function actionGetLocalTrip(id: string, userId: string) {
+  const row = await sqlite.getFirstAsync<{
+    id: string;
+    user_id: string;
+    title: string;
+    start_date: string;
+    end_date: string;
+    created_at: string;
+    updated_at: string;
+    sync_status: string;
+    last_synced_at: string | null;
+    sync_error: string | null;
+  }>(
+    `
+      select
+        id,
+        user_id,
+        title,
+        start_date,
+        end_date,
+        created_at,
+        updated_at,
+        sync_status,
+        last_synced_at,
+        sync_error
+      from trip
+      where id = ? and user_id = ?
+      limit 1
+    `,
+    [id, userId],
+  );
+
+  return row ? mapLocalTripRow(row) : null;
+}

@@ -3,10 +3,11 @@ import { CardTrip } from "@/components/card/trip";
 import { DialogNewTrip } from "@/components/dialog/new-trip";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
-import { TRIPS } from "@/data";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionListLocalTrips } from "@/lib/sqlite/model/trip";
+import { type Trip } from "@/types/trip";
 import { useQuery } from "@tanstack/react-query";
+import dayjs from "dayjs";
 import { Redirect, useRouter } from "expo-router";
 import {
   Bell as BellIcon,
@@ -15,7 +16,7 @@ import {
   Plane as PlaneIcon,
   Plus as PlusIcon,
 } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ImageBackground,
   ScrollView,
@@ -31,23 +32,11 @@ export default function IndexScreen() {
   const { session, isAuthenticated, isLoading } = useAuthSession();
   const [isDialogNewTripOpen, setIsDialogNewTripOpen] = useState(false);
 
-  const { data: tripData, error: tripError } = useQuery({
+  const { data: tripData = [] } = useQuery({
     queryKey: ["local-trips", session?.user.id],
     queryFn: () => actionListLocalTrips(session!.user.id),
     enabled: Boolean(session?.user.id),
   });
-
-  useEffect(() => {
-    if (tripData) {
-      console.log("Local trips:", tripData);
-    }
-  }, [tripData]);
-
-  useEffect(() => {
-    if (tripError) {
-      console.error("Failed to load local trips:", tripError);
-    }
-  }, [tripError]);
 
   if (isLoading) {
     return (
@@ -71,11 +60,43 @@ export default function IndexScreen() {
     return "Good evening";
   };
 
-  // Get days until next trip
-  const daysUntilNextTrip = 17;
-  const ongoingTrips = TRIPS.slice(0, 1);
-  const upcomingTrips = TRIPS.slice(1, 3);
-  const pastTrips = TRIPS.slice(3);
+  const mappedTrips: Trip[] = tripData.map((trip) => ({
+    id: trip.id,
+    title: trip.title,
+    startDate: trip.startDate,
+    endDate: trip.endDate,
+    location: "Unknown destination",
+    companions: [],
+    pins: [],
+    checklistItems: [],
+    referenceLinks: [],
+    documents: [],
+    images: [],
+    expenses: [],
+  }));
+
+  const today = dayjs().startOf("day");
+
+  const ongoingTrips = mappedTrips
+    .filter(
+      (trip) =>
+        !dayjs(trip.startDate).isAfter(today, "day") &&
+        !dayjs(trip.endDate).isBefore(today, "day"),
+    )
+    .sort((a, b) => dayjs(a.endDate).diff(dayjs(b.endDate)));
+
+  const upcomingTrips = mappedTrips
+    .filter((trip) => dayjs(trip.startDate).isAfter(today, "day"))
+    .sort((a, b) => dayjs(a.startDate).diff(dayjs(b.startDate)));
+
+  const pastTrips = mappedTrips
+    .filter((trip) => dayjs(trip.endDate).isBefore(today, "day"))
+    .sort((a, b) => dayjs(b.endDate).diff(dayjs(a.endDate)));
+
+  const nextUpcomingTrip = upcomingTrips[0];
+  const daysUntilNextTrip = nextUpcomingTrip
+    ? dayjs(nextUpcomingTrip.startDate).startOf("day").diff(today, "day")
+    : null;
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>

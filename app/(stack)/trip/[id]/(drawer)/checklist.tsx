@@ -1,17 +1,14 @@
 import { ButtonFab } from "@/components/button/fab";
 import { CardTripChecklistItem } from "@/components/card/checklist-item";
 import { DialogNewChecklistItem } from "@/components/dialog/new-checklist-item";
-import { HeaderTrip } from "@/components/header/trip";
 import { UITab } from "@/components/ui/tab";
-import { UIText } from "@/components/ui/text";
 import { gaps } from "@/constants/theme";
-import { TRIPS } from "@/data";
 import { useAuthSession } from "@/hook/use-auth-session";
 import {
   actionListLocalChecklistItems,
   actionToggleLocalChecklistItemCompleted,
 } from "@/lib/sqlite/model/checklist-item";
-import { DrawerActions, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -51,12 +48,6 @@ export default function TripChecklistScreen() {
     },
   });
 
-  const trip = TRIPS.find((trip) => trip.id === id);
-
-  if (!trip) {
-    return <UIText>Trip not found</UIText>;
-  }
-
   const tabs = [
     {
       id: "my" as TabId,
@@ -74,11 +65,6 @@ export default function TripChecklistScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <HeaderTrip
-        trip={trip}
-        onBackPress={() => router.back()}
-        onMorePress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-      />
       <View style={styles.tabs}>
         {tabs.map((tab) => (
           <UITab

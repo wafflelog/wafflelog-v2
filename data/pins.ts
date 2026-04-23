@@ -1,7 +1,7 @@
 import { Pin, PinCategory } from "@/types/pin";
 import { USERS } from "./users";
 
-const CATEGORIES: PinCategory[] = [
+export const CATEGORIES: PinCategory[] = [
   {
     id: "category-1",
     name: "attraction",

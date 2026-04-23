@@ -5,9 +5,12 @@ import { TripCategoryFilter } from "@/components/trip/category-filter";
 import { TripDaysTab } from "@/components/trip/days-tab";
 import { TripPinsList } from "@/components/trip/pins-list";
 import { colors, getColor } from "@/constants/theme";
-import { TRIPS } from "@/data";
-import { PinCategory } from "@/types/pin";
+import { CATEGORIES } from "@/data";
+import { useAuthSession } from "@/hook/use-auth-session";
+import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
+import { type Trip } from "@/types/trip";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
+import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Plus as PlusIcon } from "lucide-react-native";
@@ -19,11 +22,35 @@ export default function TripIndexScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
+  const { session } = useAuthSession();
   const carouselRef = useRef<FlatList>(null);
 
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
 
-  const trip = TRIPS.find((trip) => trip.id === id);
+  const { data: localTrip } = useQuery({
+    queryKey: ["local-trip", String(id), session?.user.id],
+    queryFn: () => actionGetLocalTrip(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
+
+  const trip: Trip | null = useMemo(() => {
+    return localTrip
+      ? {
+          id: localTrip.id,
+          title: localTrip.title,
+          startDate: localTrip.startDate,
+          endDate: localTrip.endDate,
+          location: "Unknown destination",
+          companions: [],
+          pins: [],
+          checklistItems: [],
+          referenceLinks: [],
+          documents: [],
+          images: [],
+          expenses: [],
+        }
+      : null;
+  }, [localTrip]);
 
   const numOfDays =
     dayjs(trip?.endDate).diff(dayjs(trip?.startDate), "day") + 1 || 0;
@@ -45,17 +72,6 @@ export default function TripIndexScreen() {
       },
     }));
   }, [trip, numOfDays, selectedDayIndex]);
-
-  const allCategories = useMemo(() => {
-    if (!trip) return [];
-
-    return trip.pins.reduce((acc, pin) => {
-      if (!acc.some((category) => category.id === pin.category.id)) {
-        acc.push(pin.category);
-      }
-      return acc;
-    }, [] as PinCategory[]);
-  }, [trip]);
 
   if (!trip) {
     return (
@@ -81,7 +97,7 @@ export default function TripIndexScreen() {
         contentContainerStyle={styles.content}
       >
         <View style={styles.top}>
-          <TripCategoryFilter categories={allCategories} />
+          <TripCategoryFilter categories={CATEGORIES} />
         </View>
 
         <View style={styles.itinerary}>
