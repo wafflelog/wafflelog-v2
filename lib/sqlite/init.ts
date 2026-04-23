@@ -27,5 +27,17 @@ export async function initializeDatabase() {
       last_synced_at text,
       sync_error text
     );
+
+    create table if not exists pin (
+      id text primary key not null,
+      trip_id text not null,
+      user_id text not null,
+      name text not null,
+      date text not null,
+      time text not null,
+      category_id text not null,
+      created_at text not null,
+      updated_at text not null
+    );
   `);
 }

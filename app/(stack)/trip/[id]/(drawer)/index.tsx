@@ -1,4 +1,5 @@
 import { ButtonFab } from "@/components/button/fab";
+import { DialogNewPin } from "@/components/dialog/new-pin";
 import { HeaderTrip } from "@/components/header/trip";
 import { TitleRegular } from "@/components/title/regular";
 import { TripCategoryFilter } from "@/components/trip/category-filter";
@@ -7,7 +8,9 @@ import { TripPinsList } from "@/components/trip/pins-list";
 import { colors, getColor } from "@/constants/theme";
 import { CATEGORIES } from "@/data";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { actionListLocalPinsByTripAndDate } from "@/lib/sqlite/model/pin";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
+import { type Pin } from "@/types/pin";
 import { type Trip } from "@/types/trip";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -26,6 +29,7 @@ export default function TripIndexScreen() {
   const carouselRef = useRef<FlatList>(null);
 
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+  const [isDialogNewPinOpen, setIsDialogNewPinOpen] = useState(false);
 
   const { data: localTrip } = useQuery({
     queryKey: ["local-trip", String(id), session?.user.id],
@@ -52,17 +56,57 @@ export default function TripIndexScreen() {
       : null;
   }, [localTrip]);
 
+  const selectedDate = useMemo(() => {
+    if (!trip) {
+      return null;
+    }
+
+    return dayjs(trip.startDate)
+      .add(selectedDayIndex, "day")
+      .format("YYYY-MM-DD");
+  }, [trip, selectedDayIndex]);
+
+  const { data: selectedDayPins = [] } = useQuery({
+    queryKey: ["local-pins", String(id), selectedDate, session?.user.id],
+    queryFn: () =>
+      actionListLocalPinsByTripAndDate(
+        String(id),
+        session!.user.id,
+        selectedDate!,
+      ),
+    enabled: Boolean(id && selectedDate && session?.user.id),
+  });
+
   const numOfDays =
     dayjs(trip?.endDate).diff(dayjs(trip?.startDate), "day") + 1 || 0;
 
   const tripDays = useMemo(() => {
     if (!trip) return [];
+
+    const mappedSelectedDayPins: Pin[] = selectedDayPins.map((pin) => ({
+      id: pin.id,
+      name: pin.name,
+      category:
+        CATEGORIES.find((category) => category.id === pin.categoryId) ??
+        CATEGORIES[0],
+      location: {
+        id: `location-${pin.id}`,
+        name: "Unknown location",
+        address: "",
+        latitude: 0,
+        longitude: 0,
+      },
+      time: dayjs(`${pin.date} ${pin.time}`).toISOString(),
+      referenceLinks: [],
+      documents: [],
+      expenses: [],
+      images: [],
+    }));
+
     return Array.from({ length: numOfDays }, (_, index) => ({
       date: dayjs(trip.startDate).add(index, "day").toISOString(),
       isActive: selectedDayIndex === index,
-      pins: trip.pins.filter((pin) =>
-        dayjs(pin.time).isSame(dayjs(trip.startDate).add(index, "day"), "day"),
-      ),
+      pins: selectedDayIndex === index ? mappedSelectedDayPins : [],
       onPress: () => {
         setSelectedDayIndex(index);
         carouselRef.current?.scrollToIndex({
@@ -71,7 +115,7 @@ export default function TripIndexScreen() {
         });
       },
     }));
-  }, [trip, numOfDays, selectedDayIndex]);
+  }, [trip, numOfDays, selectedDayIndex, selectedDayPins]);
 
   if (!trip) {
     return (
@@ -114,11 +158,15 @@ export default function TripIndexScreen() {
       </ScrollView>
       <ButtonFab
         onPress={() => {
-          // TODO: Navigate to create trip
-          console.log("Create Trip");
+          setIsDialogNewPinOpen(true);
         }}
         text="New Pin"
         icon={(color) => <PlusIcon size={20} color={color} />}
+      />
+      <DialogNewPin
+        tripId={String(id)}
+        visible={isDialogNewPinOpen}
+        onDismiss={() => setIsDialogNewPinOpen(false)}
       />
     </SafeAreaView>
   );
