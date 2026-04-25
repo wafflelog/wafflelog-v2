@@ -162,3 +162,36 @@ export async function actionListLocalPinsByTripAndDate(
 
   return rows.map(mapLocalPinRow);
 }
+
+export async function actionGetLocalPin(id: string, userId: string) {
+  const row = await sqlite.getFirstAsync<{
+    id: string;
+    trip_id: string;
+    user_id: string;
+    name: string;
+    date: string;
+    time: string;
+    category_id: string;
+    created_at: string;
+    updated_at: string;
+  }>(
+    `
+      select
+        id,
+        trip_id,
+        user_id,
+        name,
+        date,
+        time,
+        category_id,
+        created_at,
+        updated_at
+      from pin
+      where id = ? and user_id = ?
+      limit 1
+    `,
+    [id, userId],
+  );
+
+  return row ? mapLocalPinRow(row) : null;
+}

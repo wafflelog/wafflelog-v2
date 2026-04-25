@@ -1,0 +1,131 @@
+import { Dialog } from "@/components/ui/dialog";
+import { UIInputText } from "@/components/ui/input/text";
+import { gaps } from "@/constants/theme";
+import { useSystemMessage } from "@/hook/use-system-message";
+import { useAuthSession } from "@/hook/use-auth-session";
+import { actionCreateLocalReferenceLink } from "@/lib/sqlite/model/reference-link";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { newReferenceLinkFormSchema } from "./schema";
+
+type DialogNewReferenceLinkProps = {
+  pinId?: string;
+  tripId?: string;
+  visible: boolean;
+  onDismiss: () => void;
+};
+
+export const DialogNewReferenceLink = ({
+  pinId,
+  tripId,
+  visible,
+  onDismiss,
+}: DialogNewReferenceLinkProps) => {
+  const [referenceLinkUrl, setReferenceLinkUrl] = useState("");
+  const [referenceLinkCaption, setReferenceLinkCaption] = useState("");
+  const { session } = useAuthSession();
+  const queryClient = useQueryClient();
+  const { showMessage, SystemMessageModal } = useSystemMessage();
+
+  const createReferenceLinkMutation = useMutation({
+    mutationFn: actionCreateLocalReferenceLink,
+    onSuccess: () => {
+      if (session?.user.id) {
+        if (pinId) {
+          queryClient.invalidateQueries({
+            queryKey: ["local-reference-links", pinId, session.user.id],
+          });
+        }
+
+        if (tripId) {
+          queryClient.invalidateQueries({
+            queryKey: ["local-trip-reference-links", tripId, session.user.id],
+          });
+        }
+      }
+
+      setReferenceLinkUrl("");
+      setReferenceLinkCaption("");
+      onDismiss();
+      showMessage("Reference link saved locally", "info");
+    },
+    onError: (error) => {
+      console.error("Error creating reference link:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to create reference link";
+      showMessage(message, "error");
+    },
+  });
+
+  const handleConfirm = () => {
+    if (!session?.user.id) {
+      showMessage("You must be signed in to create a reference link", "error");
+      return;
+    }
+
+    if (!pinId) {
+      showMessage(
+        "Reference links need to be created from a pin so they can be attached to a place.",
+        "error",
+      );
+      return;
+    }
+
+    const result = newReferenceLinkFormSchema.safeParse({
+      referenceLinkUrl,
+      referenceLinkCaption,
+    });
+
+    if (!result.success) {
+      const message =
+        result.error.issues[0]?.message ??
+        "Check your reference link details and try again.";
+      showMessage(message, "error");
+      return;
+    }
+
+    createReferenceLinkMutation.mutate({
+      pinId,
+      userId: session.user.id,
+      url: result.data.referenceLinkUrl,
+      caption: result.data.referenceLinkCaption,
+    });
+  };
+
+  return (
+    <>
+      <Dialog
+        visible={visible}
+        onDismiss={onDismiss}
+        title="New Reference Link"
+        size="md"
+        onConfirm={handleConfirm}
+      >
+        <View style={styles.content}>
+          <UIInputText
+            placeholder="Enter URL"
+            value={referenceLinkUrl}
+            onChange={setReferenceLinkUrl}
+            autoFocus
+          />
+          <UIInputText
+            placeholder="Add caption (optional)"
+            value={referenceLinkCaption}
+            onChange={setReferenceLinkCaption}
+          />
+        </View>
+      </Dialog>
+      <SystemMessageModal />
+    </>
+  );
+};
+
+const styles = StyleSheet.create({
+  content: {
+    flex: 1,
+    gap: gaps.sm,
+  },
+});

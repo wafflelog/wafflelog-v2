@@ -39,5 +39,19 @@ export async function initializeDatabase() {
       created_at text not null,
       updated_at text not null
     );
+
+    create table if not exists reference_link (
+      id text primary key not null,
+      pin_id text not null,
+      user_id text not null,
+      title text,
+      url text not null,
+      caption text,
+      created_at text not null,
+      updated_at text not null,
+      sync_status text not null,
+      last_synced_at text,
+      sync_error text
+    );
   `);
 }

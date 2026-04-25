@@ -1,8 +1,13 @@
 import { CardDocument } from "@/components/card/document";
 import { HeaderPin } from "@/components/header/pin";
 import { UIText } from "@/components/ui/text";
-import { PINS } from "@/data/pins";
+import { CATEGORIES } from "@/data/pins";
+import { useAuthSession } from "@/hook/use-auth-session";
+import { actionGetLocalPin } from "@/lib/sqlite/model/pin";
+import { type Pin } from "@/types/pin";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
+import { useQuery } from "@tanstack/react-query";
+import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,6 +17,7 @@ import { CardExpenseRegular } from "@/components/card/expense/regular";
 import { CardImageRegular } from "@/components/card/image/regular";
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
 import { CardPinReferenceLinkRegular } from "@/components/card/reference-link/regular";
+import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
 import {
@@ -22,13 +28,44 @@ import {
   SquarePen as SquarePenIcon,
   Wallet as WalletIcon,
 } from "lucide-react-native";
+import { useState } from "react";
 
 export default function PinIndexScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const pin = PINS.find((pin) => pin.id === id);
+  const { session } = useAuthSession();
   const color = getColor(colors.purple);
   const navigation = useNavigation();
+  const [isDialogNewReferenceLinkOpen, setIsDialogNewReferenceLinkOpen] =
+    useState(false);
+
+  const { data: localPin } = useQuery({
+    queryKey: ["local-pin", String(id), session?.user.id],
+    queryFn: () => actionGetLocalPin(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
+
+  const pin: Pin | null = localPin
+    ? {
+        id: localPin.id,
+        name: localPin.name,
+        category:
+          CATEGORIES.find((category) => category.id === localPin.categoryId) ??
+          CATEGORIES[0],
+        location: {
+          id: `location-${localPin.id}`,
+          name: "Unknown location",
+          address: "",
+          latitude: 0,
+          longitude: 0,
+        },
+        time: dayjs(`${localPin.date} ${localPin.time}`).toISOString(),
+        referenceLinks: [],
+        documents: [],
+        expenses: [],
+        images: [],
+      }
+    : null;
 
   if (!pin) {
     return <UIText>Pin not found</UIText>;
@@ -144,7 +181,12 @@ export default function PinIndexScreen() {
                 </View>
               ))}
             </View>
-            <ButtonAdd text="Add Reference Link" onPress={() => {}} />
+            <ButtonAdd
+              text="Add Reference Link"
+              onPress={() => {
+                setIsDialogNewReferenceLinkOpen(true);
+              }}
+            />
           </View>
         </View>
       </ScrollView>
@@ -155,6 +197,12 @@ export default function PinIndexScreen() {
       >
         <SquarePenIcon size={24} color="#fff" />
       </TouchableOpacity>
+      <DialogNewReferenceLink
+        pinId={localPin?.id}
+        tripId={localPin?.tripId}
+        visible={isDialogNewReferenceLinkOpen}
+        onDismiss={() => setIsDialogNewReferenceLinkOpen(false)}
+      />
     </SafeAreaView>
   );
 }
