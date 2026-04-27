@@ -20,6 +20,7 @@ import { CardPinReferenceLinkRegular } from "@/components/card/reference-link/re
 import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
+import { actionListLocalReferenceLinksByPin } from "@/lib/sqlite/model/reference-link";
 import {
   FileText as FileTextIcon,
   Image as ImageIcon,
@@ -44,6 +45,11 @@ export default function PinIndexScreen() {
     queryFn: () => actionGetLocalPin(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
   });
+  const { data: localReferenceLinks = [] } = useQuery({
+    queryKey: ["local-reference-links", String(id), session?.user.id],
+    queryFn: () => actionListLocalReferenceLinksByPin(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
 
   const pin: Pin | null = localPin
     ? {
@@ -60,7 +66,12 @@ export default function PinIndexScreen() {
           longitude: 0,
         },
         time: dayjs(`${localPin.date} ${localPin.time}`).toISOString(),
-        referenceLinks: [],
+        referenceLinks: localReferenceLinks.map((referenceLink) => ({
+          id: referenceLink.id,
+          title: referenceLink.title ?? referenceLink.url,
+          url: referenceLink.url,
+          caption: referenceLink.caption ?? undefined,
+        })),
         documents: [],
         expenses: [],
         images: [],

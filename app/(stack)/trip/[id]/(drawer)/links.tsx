@@ -4,8 +4,11 @@ import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
 import { HeaderTrip } from "@/components/header/trip";
 import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
-import { TRIPS } from "@/data";
+import { useAuthSession } from "@/hook/use-auth-session";
+import { actionListLocalReferenceLinksByTrip } from "@/lib/sqlite/model/reference-link";
+import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
+import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Plus as PlusIcon } from "lucide-react-native";
 import { useState } from "react";
@@ -18,8 +21,36 @@ export default function TripLinksScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
+  const { session } = useAuthSession();
 
-  const trip = TRIPS.find((trip) => trip.id === id);
+  const { data: localTrip } = useQuery({
+    queryKey: ["local-trip", String(id), session?.user.id],
+    queryFn: () => actionGetLocalTrip(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
+
+  const { data: localReferenceLinks = [] } = useQuery({
+    queryKey: ["local-trip-reference-links", String(id), session?.user.id],
+    queryFn: () => actionListLocalReferenceLinksByTrip(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
+
+  const trip = localTrip
+    ? {
+        id: localTrip.id,
+        title: localTrip.title,
+        startDate: localTrip.startDate,
+        endDate: localTrip.endDate,
+        location: "Unknown destination",
+        companions: [],
+        pins: [],
+        checklistItems: [],
+        referenceLinks: [],
+        documents: [],
+        images: [],
+        expenses: [],
+      }
+    : null;
 
   if (!trip) {
     return <UIText>Trip not found</UIText>;
@@ -35,7 +66,12 @@ export default function TripLinksScreen() {
 
       <FlatList
         contentContainerStyle={styles.links}
-        data={trip.referenceLinks}
+        data={localReferenceLinks.map((referenceLink) => ({
+          id: referenceLink.id,
+          title: referenceLink.title ?? referenceLink.url,
+          url: referenceLink.url,
+          caption: referenceLink.caption ?? undefined,
+        }))}
         renderItem={({ item }) => (
           <View key={item.id} style={styles.link}>
             <CardPinReferenceLinkRegular referenceLink={item} />
