@@ -53,5 +53,22 @@ export async function initializeDatabase() {
       last_synced_at text,
       sync_error text
     );
+
+    create table if not exists document (
+      id text primary key not null,
+      trip_id text not null,
+      pin_id text,
+      user_id text not null,
+      file_name text not null,
+      mime_type text not null,
+      storage_bucket text not null,
+      storage_path text not null,
+      caption text,
+      created_at text not null,
+      updated_at text not null,
+      sync_status text not null,
+      last_synced_at text,
+      sync_error text
+    );
   `);
 }
