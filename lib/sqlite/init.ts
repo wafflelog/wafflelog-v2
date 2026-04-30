@@ -71,4 +71,19 @@ export async function initializeDatabase() {
       sync_error text
     );
   `);
+
+  const documentTableColumns = await sqlite.getAllAsync<{ name: string }>(
+    `pragma table_info(document);`,
+  );
+
+  const hasLocalUriColumn = documentTableColumns.some(
+    (column) => column.name === "local_uri",
+  );
+
+  if (!hasLocalUriColumn) {
+    await sqlite.execAsync(`
+      alter table document
+      add column local_uri text;
+    `);
+  }
 }

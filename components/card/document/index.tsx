@@ -21,11 +21,15 @@ export const CardDocument = ({
 }: CardDocumentProps) => {
   const router = useRouter();
   const onPressHandler = () => {
+    if (onPress) {
+      onPress();
+      return;
+    }
+
     router.push({
       pathname: "/web-viewer",
       params: { url: document.url, title: document.fileName },
     });
-    onPress?.();
   };
 
   return match(variant)

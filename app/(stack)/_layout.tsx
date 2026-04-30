@@ -23,14 +23,14 @@ export default function Layout() {
           name="image-viewer"
           options={{
             presentation: "fullScreenModal",
-            headerShown: false,
+            headerShown: true,
           }}
         />
         <Stack.Screen
           name="web-viewer"
           options={{
-            presentation: "fullScreenModal",
-            headerShown: false,
+            presentation: "modal",
+            headerShown: true,
           }}
         />
       </Stack.Protected>

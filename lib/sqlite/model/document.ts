@@ -7,6 +7,7 @@ export type LocalDocument = {
   userId: string;
   fileName: string;
   mimeType: string;
+  localUri: string | null;
   storageBucket: string;
   storagePath: string;
   caption: string | null;
@@ -18,13 +19,15 @@ export type LocalDocument = {
 };
 
 export type CreateLocalDocumentInput = {
+  id?: string;
   tripId: string;
   pinId?: string | null;
   userId: string;
   fileName: string;
   mimeType: string;
-  storageBucket: string;
-  storagePath: string;
+  localUri: string;
+  storageBucket?: string;
+  storagePath?: string;
   caption?: string;
 };
 
@@ -39,6 +42,7 @@ function mapLocalDocumentRow(row: {
   user_id: string;
   file_name: string;
   mime_type: string;
+  local_uri: string | null;
   storage_bucket: string;
   storage_path: string;
   caption: string | null;
@@ -55,6 +59,7 @@ function mapLocalDocumentRow(row: {
     userId: row.user_id,
     fileName: row.file_name,
     mimeType: row.mime_type,
+    localUri: row.local_uri,
     storageBucket: row.storage_bucket,
     storagePath: row.storage_path,
     caption: row.caption,
@@ -71,14 +76,15 @@ export async function actionCreateLocalDocument(
 ) {
   const now = new Date().toISOString();
   const localDocument = {
-    id: createLocalId(),
+    id: input.id ?? createLocalId(),
     trip_id: input.tripId,
     pin_id: input.pinId ?? null,
     user_id: input.userId,
     file_name: input.fileName.trim(),
     mime_type: input.mimeType.trim(),
-    storage_bucket: input.storageBucket.trim(),
-    storage_path: input.storagePath.trim(),
+    local_uri: input.localUri.trim(),
+    storage_bucket: input.storageBucket?.trim() ?? "",
+    storage_path: input.storagePath?.trim() ?? "",
     caption: input.caption?.trim() || null,
     created_at: now,
     updated_at: now,
@@ -96,6 +102,7 @@ export async function actionCreateLocalDocument(
         user_id,
         file_name,
         mime_type,
+        local_uri,
         storage_bucket,
         storage_path,
         caption,
@@ -104,7 +111,7 @@ export async function actionCreateLocalDocument(
         sync_status,
         last_synced_at,
         sync_error
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       localDocument.id,
@@ -113,6 +120,7 @@ export async function actionCreateLocalDocument(
       localDocument.user_id,
       localDocument.file_name,
       localDocument.mime_type,
+      localDocument.local_uri,
       localDocument.storage_bucket,
       localDocument.storage_path,
       localDocument.caption,
@@ -138,6 +146,7 @@ export async function actionListLocalDocumentsByTrip(
     user_id: string;
     file_name: string;
     mime_type: string;
+    local_uri: string | null;
     storage_bucket: string;
     storage_path: string;
     caption: string | null;
@@ -155,6 +164,7 @@ export async function actionListLocalDocumentsByTrip(
         user_id,
         file_name,
         mime_type,
+        local_uri,
         storage_bucket,
         storage_path,
         caption,
@@ -184,6 +194,7 @@ export async function actionListLocalDocumentsByPin(
     user_id: string;
     file_name: string;
     mime_type: string;
+    local_uri: string | null;
     storage_bucket: string;
     storage_path: string;
     caption: string | null;
@@ -201,6 +212,7 @@ export async function actionListLocalDocumentsByPin(
         user_id,
         file_name,
         mime_type,
+        local_uri,
         storage_bucket,
         storage_path,
         caption,

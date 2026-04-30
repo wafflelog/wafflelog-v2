@@ -17,9 +17,12 @@ import { CardExpenseRegular } from "@/components/card/expense/regular";
 import { CardImageRegular } from "@/components/card/image/regular";
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
 import { CardPinReferenceLinkRegular } from "@/components/card/reference-link/regular";
+import { DialogNewDocument } from "@/components/dialog/new-document";
 import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
+import { useSystemMessage } from "@/hook/use-system-message";
+import { actionListLocalDocumentsByPin } from "@/lib/sqlite/model/document";
 import { actionListLocalReferenceLinksByPin } from "@/lib/sqlite/model/reference-link";
 import {
   FileText as FileTextIcon,
@@ -37,6 +40,8 @@ export default function PinIndexScreen() {
   const { session } = useAuthSession();
   const color = getColor(colors.purple);
   const navigation = useNavigation();
+  const { showMessage, SystemMessageModal } = useSystemMessage();
+  const [isDialogNewDocumentOpen, setIsDialogNewDocumentOpen] = useState(false);
   const [isDialogNewReferenceLinkOpen, setIsDialogNewReferenceLinkOpen] =
     useState(false);
 
@@ -48,6 +53,11 @@ export default function PinIndexScreen() {
   const { data: localReferenceLinks = [] } = useQuery({
     queryKey: ["local-reference-links", String(id), session?.user.id],
     queryFn: () => actionListLocalReferenceLinksByPin(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
+  const { data: localDocuments = [] } = useQuery({
+    queryKey: ["local-pin-documents", String(id), session?.user.id],
+    queryFn: () => actionListLocalDocumentsByPin(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
   });
 
@@ -72,11 +82,41 @@ export default function PinIndexScreen() {
           url: referenceLink.url,
           caption: referenceLink.caption ?? undefined,
         })),
-        documents: [],
+        documents: localDocuments.map((document) => ({
+          id: document.id,
+          fileName: document.fileName,
+          mimeType: document.mimeType,
+          url: document.localUri ?? "",
+          caption: document.caption ?? undefined,
+        })),
         expenses: [],
         images: [],
       }
     : null;
+
+  const handleOpenDocument = async (document: {
+    fileName: string;
+    localUri: string | null;
+  }) => {
+    try {
+      if (!document.localUri) {
+        throw new Error("This document is not available offline on this device");
+      }
+
+      router.push({
+        pathname: "/web-viewer",
+        params: {
+          url: document.localUri,
+          title: document.fileName,
+        },
+      });
+    } catch (error) {
+      console.error("Error opening document:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to open document";
+      showMessage(message, "error");
+    }
+  };
 
   if (!pin) {
     return <UIText>Pin not found</UIText>;
@@ -165,14 +205,28 @@ export default function PinIndexScreen() {
             <View style={styles.sectionCard}>
               {pin.documents.map((document, index) => (
                 <View key={document.id}>
-                  <CardDocument document={document} variant="regular" />
+                  <CardDocument
+                    document={document}
+                    variant="regular"
+                    onPress={() =>
+                      void handleOpenDocument({
+                        fileName: document.fileName,
+                        localUri: document.url || null,
+                      })
+                    }
+                  />
                   {index < pin.documents.length - 1 && (
                     <View style={styles.divider} />
                   )}
                 </View>
               ))}
             </View>
-            <ButtonAdd text="Add Document" onPress={() => {}} />
+            <ButtonAdd
+              text="Add Document"
+              onPress={() => {
+                setIsDialogNewDocumentOpen(true);
+              }}
+            />
           </View>
 
           <View style={styles.section}>
@@ -214,6 +268,13 @@ export default function PinIndexScreen() {
         visible={isDialogNewReferenceLinkOpen}
         onDismiss={() => setIsDialogNewReferenceLinkOpen(false)}
       />
+      <DialogNewDocument
+        tripId={localPin?.tripId ?? ""}
+        pinId={localPin?.id}
+        visible={isDialogNewDocumentOpen}
+        onDismiss={() => setIsDialogNewDocumentOpen(false)}
+      />
+      <SystemMessageModal />
     </SafeAreaView>
   );
 }

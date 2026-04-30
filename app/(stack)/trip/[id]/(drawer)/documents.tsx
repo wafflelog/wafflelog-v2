@@ -1,21 +1,29 @@
 import { CardDocument } from "@/components/card/document";
+import { ButtonFab } from "@/components/button/fab";
+import { DialogNewDocument } from "@/components/dialog/new-document";
 import { HeaderTrip } from "@/components/header/trip";
 import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { useSystemMessage } from "@/hook/use-system-message";
 import { actionListLocalDocumentsByTrip } from "@/lib/sqlite/model/document";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Plus as PlusIcon } from "lucide-react-native";
+import { useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TripDocumentsScreen() {
+  const [isDialogNewDocumentVisible, setIsDialogNewDocumentVisible] =
+    useState(false);
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
   const { session } = useAuthSession();
+  const { showMessage, SystemMessageModal } = useSystemMessage();
 
   const { data: localTrip } = useQuery({
     queryKey: ["local-trip", String(id), session?.user.id],
@@ -46,6 +54,30 @@ export default function TripDocumentsScreen() {
       }
     : null;
 
+  const handleOpenDocument = async (document: {
+    fileName: string;
+    localUri: string | null;
+  }) => {
+    try {
+      if (!document.localUri) {
+        throw new Error("This document is not available offline on this device");
+      }
+
+      router.push({
+        pathname: "/web-viewer",
+        params: {
+          url: document.localUri,
+          title: document.fileName,
+        },
+      });
+    } catch (error) {
+      console.error("Error opening document:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to open document";
+      showMessage(message, "error");
+    }
+  };
+
   if (!trip) {
     return <UIText>Trip not found</UIText>;
   }
@@ -60,22 +92,44 @@ export default function TripDocumentsScreen() {
 
       <FlatList
         contentContainerStyle={styles.documents}
-        data={localDocuments.map((document) => ({
-          id: document.id,
-          fileName: document.fileName,
-          mimeType: document.mimeType,
-          url: "",
-          caption: document.caption ?? undefined,
-        }))}
+        data={localDocuments}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View key={item.id} style={styles.item}>
             <View style={styles.document}>
-              <CardDocument document={item} variant="regular" />
+              <CardDocument
+                document={{
+                  id: item.id,
+                  fileName: item.fileName,
+                  mimeType: item.mimeType,
+                  url: "",
+                  caption: item.caption ?? undefined,
+                }}
+                variant="regular"
+                onPress={() =>
+                  void handleOpenDocument({
+                    fileName: item.fileName,
+                    localUri: item.localUri,
+                  })
+                }
+              />
             </View>
           </View>
         )}
       />
+      <ButtonFab
+        onPress={() => {
+          setIsDialogNewDocumentVisible(true);
+        }}
+        text="New Document"
+        icon={(color) => <PlusIcon size={20} color={color} />}
+      />
+      <DialogNewDocument
+        tripId={String(id)}
+        visible={isDialogNewDocumentVisible}
+        onDismiss={() => setIsDialogNewDocumentVisible(false)}
+      />
+      <SystemMessageModal />
     </SafeAreaView>
   );
 }
