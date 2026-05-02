@@ -16,15 +16,8 @@ export function CardImageRegular({
   showCaption = false,
   onPress,
 }: CardImageRegularProps) {
-  const router = useRouter();
-
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={() =>
-        router.push(`/image-viewer?url=${encodeURIComponent(image.url)}`)
-      }
-    >
+    <TouchableOpacity style={styles.container} onPress={onPress}>
       <ExpoImage style={styles.image} source={image.url} contentFit="cover" />
       {showCaption && (
         <TitleRegular size="xs" style={styles.caption}>

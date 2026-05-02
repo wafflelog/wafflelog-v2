@@ -18,11 +18,13 @@ import { CardImageRegular } from "@/components/card/image/regular";
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
 import { CardPinReferenceLinkRegular } from "@/components/card/reference-link/regular";
 import { DialogNewDocument } from "@/components/dialog/new-document";
+import { DialogNewImage } from "@/components/dialog/new-image";
 import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionListLocalDocumentsByPin } from "@/lib/sqlite/model/document";
+import { actionListLocalImagesByPin } from "@/lib/sqlite/model/image";
 import { actionListLocalReferenceLinksByPin } from "@/lib/sqlite/model/reference-link";
 import {
   FileText as FileTextIcon,
@@ -42,6 +44,7 @@ export default function PinIndexScreen() {
   const navigation = useNavigation();
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const [isDialogNewDocumentOpen, setIsDialogNewDocumentOpen] = useState(false);
+  const [isDialogNewImageOpen, setIsDialogNewImageOpen] = useState(false);
   const [isDialogNewReferenceLinkOpen, setIsDialogNewReferenceLinkOpen] =
     useState(false);
 
@@ -58,6 +61,11 @@ export default function PinIndexScreen() {
   const { data: localDocuments = [] } = useQuery({
     queryKey: ["local-pin-documents", String(id), session?.user.id],
     queryFn: () => actionListLocalDocumentsByPin(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
+  const { data: localImages = [] } = useQuery({
+    queryKey: ["local-pin-images", String(id), session?.user.id],
+    queryFn: () => actionListLocalImagesByPin(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
   });
 
@@ -90,7 +98,13 @@ export default function PinIndexScreen() {
           caption: document.caption ?? undefined,
         })),
         expenses: [],
-        images: [],
+        images: localImages.map((image) => ({
+          id: image.id,
+          url: image.localUri,
+          width: image.width,
+          height: image.height,
+          caption: image.caption ?? undefined,
+        })),
       }
     : null;
 
@@ -116,6 +130,27 @@ export default function PinIndexScreen() {
         error instanceof Error ? error.message : "Failed to open document";
       showMessage(message, "error");
     }
+  };
+
+  const handleOpenImage = async (
+    selectedImageId: string,
+    images: Pin["images"],
+  ) => {
+    const urls = images.map((image) => image.url);
+    const selectedImage = images.find((image) => image.id === selectedImageId);
+
+    if (!selectedImage) {
+      showMessage("Failed to open image", "error");
+      return;
+    }
+
+    router.push({
+      pathname: "/image-viewer",
+      params: {
+        url: selectedImage.url,
+        urls: JSON.stringify(urls),
+      },
+    });
   };
 
   if (!pin) {
@@ -183,13 +218,20 @@ export default function PinIndexScreen() {
               >
                 {pin.images.map((image) => (
                   <View key={image.id} style={styles.imageCard}>
-                    <CardImageRegular image={image} onPress={() => {}} />
+                    <CardImageRegular
+                      image={image}
+                      onPress={() => {
+                        void handleOpenImage(image.id, pin.images);
+                      }}
+                    />
                   </View>
                 ))}
                 <ButtonAdd
                   style={styles.addImageButton}
                   text="Add Image"
-                  onPress={() => {}}
+                  onPress={() => {
+                    setIsDialogNewImageOpen(true);
+                  }}
                 />
               </ScrollView>
             </View>
@@ -273,6 +315,12 @@ export default function PinIndexScreen() {
         pinId={localPin?.id}
         visible={isDialogNewDocumentOpen}
         onDismiss={() => setIsDialogNewDocumentOpen(false)}
+      />
+      <DialogNewImage
+        tripId={localPin?.tripId ?? ""}
+        pinId={localPin?.id ?? ""}
+        visible={isDialogNewImageOpen}
+        onDismiss={() => setIsDialogNewImageOpen(false)}
       />
       <SystemMessageModal />
     </SafeAreaView>

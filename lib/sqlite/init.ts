@@ -70,6 +70,23 @@ export async function initializeDatabase() {
       last_synced_at text,
       sync_error text
     );
+
+    create table if not exists image (
+      id text primary key not null,
+      pin_id text not null,
+      trip_id text not null,
+      user_id text not null,
+      local_uri text not null,
+      mime_type text not null,
+      width integer not null,
+      height integer not null,
+      caption text,
+      created_at text not null,
+      updated_at text not null,
+      sync_status text not null,
+      last_synced_at text,
+      sync_error text
+    );
   `);
 
   const documentTableColumns = await sqlite.getAllAsync<{ name: string }>(

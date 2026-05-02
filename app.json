@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.kevin.wan.wafflelogv2"
+      "bundleIdentifier": "com.wafflelog.wafflelogv2"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +21,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.kevin.wan.wafflelogv2"
+      "package": "com.wafflelog.wafflelogv2"
     },
     "web": {
       "output": "static",
@@ -45,7 +45,21 @@
       "@react-native-community/datetimepicker",
       "expo-secure-store",
       "expo-sqlite",
-      "expo-document-picker"
+      "expo-document-picker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Wafflelog uses your photo library so you can attach trip images to pins.",
+          "colors": {
+            "cropToolbarColor": "#000000"
+          },
+          "dark": {
+            "colors": {
+              "cropToolbarColor": "#000000"
+            }
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

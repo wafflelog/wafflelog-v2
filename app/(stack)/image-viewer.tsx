@@ -30,17 +30,15 @@ const ZOOM_ANIMATION_DURATION = 300;
 
 export default function ImageZoomScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ url?: string }>();
+  const params = useLocalSearchParams<{ url?: string; urls?: string }>();
 
-  const images = [
-    "https://picsum.photos/seed/695/3000/2000",
-    "https://picsum.photos/seed/696/3000/2000",
-    "https://picsum.photos/seed/697/3000/2000",
-    "https://picsum.photos/seed/698/3000/2000",
-    "https://picsum.photos/seed/699/3000/2000",
-  ];
+  const images = params.urls
+    ? JSON.parse(params.urls)
+    : params.url
+      ? [params.url]
+      : [];
 
-  const [imageUrl, setImageUrl] = useState(images[0]);
+  const [imageUrl, setImageUrl] = useState(images[0] ?? "");
 
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
@@ -269,7 +267,7 @@ export default function ImageZoomScreen() {
           data={images}
           renderItem={({ item }) => (
             <TouchableOpacity onPress={() => setImageUrl(item)}>
-              <ExpoImage source={{ uri: item }} style={styles.thumbnail} />
+              <ExpoImage source={item} style={styles.thumbnail} />
             </TouchableOpacity>
           )}
         />
