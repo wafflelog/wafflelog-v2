@@ -1,46 +1,122 @@
 import { Dialog } from "@/components/ui/dialog";
 import { UIInputExpense } from "@/components/ui/input/expense";
 import { UIInputText } from "@/components/ui/input/text";
-import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
+import { gaps } from "@/constants/theme";
+import { useAuthSession } from "@/hook/use-auth-session";
+import { useSystemMessage } from "@/hook/use-system-message";
+import { actionCreateLocalExpense } from "@/lib/sqlite/model/expense";
 import { Currency } from "@/types/pin";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { newExpenseFormSchema } from "./new-expense/schema";
 
 type DialogNewExpenseProps = {
+  pinId?: string;
+  tripId?: string;
   visible: boolean;
   onDismiss: () => void;
 };
 
 export const DialogNewExpense = ({
+  pinId,
+  tripId,
   visible,
   onDismiss,
 }: DialogNewExpenseProps) => {
+  const { session } = useAuthSession();
+  const queryClient = useQueryClient();
+  const { showMessage, SystemMessageModal } = useSystemMessage();
   const [expenseCurrency, setExpenseCurrency] = useState<Currency>("EUR");
-  const [expenseAmount, setExpenseAmount] = useState("0.00");
+  const [expenseAmount, setExpenseAmount] = useState("");
   const [expenseDescription, setExpenseDescription] = useState("");
 
+  const createExpenseMutation = useMutation({
+    mutationFn: actionCreateLocalExpense,
+    onSuccess: () => {
+      if (session?.user.id) {
+        queryClient.invalidateQueries({
+          queryKey: ["local-pin-expenses", pinId, session.user.id],
+        });
+      }
+
+      setExpenseCurrency("EUR");
+      setExpenseAmount("");
+      setExpenseDescription("");
+      onDismiss();
+      showMessage("Expense saved locally", "info");
+    },
+    onError: (error) => {
+      console.error("Error creating expense:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to save expense";
+      showMessage(message, "error");
+    },
+  });
+
+  const handleConfirm = () => {
+    if (!session?.user.id) {
+      showMessage("You must be signed in to create an expense", "error");
+      return;
+    }
+
+    if (!pinId || !tripId) {
+      showMessage("This expense needs to be attached to a pin", "error");
+      return;
+    }
+
+    const result = newExpenseFormSchema.safeParse({
+      expenseDescription,
+      expenseAmount,
+      expenseCurrency,
+    });
+
+    if (!result.success) {
+      const message =
+        result.error.issues[0]?.message ??
+        "Check your expense details and try again.";
+      showMessage(message, "error");
+      return;
+    }
+
+    createExpenseMutation.mutate({
+      pinId,
+      tripId,
+      userId: session.user.id,
+      description: result.data.expenseDescription,
+      amount: Number(result.data.expenseAmount),
+      currency: result.data.expenseCurrency,
+      paidByUserId: session.user.id,
+      paidByName: "You",
+    });
+  };
+
   return (
-    <Dialog
-      visible={visible}
-      onDismiss={onDismiss}
-      title="New Expense"
-      size="md"
-    >
-      <View style={styles.content}>
-        <UIInputExpense
-          currency={expenseCurrency}
-          amount={expenseAmount}
-          onCurrencyChange={setExpenseCurrency}
-          onAmountChange={setExpenseAmount}
-        />
-        <UIInputText
-          placeholder="Enter URL"
-          value={expenseDescription}
-          onChange={setExpenseDescription}
-          autoFocus
-        />
-      </View>
-    </Dialog>
+    <>
+      <Dialog
+        visible={visible}
+        onDismiss={onDismiss}
+        title="New Expense"
+        size="md"
+        onConfirm={handleConfirm}
+      >
+        <View style={styles.content}>
+          <UIInputExpense
+            currency={expenseCurrency}
+            amount={expenseAmount}
+            onCurrencyChange={setExpenseCurrency}
+            onAmountChange={setExpenseAmount}
+          />
+          <UIInputText
+            placeholder="Enter expense description"
+            value={expenseDescription}
+            onChange={setExpenseDescription}
+            autoFocus
+          />
+        </View>
+      </Dialog>
+      <SystemMessageModal />
+    </>
   );
 };
 
@@ -48,13 +124,5 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     gap: gaps.sm,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: getColor(colors.whiteGrey),
-    borderRadius: borderRadiuses.sm,
-    padding: gaps.sm,
-    fontSize: 16,
-    color: getColor(colors.textDarkGrey),
   },
 });

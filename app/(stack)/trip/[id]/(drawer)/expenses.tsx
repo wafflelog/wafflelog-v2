@@ -1,36 +1,84 @@
-import { ButtonFab } from "@/components/button/fab";
 import { CardExpenseRegular } from "@/components/card/expense/regular";
-import { DialogNewExpense } from "@/components/dialog/new-expense";
 import { HeaderTrip } from "@/components/header/trip";
 import { TripExpenseSummary } from "@/components/trip/expense-summary";
 import { UITab } from "@/components/ui/tab";
 import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
-import { TRIPS } from "@/data";
+import { useAuthSession } from "@/hook/use-auth-session";
+import { actionListLocalExpensesByTrip } from "@/lib/sqlite/model/expense";
+import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { type Currency } from "@/types/pin";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
+import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Plus as PlusIcon } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TripExpensesScreen() {
-  const [isDialogNewExpenseVisible, setIsDialogNewExpenseVisible] =
-    useState(false);
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
+  const { session } = useAuthSession();
 
-  const [activeCurrency, setActiveCurrency] = useState<Currency>("USD");
+  const [activeCurrency, setActiveCurrency] = useState<Currency | null>(null);
 
-  const trip = TRIPS.find((trip) => trip.id === id);
+  const { data: localTrip } = useQuery({
+    queryKey: ["local-trip", String(id), session?.user.id],
+    queryFn: () => actionGetLocalTrip(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
+
+  const { data: localExpenses = [] } = useQuery({
+    queryKey: ["local-trip-expenses", String(id), session?.user.id],
+    queryFn: () => actionListLocalExpensesByTrip(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
+
+  const trip = localTrip
+    ? {
+        id: localTrip.id,
+        title: localTrip.title,
+        startDate: localTrip.startDate,
+        endDate: localTrip.endDate,
+        location: "Unknown destination",
+        companions: [],
+        pins: [],
+        checklistItems: [],
+        referenceLinks: [],
+        documents: [],
+        images: [],
+        expenses: [],
+      }
+    : null;
 
   if (!trip) {
     return <UIText>Trip not found</UIText>;
   }
 
-  const tabs = ["USD", "EUR"].map((currency) => ({
+  const availableCurrencies = useMemo(() => {
+    return Array.from(
+      new Set(localExpenses.map((expense) => expense.currency as Currency)),
+    );
+  }, [localExpenses]);
+
+  useEffect(() => {
+    if (!activeCurrency && availableCurrencies.length > 0) {
+      setActiveCurrency(availableCurrencies[0]);
+    }
+  }, [activeCurrency, availableCurrencies]);
+
+  const filteredExpenses = activeCurrency
+    ? localExpenses.filter((expense) => expense.currency === activeCurrency)
+    : localExpenses;
+
+  const total = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const youPaid = filteredExpenses.reduce((sum, expense) => {
+    return expense.paidByUserId === session?.user.id ? sum + expense.amount : sum;
+  }, 0);
+  const youAreOwed = 0;
+
+  const tabs = availableCurrencies.map((currency) => ({
     id: currency,
     label: currency,
     isActive: activeCurrency === currency,
@@ -43,44 +91,53 @@ export default function TripExpensesScreen() {
         onBackPress={() => router.back()}
         onMorePress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
       />
-      <View style={styles.tabs}>
-        {tabs.map((tab) => (
-          <UITab
-            key={tab.id}
-            text={tab.label}
-            onPress={() => setActiveCurrency(tab.id as Currency)}
-            isActive={tab.isActive}
-            variant="short"
-          />
-        ))}
-      </View>
+      {tabs.length > 0 && (
+        <View style={styles.tabs}>
+          {tabs.map((tab) => (
+            <UITab
+              key={tab.id}
+              text={tab.label}
+              onPress={() => setActiveCurrency(tab.id as Currency)}
+              isActive={tab.isActive}
+              variant="short"
+            />
+          ))}
+        </View>
+      )}
 
       <View style={styles.content}>
         <View style={styles.summary}>
-          <TripExpenseSummary />
+          <TripExpenseSummary
+            currency={activeCurrency ?? "N/A"}
+            total={total}
+            youPaid={youPaid}
+            youAreOwed={youAreOwed}
+          />
         </View>
 
         <FlatList
           contentContainerStyle={styles.checklist}
-          data={trip.expenses}
+          data={filteredExpenses}
+          keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <View style={styles.expense}>
-              <CardExpenseRegular expense={item} onPress={() => {}} />
+              <CardExpenseRegular
+                expense={{
+                  id: item.id,
+                  description: item.description,
+                  amount: item.amount,
+                  currency: item.currency as Currency,
+                  paidBy: {
+                    id: item.paidByUserId,
+                    fullname: item.paidByName,
+                  },
+                }}
+                onPress={() => {}}
+              />
             </View>
           )}
         />
       </View>
-      <ButtonFab
-        onPress={() => {
-          setIsDialogNewExpenseVisible(true);
-        }}
-        text="New Expense"
-        icon={(color) => <PlusIcon size={20} color={color} />}
-      />
-      <DialogNewExpense
-        visible={isDialogNewExpenseVisible}
-        onDismiss={() => setIsDialogNewExpenseVisible(false)}
-      />
     </SafeAreaView>
   );
 }

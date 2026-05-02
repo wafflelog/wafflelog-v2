@@ -18,12 +18,14 @@ import { CardImageRegular } from "@/components/card/image/regular";
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
 import { CardPinReferenceLinkRegular } from "@/components/card/reference-link/regular";
 import { DialogNewDocument } from "@/components/dialog/new-document";
+import { DialogNewExpense } from "@/components/dialog/new-expense";
 import { DialogNewImage } from "@/components/dialog/new-image";
 import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionListLocalDocumentsByPin } from "@/lib/sqlite/model/document";
+import { actionListLocalExpensesByPin } from "@/lib/sqlite/model/expense";
 import { actionListLocalImagesByPin } from "@/lib/sqlite/model/image";
 import { actionGetLocalPinLocation } from "@/lib/sqlite/model/pin-location";
 import { actionListLocalReferenceLinksByPin } from "@/lib/sqlite/model/reference-link";
@@ -44,6 +46,7 @@ export default function PinIndexScreen() {
   const color = getColor(colors.purple);
   const navigation = useNavigation();
   const { showMessage, SystemMessageModal } = useSystemMessage();
+  const [isDialogNewExpenseOpen, setIsDialogNewExpenseOpen] = useState(false);
   const [isDialogNewDocumentOpen, setIsDialogNewDocumentOpen] = useState(false);
   const [isDialogNewImageOpen, setIsDialogNewImageOpen] = useState(false);
   const [isDialogNewReferenceLinkOpen, setIsDialogNewReferenceLinkOpen] =
@@ -62,6 +65,11 @@ export default function PinIndexScreen() {
   const { data: localDocuments = [] } = useQuery({
     queryKey: ["local-pin-documents", String(id), session?.user.id],
     queryFn: () => actionListLocalDocumentsByPin(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
+  const { data: localExpenses = [] } = useQuery({
+    queryKey: ["local-pin-expenses", String(id), session?.user.id],
+    queryFn: () => actionListLocalExpensesByPin(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
   });
   const { data: localImages = [] } = useQuery({
@@ -103,7 +111,16 @@ export default function PinIndexScreen() {
           url: document.localUri ?? "",
           caption: document.caption ?? undefined,
         })),
-        expenses: [],
+        expenses: localExpenses.map((expense) => ({
+          id: expense.id,
+          description: expense.description,
+          amount: expense.amount,
+          currency: expense.currency as Pin["expenses"][number]["currency"],
+          paidBy: {
+            id: expense.paidByUserId,
+            fullname: expense.paidByName,
+          },
+        })),
         images: localImages.map((image) => ({
           id: image.id,
           url: image.localUri,
@@ -211,7 +228,12 @@ export default function PinIndexScreen() {
                 </View>
               ))}
             </View>
-            <ButtonAdd text="Add Expense" onPress={() => {}} />
+            <ButtonAdd
+              text="Add Expense"
+              onPress={() => {
+                setIsDialogNewExpenseOpen(true);
+              }}
+            />
           </View>
 
           <View style={styles.section}>
@@ -320,6 +342,12 @@ export default function PinIndexScreen() {
         tripId={localPin?.tripId}
         visible={isDialogNewReferenceLinkOpen}
         onDismiss={() => setIsDialogNewReferenceLinkOpen(false)}
+      />
+      <DialogNewExpense
+        pinId={localPin?.id ?? ""}
+        tripId={localPin?.tripId ?? ""}
+        visible={isDialogNewExpenseOpen}
+        onDismiss={() => setIsDialogNewExpenseOpen(false)}
       />
       <DialogNewDocument
         tripId={localPin?.tripId ?? ""}

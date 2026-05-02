@@ -88,6 +88,23 @@ export async function initializeDatabase() {
       sync_error text
     );
 
+    create table if not exists expense (
+      id text primary key not null,
+      pin_id text not null,
+      trip_id text not null,
+      user_id text not null,
+      description text not null,
+      amount real not null,
+      currency text not null,
+      paid_by_user_id text not null,
+      paid_by_name text not null,
+      created_at text not null,
+      updated_at text not null,
+      sync_status text not null,
+      last_synced_at text,
+      sync_error text
+    );
+
     create table if not exists pin_location (
       pin_id text primary key not null,
       user_id text not null,

@@ -1,15 +1,15 @@
 import { sqlite } from "../client";
 
-export type LocalImage = {
+export type LocalExpense = {
   id: string;
   pinId: string;
   tripId: string;
   userId: string;
-  localUri: string;
-  mimeType: string;
-  width: number;
-  height: number;
-  caption: string | null;
+  description: string;
+  amount: number;
+  currency: string;
+  paidByUserId: string;
+  paidByName: string;
   createdAt: string;
   updatedAt: string;
   syncStatus: string;
@@ -17,48 +17,47 @@ export type LocalImage = {
   syncError: string | null;
 };
 
-export type CreateLocalImageInput = {
-  id?: string;
+export type CreateLocalExpenseInput = {
   pinId: string;
   tripId: string;
   userId: string;
-  localUri: string;
-  mimeType: string;
-  width: number;
-  height: number;
-  caption?: string;
+  description: string;
+  amount: number;
+  currency: string;
+  paidByUserId: string;
+  paidByName: string;
 };
 
 function createLocalId() {
-  return `image_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  return `expense_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function mapLocalImageRow(row: {
+function mapLocalExpenseRow(row: {
   id: string;
   pin_id: string;
   trip_id: string;
   user_id: string;
-  local_uri: string;
-  mime_type: string;
-  width: number;
-  height: number;
-  caption: string | null;
+  description: string;
+  amount: number;
+  currency: string;
+  paid_by_user_id: string;
+  paid_by_name: string;
   created_at: string;
   updated_at: string;
   sync_status: string;
   last_synced_at: string | null;
   sync_error: string | null;
-}): LocalImage {
+}): LocalExpense {
   return {
     id: row.id,
     pinId: row.pin_id,
     tripId: row.trip_id,
     userId: row.user_id,
-    localUri: row.local_uri,
-    mimeType: row.mime_type,
-    width: row.width,
-    height: row.height,
-    caption: row.caption,
+    description: row.description,
+    amount: row.amount,
+    currency: row.currency,
+    paidByUserId: row.paid_by_user_id,
+    paidByName: row.paid_by_name,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     syncStatus: row.sync_status,
@@ -67,18 +66,20 @@ function mapLocalImageRow(row: {
   };
 }
 
-export async function actionCreateLocalImage(input: CreateLocalImageInput) {
+export async function actionCreateLocalExpense(
+  input: CreateLocalExpenseInput,
+) {
   const now = new Date().toISOString();
-  const localImage = {
-    id: input.id ?? createLocalId(),
+  const localExpense = {
+    id: createLocalId(),
     pin_id: input.pinId,
     trip_id: input.tripId,
     user_id: input.userId,
-    local_uri: input.localUri.trim(),
-    mime_type: input.mimeType.trim(),
-    width: input.width,
-    height: input.height,
-    caption: input.caption?.trim() || null,
+    description: input.description.trim(),
+    amount: input.amount,
+    currency: input.currency.trim(),
+    paid_by_user_id: input.paidByUserId,
+    paid_by_name: input.paidByName.trim(),
     created_at: now,
     updated_at: now,
     sync_status: "pending",
@@ -88,16 +89,16 @@ export async function actionCreateLocalImage(input: CreateLocalImageInput) {
 
   await sqlite.runAsync(
     `
-      insert into image (
+      insert into expense (
         id,
         pin_id,
         trip_id,
         user_id,
-        local_uri,
-        mime_type,
-        width,
-        height,
-        caption,
+        description,
+        amount,
+        currency,
+        paid_by_user_id,
+        paid_by_name,
         created_at,
         updated_at,
         sync_status,
@@ -106,37 +107,37 @@ export async function actionCreateLocalImage(input: CreateLocalImageInput) {
       ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
-      localImage.id,
-      localImage.pin_id,
-      localImage.trip_id,
-      localImage.user_id,
-      localImage.local_uri,
-      localImage.mime_type,
-      localImage.width,
-      localImage.height,
-      localImage.caption,
-      localImage.created_at,
-      localImage.updated_at,
-      localImage.sync_status,
-      localImage.last_synced_at,
-      localImage.sync_error,
+      localExpense.id,
+      localExpense.pin_id,
+      localExpense.trip_id,
+      localExpense.user_id,
+      localExpense.description,
+      localExpense.amount,
+      localExpense.currency,
+      localExpense.paid_by_user_id,
+      localExpense.paid_by_name,
+      localExpense.created_at,
+      localExpense.updated_at,
+      localExpense.sync_status,
+      localExpense.last_synced_at,
+      localExpense.sync_error,
     ],
   );
 
-  return mapLocalImageRow(localImage);
+  return mapLocalExpenseRow(localExpense);
 }
 
-export async function actionListLocalImagesByPin(pinId: string, userId: string) {
+export async function actionListLocalExpensesByPin(pinId: string, userId: string) {
   const rows = await sqlite.getAllAsync<{
     id: string;
     pin_id: string;
     trip_id: string;
     user_id: string;
-    local_uri: string;
-    mime_type: string;
-    width: number;
-    height: number;
-    caption: string | null;
+    description: string;
+    amount: number;
+    currency: string;
+    paid_by_user_id: string;
+    paid_by_name: string;
     created_at: string;
     updated_at: string;
     sync_status: string;
@@ -149,40 +150,27 @@ export async function actionListLocalImagesByPin(pinId: string, userId: string) 
         pin_id,
         trip_id,
         user_id,
-        local_uri,
-        mime_type,
-        width,
-        height,
-        caption,
+        description,
+        amount,
+        currency,
+        paid_by_user_id,
+        paid_by_name,
         created_at,
         updated_at,
         sync_status,
         last_synced_at,
         sync_error
-      from image
+      from expense
       where pin_id = ? and user_id = ?
       order by created_at desc
     `,
     [pinId, userId],
   );
 
-  return rows.map(mapLocalImageRow);
+  return rows.map(mapLocalExpenseRow);
 }
 
-export async function actionCountLocalImagesByPin(pinId: string, userId: string) {
-  const row = await sqlite.getFirstAsync<{ total: number }>(
-    `
-      select count(*) as total
-      from image
-      where pin_id = ? and user_id = ?
-    `,
-    [pinId, userId],
-  );
-
-  return row?.total ?? 0;
-}
-
-export async function actionListLocalImagesByTrip(
+export async function actionListLocalExpensesByTrip(
   tripId: string,
   userId: string,
 ) {
@@ -191,11 +179,11 @@ export async function actionListLocalImagesByTrip(
     pin_id: string;
     trip_id: string;
     user_id: string;
-    local_uri: string;
-    mime_type: string;
-    width: number;
-    height: number;
-    caption: string | null;
+    description: string;
+    amount: number;
+    currency: string;
+    paid_by_user_id: string;
+    paid_by_name: string;
     created_at: string;
     updated_at: string;
     sync_status: string;
@@ -208,22 +196,22 @@ export async function actionListLocalImagesByTrip(
         pin_id,
         trip_id,
         user_id,
-        local_uri,
-        mime_type,
-        width,
-        height,
-        caption,
+        description,
+        amount,
+        currency,
+        paid_by_user_id,
+        paid_by_name,
         created_at,
         updated_at,
         sync_status,
         last_synced_at,
         sync_error
-      from image
+      from expense
       where trip_id = ? and user_id = ?
       order by created_at desc
     `,
     [tripId, userId],
   );
 
-  return rows.map(mapLocalImageRow);
+  return rows.map(mapLocalExpenseRow);
 }

@@ -3,21 +3,37 @@ import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
 import { Fragment } from "react";
 import { StyleSheet, View } from "react-native";
 
-export function TripExpenseSummary() {
+type TripExpenseSummaryProps = {
+  currency: string;
+  total: number;
+  youPaid: number;
+  youAreOwed: number;
+};
+
+function formatAmount(amount: number) {
+  return amount.toFixed(2);
+}
+
+export function TripExpenseSummary({
+  currency,
+  total,
+  youPaid,
+  youAreOwed,
+}: TripExpenseSummaryProps) {
   const columns = [
     {
       label: "Total",
-      amount: "192.00",
+      amount: formatAmount(total),
       color: colors.textDarkGrey,
     },
     {
       label: "You paid",
-      amount: "100.00",
+      amount: formatAmount(youPaid),
       color: colors.turquoise,
     },
     {
       label: "You are owed",
-      amount: "92.00",
+      amount: formatAmount(youAreOwed),
       color: colors.red,
     },
   ];
@@ -47,7 +63,7 @@ export function TripExpenseSummary() {
         style={styles.header}
         color={colors.pineGreen}
       >
-        EUR
+        {currency}
       </TitleRegular>
 
       <View style={styles.content}>
