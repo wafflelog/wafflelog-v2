@@ -87,6 +87,22 @@ export async function initializeDatabase() {
       last_synced_at text,
       sync_error text
     );
+
+    create table if not exists pin_location (
+      pin_id text primary key not null,
+      user_id text not null,
+      place_id text not null,
+      display_name text not null,
+      formatted_address text not null,
+      image_url text,
+      local_image_uri text,
+      rating real,
+      review_count integer,
+      latitude real not null,
+      longitude real not null,
+      created_at text not null,
+      updated_at text not null
+    );
   `);
 
   const documentTableColumns = await sqlite.getAllAsync<{ name: string }>(

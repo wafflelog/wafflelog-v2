@@ -25,6 +25,7 @@ import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionListLocalDocumentsByPin } from "@/lib/sqlite/model/document";
 import { actionListLocalImagesByPin } from "@/lib/sqlite/model/image";
+import { actionGetLocalPinLocation } from "@/lib/sqlite/model/pin-location";
 import { actionListLocalReferenceLinksByPin } from "@/lib/sqlite/model/reference-link";
 import {
   FileText as FileTextIcon,
@@ -68,6 +69,11 @@ export default function PinIndexScreen() {
     queryFn: () => actionListLocalImagesByPin(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
   });
+  const { data: localPinLocation } = useQuery({
+    queryKey: ["local-pin-location", String(id), session?.user.id],
+    queryFn: () => actionGetLocalPinLocation(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
 
   const pin: Pin | null = localPin
     ? {
@@ -77,11 +83,11 @@ export default function PinIndexScreen() {
           CATEGORIES.find((category) => category.id === localPin.categoryId) ??
           CATEGORIES[0],
         location: {
-          id: `location-${localPin.id}`,
-          name: "Unknown location",
-          address: "",
-          latitude: 0,
-          longitude: 0,
+          id: localPinLocation?.placeId ?? `location-${localPin.id}`,
+          name: localPinLocation?.displayName ?? "Unknown location",
+          address: localPinLocation?.formattedAddress ?? "",
+          latitude: localPinLocation?.latitude ?? 0,
+          longitude: localPinLocation?.longitude ?? 0,
         },
         time: dayjs(`${localPin.date} ${localPin.time}`).toISOString(),
         referenceLinks: localReferenceLinks.map((referenceLink) => ({
@@ -178,7 +184,12 @@ export default function PinIndexScreen() {
             <CardPinLocationRegular
               pin={pin}
               onPress={() => {
-                router.push(`/place-search`);
+                router.push({
+                  pathname: "/place-search",
+                  params: {
+                    pinId: pin.id,
+                  },
+                });
               }}
             />
           </View>

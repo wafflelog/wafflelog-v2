@@ -1,5 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useAuthSession } from "@/hook/use-auth-session";
+import { useSystemMessage } from "@/hook/use-system-message";
+import { persistLocalPlaceImage } from "@/lib/media/place";
+import { actionUpsertLocalPinLocation } from "@/lib/sqlite/model/pin-location";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   FlatList,
@@ -56,11 +61,21 @@ interface PlaceResult {
 
 export default function PlaceSearchScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ pinId?: string }>();
+  const { session } = useAuthSession();
+  const queryClient = useQueryClient();
+  const { showMessage, SystemMessageModal } = useSystemMessage();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const pinId = params.pinId ?? "";
+
+  const buildPlaceImageUrl = (photoName: string) =>
+    `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=200&maxWidthPx=200&key=${GOOGLE_PLACES_API_KEY}`;
 
   // Google Places API Text Search (New)
   // Documentation: https://developers.google.com/maps/documentation/places/web-service/text-search
@@ -143,6 +158,60 @@ export default function PlaceSearchScreen() {
     };
   }, []);
 
+  const handleSelectPlace = async (place: PlaceResult) => {
+    if (!session?.user.id) {
+      showMessage("You must be signed in to save a location", "error");
+      return;
+    }
+
+    if (!pinId) {
+      showMessage("This place needs to be attached to a pin", "error");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const imageUrl =
+        place.photos?.[0]?.name ? buildPlaceImageUrl(place.photos[0].name) : null;
+      const localImageUri = imageUrl
+        ? await persistLocalPlaceImage({
+            pinId,
+            placeId: place.id,
+            imageUrl,
+          }).catch(() => null)
+        : null;
+
+      await actionUpsertLocalPinLocation({
+        pinId,
+        userId: session.user.id,
+        placeId: place.id,
+        displayName: place.displayName.text,
+        formattedAddress: place.formattedAddress,
+        imageUrl,
+        localImageUri,
+        rating: place.rating ?? null,
+        reviewCount: place.userRatingCount ?? null,
+        latitude: place.location.latitude,
+        longitude: place.location.longitude,
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["local-pin-location", pinId, session.user.id],
+      });
+      showMessage("Location saved locally", "info");
+      router.back();
+    } catch (saveError) {
+      console.error("Error saving pin location:", saveError);
+      const message =
+        saveError instanceof Error
+          ? saveError.message
+          : "Failed to save this location";
+      showMessage(message, "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
@@ -204,14 +273,19 @@ export default function PlaceSearchScreen() {
             data={searchResults}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <View style={styles.resultCard}>
+              <TouchableOpacity
+                style={styles.resultCard}
+                onPress={() => void handleSelectPlace(item)}
+                disabled={isSaving}
+                activeOpacity={0.85}
+              >
                 <View style={styles.resultHeader}>
                   {/* Thumbnail */}
                   {item.photos && item.photos.length > 0 ? (
                     <View style={styles.thumbnailContainer}>
                       <Image
                         source={{
-                          uri: `https://places.googleapis.com/v1/${item.photos[0].name}/media?maxHeightPx=200&maxWidthPx=200&key=${GOOGLE_PLACES_API_KEY}`,
+                          uri: buildPlaceImageUrl(item.photos[0].name),
                         }}
                         style={styles.thumbnail}
                       />
@@ -287,7 +361,7 @@ export default function PlaceSearchScreen() {
                     </Text>
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             )}
             style={styles.resultsList}
             contentContainerStyle={styles.resultsListContent}
@@ -312,6 +386,12 @@ export default function PlaceSearchScreen() {
           <Text style={styles.loadingText}>Searching...</Text>
         </View>
       )}
+      {isSaving && (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Saving location...</Text>
+        </View>
+      )}
+      <SystemMessageModal />
     </SafeAreaView>
   );
 }

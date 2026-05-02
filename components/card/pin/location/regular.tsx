@@ -15,11 +15,16 @@ export function CardPinLocationRegular({
 }: CardPinLocationRegularProps) {
   return (
     <View style={styles.container}>
-      <TitleRegular size="sm">{pin.location.address}</TitleRegular>
+      <TitleRegular size="sm" weight="600">
+        {pin.location.name || "Choose a place"}
+      </TitleRegular>
+      <TitleRegular size="xs">
+        {pin.location.address || "Save a location for this pin"}
+      </TitleRegular>
       <TouchableOpacity style={styles.button} onPress={onPress}>
         <MapIcon size={16} color={getColor(colors.pineGreen)} />
         <TitleRegular size="xs" weight="600">
-          Open in Maps
+          Change Place
         </TitleRegular>
       </TouchableOpacity>
     </View>
