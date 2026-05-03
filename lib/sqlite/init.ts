@@ -122,6 +122,28 @@ export async function initializeDatabase() {
     );
   `);
 
+  const hasLegacyTripIds = await sqlite.getFirstAsync<{ id: string }>(
+    `
+      select id
+      from trip
+      where id like 'trip_%'
+      limit 1
+    `,
+  );
+
+  if (hasLegacyTripIds) {
+    await sqlite.execAsync(`
+      delete from reference_link;
+      delete from checklist_item;
+      delete from document;
+      delete from image;
+      delete from expense;
+      delete from pin_location;
+      delete from pin;
+      delete from trip;
+    `);
+  }
+
   const documentTableColumns = await sqlite.getAllAsync<{ name: string }>(
     `pragma table_info(document);`,
   );
