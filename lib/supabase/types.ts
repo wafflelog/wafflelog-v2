@@ -14,6 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_notification: {
+        Row: {
+          actor_user_id: string | null
+          body: string
+          created_at: string
+          id: string
+          read_at: string | null
+          title: string
+          trip_id: string | null
+          trip_invitation_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          title: string
+          trip_id?: string | null
+          trip_invitation_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          title?: string
+          trip_id?: string | null
+          trip_invitation_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_notification_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_notification_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trip"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_notification_trip_invitation_id_fkey"
+            columns: ["trip_invitation_id"]
+            isOneToOne: false
+            referencedRelation: "trip_invitation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_notification_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip: {
         Row: {
           created_at: string
@@ -43,6 +111,61 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      trip_invitation: {
+        Row: {
+          created_at: string
+          id: string
+          invitee_user_id: string
+          inviter_user_id: string
+          responded_at: string | null
+          status: string
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invitee_user_id: string
+          inviter_user_id: string
+          responded_at?: string | null
+          status?: string
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invitee_user_id?: string
+          inviter_user_id?: string
+          responded_at?: string | null
+          status?: string
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_invitation_invitee_user_id_fkey"
+            columns: ["invitee_user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_invitation_inviter_user_id_fkey"
+            columns: ["inviter_user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_invitation_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trip"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user: {
         Row: {

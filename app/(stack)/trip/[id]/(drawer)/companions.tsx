@@ -84,8 +84,18 @@ export default function TripCompanionsScreen() {
     }, [invitedUserId, invitedUserName, showMessage]),
   );
 
-  const selectedUserIds = useMemo(() => {
-    return companions.map((companion) => companion.id).join(",");
+  const invitedUserIds = useMemo(() => {
+    return companions
+      .filter((companion) => companion.state === "INVITED")
+      .map((companion) => companion.id)
+      .join(",");
+  }, [companions]);
+
+  const inTripUserIds = useMemo(() => {
+    return companions
+      .filter((companion) => companion.state === "ACCEPTED")
+      .map((companion) => companion.id)
+      .join(",");
   }, [companions]);
 
   const handleRemoveCompanion = (companionId: string) => {
@@ -131,7 +141,8 @@ export default function TripCompanionsScreen() {
             pathname: "/user-search",
             params: {
               tripId: trip.id,
-              selectedUserIds,
+              invitedUserIds,
+              inTripUserIds,
               tripTitle: trip.title,
             },
           });

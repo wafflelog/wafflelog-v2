@@ -1,5 +1,5 @@
 import { ButtonFab } from "@/components/button/fab";
-import { CardCompanionRegular } from "@/components/card/companion/regular";
+import { CardCompanionSearchResult } from "@/components/card/companion/search-result";
 import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
@@ -27,19 +27,28 @@ export default function UserSearchScreen() {
   const { session } = useAuthSession();
   const params = useLocalSearchParams<{
     tripId?: string;
-    selectedUserIds?: string;
+    invitedUserIds?: string;
+    inTripUserIds?: string;
     tripTitle?: string;
   }>();
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const [searchQuery, setSearchQuery] = useState("");
 
-  const selectedUserIds = useMemo(() => {
-    if (!params.selectedUserIds) {
+  const invitedUserIds = useMemo(() => {
+    if (!params.invitedUserIds) {
       return [];
     }
 
-    return params.selectedUserIds.split(",").filter(Boolean);
-  }, [params.selectedUserIds]);
+    return params.invitedUserIds.split(",").filter(Boolean);
+  }, [params.invitedUserIds]);
+
+  const inTripUserIds = useMemo(() => {
+    if (!params.inTripUserIds) {
+      return [];
+    }
+
+    return params.inTripUserIds.split(",").filter(Boolean);
+  }, [params.inTripUserIds]);
 
   const usersQuery = useQuery({
     queryKey: ["public-users", session?.user.id, searchQuery.trim().toLowerCase()],
@@ -51,10 +60,6 @@ export default function UserSearchScreen() {
     const publicUsers = usersQuery.data ?? [];
 
     return publicUsers.filter((user) => {
-      if (selectedUserIds.includes(user.id)) {
-        return false;
-      }
-
       if (user.id === session?.user.id) {
         return false;
       }
@@ -65,10 +70,10 @@ export default function UserSearchScreen() {
 
       return true;
     });
-  }, [searchQuery, selectedUserIds, session?.user.id, usersQuery.data]);
+  }, [searchQuery, session?.user.id, usersQuery.data]);
 
   const handleInviteUser = (user: { id: string; username: string }) => {
-    if (selectedUserIds.length >= MAX_COMPANIONS) {
+    if (invitedUserIds.length + inTripUserIds.length >= MAX_COMPANIONS) {
       showMessage(`You can invite up to ${MAX_COMPANIONS} companions`, "error");
       return;
     }
@@ -81,6 +86,18 @@ export default function UserSearchScreen() {
         invitedUserName: user.username,
       },
     });
+  };
+
+  const getUserState = (userId: string) => {
+    if (inTripUserIds.includes(userId)) {
+      return "in_trip";
+    }
+
+    if (invitedUserIds.includes(userId)) {
+      return "invited";
+    }
+
+    return "invite";
   };
 
   return (
@@ -143,19 +160,16 @@ export default function UserSearchScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.resultCard}
-            onPress={() => handleInviteUser(item)}
-            activeOpacity={0.85}
-          >
-            <CardCompanionRegular
-              companion={{
+          <View style={styles.resultCard}>
+            <CardCompanionSearchResult
+              user={{
                 id: item.id,
                 fullname: item.username,
-                state: "INVITED",
               }}
+              state={getUserState(item.id)}
+              onPress={() => handleInviteUser(item)}
             />
-          </TouchableOpacity>
+          </View>
         )}
       />
 
