@@ -5,6 +5,7 @@ import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionListLocalTrips } from "@/lib/sqlite/model/trip";
+import { supabase } from "@/lib/supabase/client";
 import { type Trip } from "@/types/trip";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -31,6 +32,10 @@ export default function IndexScreen() {
   const router = useRouter();
   const { session, isAuthenticated, isLoading } = useAuthSession();
   const [isDialogNewTripOpen, setIsDialogNewTripOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   const { data: tripData = [] } = useQuery({
     queryKey: ["local-trips", session?.user.id],
@@ -99,12 +104,15 @@ export default function IndexScreen() {
     : null;
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+      <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Branding Header */}
       <View style={styles.brandingHeader}>
         <TitleRegular size="xl" style={styles.brandingText}>
           Wafflelog
         </TitleRegular>
+        <TouchableOpacity onPress={handleSignOut}>
+          <Text style={styles.signOutText}>Sign out</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -295,6 +303,9 @@ const styles = StyleSheet.create({
   },
   brandingHeader: {
     backgroundColor: "#fff",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: gaps.md,
     paddingVertical: gaps.sm,
     borderBottomWidth: 1,
@@ -310,6 +321,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: getColor(colors.waffle),
     letterSpacing: -0.5,
+  },
+  signOutText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: getColor(colors.textLightGrey),
   },
   scrollView: {
     flex: 1,

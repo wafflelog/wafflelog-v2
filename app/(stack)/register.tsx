@@ -15,11 +15,14 @@ import { Link, Redirect, router } from "expo-router";
 import { useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, View } from "react-native";
 
+const USERNAME_PATTERN = /^[a-z0-9_]+$/;
+
 export default function RegisterScreen() {
   const { isAuthenticated, isLoading } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
 
   const signUpMutation = useMutation({
     mutationFn: actionSignUpWithEmail,
@@ -52,6 +55,26 @@ export default function RegisterScreen() {
       return;
     }
 
+    const normalizedUsername = username.trim().toLowerCase();
+
+    if (!normalizedUsername) {
+      showMessage("Enter your username", "error");
+      return;
+    }
+
+    if (normalizedUsername.length < 3 || normalizedUsername.length > 30) {
+      showMessage("Username must be between 3 and 30 characters", "error");
+      return;
+    }
+
+    if (!USERNAME_PATTERN.test(normalizedUsername)) {
+      showMessage(
+        "Username can only use lowercase letters, numbers, and underscores",
+        "error",
+      );
+      return;
+    }
+
     if (password.length < 6) {
       showMessage("Password must be at least 6 characters", "error");
       return;
@@ -60,6 +83,7 @@ export default function RegisterScreen() {
     signUpMutation.mutate({
       email,
       password,
+      username: normalizedUsername,
     });
   };
 
@@ -100,10 +124,17 @@ export default function RegisterScreen() {
       <View style={styles.card}>
         <View style={styles.form}>
           <UIInputText
+            placeholder="Username"
+            value={username}
+            onChange={(value) => setUsername(value.toLowerCase().replace(/\s+/g, ""))}
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoFocus
+          />
+          <UIInputText
             placeholder="Email"
             value={email}
             onChange={setEmail}
-            autoFocus
             keyboardType="email-address"
           />
           <UIInputText

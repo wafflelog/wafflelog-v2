@@ -11,12 +11,20 @@ import { CardCompanionStateRegular } from "./state/regular";
 
 type CardCompanionRegularProps = {
   companion: Companion;
+  showRemoveButton?: boolean;
+  onRemove?: (companionId: string) => void;
 };
 
-export function CardCompanionRegular({ companion }: CardCompanionRegularProps) {
+export function CardCompanionRegular({
+  companion,
+  showRemoveButton = false,
+  onRemove,
+}: CardCompanionRegularProps) {
   const renderStateBadge = () => {
     return match(companion.state)
       .with("INVITED", () => <CardCompanionStateRegular state="INVITED" />)
+      .with("ACCEPTED", () => <CardCompanionStateRegular state="ACCEPTED" />)
+      .with("REJECTED", () => <CardCompanionStateRegular state="REJECTED" />)
       .otherwise(() => null);
   };
 
@@ -29,14 +37,16 @@ export function CardCompanionRegular({ companion }: CardCompanionRegularProps) {
         </TitleRegular>
         {renderStateBadge()}
       </View>
-      <TouchableOpacity
-        style={styles.removeButton}
-        onPress={() => {
-          console.log("remove companion");
-        }}
-      >
-        <XIcon size={16} color={getColor(colors.red)} />
-      </TouchableOpacity>
+      {showRemoveButton && onRemove ? (
+        <TouchableOpacity
+          style={styles.removeButton}
+          onPress={() => {
+            onRemove(companion.id);
+          }}
+        >
+          <XIcon size={16} color={getColor(colors.red)} />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }

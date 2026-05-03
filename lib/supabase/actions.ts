@@ -10,6 +10,7 @@ export type CreateTripInput = {
 export type SignUpInput = {
   email: string;
   password: string;
+  username: string;
 };
 
 export type SignInInput = {
@@ -18,6 +19,7 @@ export type SignInInput = {
 };
 
 export type TripRow = Tables<"trip">;
+export type PublicUserRow = Tables<"user">;
 
 const mapTripRow = (trip: TripRow) => ({
   id: trip.id,
@@ -26,6 +28,11 @@ const mapTripRow = (trip: TripRow) => ({
   endDate: trip.end_date,
   createdAt: trip.created_at,
   updatedAt: trip.updated_at,
+});
+
+const mapPublicUserRow = (user: PublicUserRow) => ({
+  id: user.id,
+  username: user.username,
 });
 
 export async function actionCreateTrip(input: CreateTripInput) {
@@ -66,6 +73,11 @@ export async function actionSignUpWithEmail(input: SignUpInput) {
   const { data, error } = await supabase.auth.signUp({
     email: input.email.trim(),
     password: input.password,
+    options: {
+      data: {
+        username: input.username.trim().toLowerCase(),
+      },
+    },
   });
 
   if (error) {
@@ -73,6 +85,42 @@ export async function actionSignUpWithEmail(input: SignUpInput) {
   }
 
   return data;
+}
+
+export async function actionListPublicUsers(searchQuery: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to search users");
+  }
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  let query = supabase
+    .from("user")
+    .select("id, username, created_at, updated_at")
+    .order("username", { ascending: true })
+    .limit(20);
+
+  if (normalizedQuery) {
+    query = query.ilike("username", `%${normalizedQuery}%`);
+  }
+
+  const { data, error } = await query;
+
+  console.log("users:", data);
+
+  if (error) {
+    throw error;
+  }
+
+  return data.map(mapPublicUserRow);
 }
 
 export async function actionSignInWithEmail(input: SignInInput) {
