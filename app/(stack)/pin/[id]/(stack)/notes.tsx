@@ -1,6 +1,13 @@
 import { CardNoteRegular } from "@/components/card/note/regular";
 import { getCardBasicStyle } from "@/constants/theme";
-import { FlatList, Platform, StatusBar, StyleSheet, View } from "react-native";
+import {
+  FlatList,
+  Platform,
+  Pressable,
+  StatusBar,
+  StyleSheet,
+  View,
+} from "react-native";
 import { useKeyboardHandler } from "react-native-keyboard-controller";
 import Animated, {
   useAnimatedStyle,
@@ -9,6 +16,16 @@ import Animated, {
 
 import { UIInputText } from "@/components/ui/input/text";
 import { useState } from "react";
+import { TitleRegular } from "@/components/title/regular";
+import { colors, gaps, getColor } from "@/constants/theme";
+import { useAuthSession } from "@/hook/use-auth-session";
+import { useSystemMessage } from "@/hook/use-system-message";
+import {
+  actionCreateLocalNote,
+  actionListLocalNotesByPin,
+} from "@/lib/sqlite/model/note";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocalSearchParams } from "expo-router";
 
 const PADDING_BOTTOM = 32;
 
@@ -28,6 +45,10 @@ const useGradualAnimation = () => {
 };
 
 export default function NotesScreen() {
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { session } = useAuthSession();
+  const { showMessage, SystemMessageModal } = useSystemMessage();
+  const queryClient = useQueryClient();
   const [newNote, setNewNote] = useState("");
   const { height } = useGradualAnimation();
   const fakeView = useAnimatedStyle(() => {
@@ -36,22 +57,53 @@ export default function NotesScreen() {
     };
   }, []);
 
-  const messages = Array.from({ length: 20 }, (_, index) => ({
-    id: index.toString(),
-    text: `Hello, how are you? ${index}`,
-    createdAt: new Date().toISOString(),
+  const { data: localNotes = [] } = useQuery({
+    queryKey: ["local-notes", String(id), session?.user.id],
+    queryFn: () => actionListLocalNotesByPin(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
+
+  const createNoteMutation = useMutation({
+    mutationFn: actionCreateLocalNote,
+    onSuccess: async () => {
+      setNewNote("");
+      await queryClient.invalidateQueries({
+        queryKey: ["local-notes", String(id), session?.user.id],
+      });
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : "Failed to save note";
+      showMessage(message, "error");
+    },
+  });
+
+  const notes = localNotes.map((note) => ({
+    id: note.id,
+    text: note.text,
+    createdAt: note.createdAt,
     createdBy: {
-      id: "1",
-      fullname: "John Doe",
-      email: "john.doe@example.com",
-      avatar: "https://via.placeholder.com/150",
+      id: note.userId,
+      fullname: session?.user.user_metadata.username ?? "You",
     },
   }));
+
+  const handleCreateNote = () => {
+    if (!id || !session?.user.id) {
+      showMessage("Unable to save note right now", "error");
+      return;
+    }
+
+    createNoteMutation.mutate({
+      pinId: String(id),
+      userId: session.user.id,
+      text: newNote,
+    });
+  };
 
   return (
     <View style={styles.container}>
       <FlatList
-        data={messages}
+        data={notes}
         renderItem={({ item, index }) => (
           <CardNoteRegular
             note={item}
@@ -61,14 +113,33 @@ export default function NotesScreen() {
         )}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listStyle}
+        ListEmptyComponent={<View style={styles.emptyState} />}
       />
-      <UIInputText
-        placeholder="Type a message..."
-        value={newNote}
-        onChange={setNewNote}
-      />
+      <View style={styles.inputRow}>
+        <View style={styles.inputContainer}>
+          <UIInputText
+            placeholder="Write a note..."
+            value={newNote}
+            onChange={setNewNote}
+          />
+        </View>
+        <Pressable
+          style={[
+            styles.sendButton,
+            (!newNote.trim() || createNoteMutation.isPending) &&
+              styles.sendButtonDisabled,
+          ]}
+          onPress={handleCreateNote}
+          disabled={!newNote.trim() || createNoteMutation.isPending}
+        >
+          <TitleRegular size="xs" weight="600" color={colors.white}>
+            {createNoteMutation.isPending ? "Saving" : "Send"}
+          </TitleRegular>
+        </Pressable>
+      </View>
 
       <Animated.View style={fakeView} />
+      <SystemMessageModal />
     </View>
   );
 }
@@ -81,8 +152,33 @@ const styles = StyleSheet.create({
   listStyle: {
     padding: 16,
     gap: 16,
+    flexGrow: 1,
   },
   note: {
     ...getCardBasicStyle("sm"),
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: gaps.sm,
+    paddingHorizontal: gaps.md,
+    paddingBottom: gaps.md,
+  },
+  inputContainer: {
+    flex: 1,
+  },
+  sendButton: {
+    minHeight: 44,
+    borderRadius: 22,
+    backgroundColor: getColor(colors.waffle),
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: gaps.md,
+  },
+  sendButtonDisabled: {
+    opacity: 0.6,
+  },
+  emptyState: {
+    flex: 1,
   },
 });

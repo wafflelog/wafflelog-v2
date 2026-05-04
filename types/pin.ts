@@ -78,6 +78,7 @@ export type Pin = {
   documents: Document[];
   expenses: Expense[];
   images: Image[];
+  notes: Note[];
 };
 
 export type PinCategory = {

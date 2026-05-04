@@ -40,6 +40,18 @@ export async function initializeDatabase() {
       updated_at text not null
     );
 
+    create table if not exists note (
+      id text primary key not null,
+      pin_id text not null,
+      user_id text not null,
+      text text not null,
+      created_at text not null,
+      updated_at text not null,
+      sync_status text not null,
+      last_synced_at text,
+      sync_error text
+    );
+
     create table if not exists reference_link (
       id text primary key not null,
       pin_id text not null,
