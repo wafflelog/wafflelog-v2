@@ -101,6 +101,7 @@ export default function TripIndexScreen() {
       documents: [],
       expenses: [],
       images: [],
+      notes: [],
     }));
 
     return Array.from({ length: numOfDays }, (_, index) => ({

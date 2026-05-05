@@ -4,7 +4,11 @@ import { DialogNewTrip } from "@/components/dialog/new-trip";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
-import { actionListLocalTrips } from "@/lib/sqlite/model/trip";
+import {
+  actionListLocalTrips,
+  actionSyncPendingLocalTrips,
+} from "@/lib/sqlite/model/trip";
+import { actionListAcceptedCompanionTrips } from "@/lib/supabase/actions";
 import { supabase } from "@/lib/supabase/client";
 import { type Trip } from "@/types/trip";
 import { useQuery } from "@tanstack/react-query";
@@ -17,7 +21,7 @@ import {
   Plane as PlaneIcon,
   Plus as PlusIcon,
 } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ImageBackground,
   ScrollView,
@@ -42,6 +46,23 @@ export default function IndexScreen() {
     queryFn: () => actionListLocalTrips(session!.user.id),
     enabled: Boolean(session?.user.id),
   });
+  const { data: acceptedCompanionTrips = [] } = useQuery({
+    queryKey: ["accepted-companion-trips", session?.user.id],
+    queryFn: actionListAcceptedCompanionTrips,
+    enabled: Boolean(session?.user.id),
+  });
+
+  console.log("Accepted Companion Trips:", acceptedCompanionTrips);
+
+  useEffect(() => {
+    if (!session?.user.id) {
+      return;
+    }
+
+    void actionSyncPendingLocalTrips(session.user.id).catch((error) => {
+      console.error("Error syncing pending trips:", error);
+    });
+  }, [session?.user.id]);
 
   if (isLoading) {
     return (
@@ -65,7 +86,7 @@ export default function IndexScreen() {
     return "Good evening";
   };
 
-  const mappedTrips: Trip[] = tripData.map((trip) => ({
+  const localTrips: Trip[] = tripData.map((trip) => ({
     id: trip.id,
     title: trip.title,
     startDate: trip.startDate,
@@ -79,6 +100,11 @@ export default function IndexScreen() {
     images: [],
     expenses: [],
   }));
+  const mappedTrips = Array.from(
+    new Map(
+      [...acceptedCompanionTrips, ...localTrips].map((trip) => [trip.id, trip]),
+    ).values(),
+  );
 
   const today = dayjs().startOf("day");
 
@@ -102,9 +128,10 @@ export default function IndexScreen() {
   const daysUntilNextTrip = nextUpcomingTrip
     ? dayjs(nextUpcomingTrip.startDate).startOf("day").diff(today, "day")
     : null;
+  const username = session?.user.user_metadata.username || "Traveler";
 
   return (
-      <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Branding Header */}
       <View style={styles.brandingHeader}>
         <TitleRegular size="xl" style={styles.brandingText}>
@@ -132,7 +159,7 @@ export default function IndexScreen() {
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <Text style={styles.greeting}>{getGreeting()}!</Text>
-              <Text style={styles.userName}>Sarah</Text>
+              <Text style={styles.userName}>{username}</Text>
               {ongoingTrips.length > 0 && (
                 <View style={styles.currentLocationBadge}>
                   <MapPinIcon size={14} color={getColor(colors.waffle)} />

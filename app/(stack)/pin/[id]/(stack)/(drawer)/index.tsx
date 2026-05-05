@@ -128,6 +128,7 @@ export default function PinIndexScreen() {
           height: image.height,
           caption: image.caption ?? undefined,
         })),
+        notes: [],
       }
     : null;
 

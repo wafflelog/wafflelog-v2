@@ -1,4 +1,5 @@
 import { sqlite } from "../client";
+import { actionUpsertRemoteTripFromLocal } from "@/lib/supabase/actions";
 
 export type CreateLocalTripInput = {
   userId: string;
@@ -173,4 +174,116 @@ export async function actionGetLocalTrip(id: string, userId: string) {
   );
 
   return row ? mapLocalTripRow(row) : null;
+}
+
+export async function actionListPendingLocalTrips(userId: string) {
+  const rows = await sqlite.getAllAsync<{
+    id: string;
+    user_id: string;
+    title: string;
+    start_date: string;
+    end_date: string;
+    created_at: string;
+    updated_at: string;
+    sync_status: string;
+    last_synced_at: string | null;
+    sync_error: string | null;
+  }>(
+    `
+      select
+        id,
+        user_id,
+        title,
+        start_date,
+        end_date,
+        created_at,
+        updated_at,
+        sync_status,
+        last_synced_at,
+        sync_error
+      from trip
+      where user_id = ? and sync_status != 'synced'
+      order by created_at asc
+    `,
+    [userId],
+  );
+
+  return rows.map(mapLocalTripRow);
+}
+
+export async function actionMarkLocalTripSyncing(id: string, userId: string) {
+  await sqlite.runAsync(
+    `
+      update trip
+      set
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    ["syncing", null, new Date().toISOString(), id, userId],
+  );
+}
+
+export async function actionMarkLocalTripSynced(id: string, userId: string) {
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      update trip
+      set
+        sync_status = ?,
+        last_synced_at = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    ["synced", now, null, now, id, userId],
+  );
+}
+
+export async function actionMarkLocalTripSyncFailed(
+  id: string,
+  userId: string,
+  errorMessage: string,
+) {
+  await sqlite.runAsync(
+    `
+      update trip
+      set
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    ["failed", errorMessage, new Date().toISOString(), id, userId],
+  );
+}
+
+export async function actionSyncLocalTrip(localTrip: LocalTrip) {
+  await actionMarkLocalTripSyncing(localTrip.id, localTrip.userId);
+
+  try {
+    await actionUpsertRemoteTripFromLocal({
+      id: localTrip.id,
+      title: localTrip.title,
+      startDate: localTrip.startDate,
+      endDate: localTrip.endDate,
+    });
+
+    await actionMarkLocalTripSynced(localTrip.id, localTrip.userId);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to sync trip";
+    await actionMarkLocalTripSyncFailed(localTrip.id, localTrip.userId, message);
+    throw error;
+  }
+}
+
+export async function actionSyncPendingLocalTrips(userId: string) {
+  const pendingTrips = await actionListPendingLocalTrips(userId);
+
+  for (const trip of pendingTrips) {
+    await actionSyncLocalTrip(trip);
+  }
 }

@@ -4,7 +4,10 @@ import { UIInputText } from "@/components/ui/input/text";
 import { gaps } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { actionCreateLocalTrip } from "@/lib/sqlite/model/trip";
+import {
+  actionCreateLocalTrip,
+  actionSyncLocalTrip,
+} from "@/lib/sqlite/model/trip";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -24,10 +27,20 @@ export const DialogNewTrip = ({ visible, onDismiss }: DialogNewTripProps) => {
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const createTripMutation = useMutation({
     mutationFn: actionCreateLocalTrip,
-    onSuccess: () => {
+    onSuccess: (localTrip) => {
       queryClient.invalidateQueries({
         queryKey: ["local-trips", session?.user.id],
       });
+      void actionSyncLocalTrip(localTrip)
+        .catch((error) => {
+          console.error("Error syncing trip:", error);
+          showMessage("Trip saved locally, sync pending", "info");
+        })
+        .finally(() => {
+          queryClient.invalidateQueries({
+            queryKey: ["local-trips", session?.user.id],
+          });
+        });
       setTripName("");
       setTripStartDate("");
       setTripEndDate("");

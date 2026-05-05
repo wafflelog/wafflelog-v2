@@ -6,6 +6,7 @@ import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
+import { actionListTripInvitationsByTrip } from "@/lib/supabase/actions";
 import { type Companion } from "@/types/trip";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -33,6 +34,11 @@ export default function TripCompanionsScreen() {
     queryFn: () => actionGetLocalTrip(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
   });
+  const { data: remoteCompanions = [] } = useQuery({
+    queryKey: ["trip-invitations", String(id), session?.user.id],
+    queryFn: () => actionListTripInvitationsByTrip(String(id)),
+    enabled: Boolean(id && session?.user.id && localTrip?.syncStatus === "synced"),
+  });
 
   const trip = localTrip
     ? {
@@ -50,9 +56,7 @@ export default function TripCompanionsScreen() {
         expenses: [],
       }
     : null;
-  const [companions, setCompanions] = useState<Companion[]>(
-    trip?.companions ?? [],
-  );
+  const [optimisticCompanions, setOptimisticCompanions] = useState<Companion[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -60,7 +64,7 @@ export default function TripCompanionsScreen() {
         return;
       }
 
-      setCompanions((currentCompanions) => {
+      setOptimisticCompanions((currentCompanions) => {
         if (
           currentCompanions.some((companion) => companion.id === invitedUserId)
         ) {
@@ -84,6 +88,14 @@ export default function TripCompanionsScreen() {
     }, [invitedUserId, invitedUserName, showMessage]),
   );
 
+  const companions = useMemo(() => {
+    if (remoteCompanions.length > 0) {
+      return remoteCompanions;
+    }
+
+    return optimisticCompanions;
+  }, [optimisticCompanions, remoteCompanions]);
+
   const invitedUserIds = useMemo(() => {
     return companions
       .filter((companion) => companion.state === "INVITED")
@@ -99,7 +111,7 @@ export default function TripCompanionsScreen() {
   }, [companions]);
 
   const handleRemoveCompanion = (companionId: string) => {
-    setCompanions((currentCompanions) =>
+    setOptimisticCompanions((currentCompanions) =>
       currentCompanions.filter((companion) => companion.id !== companionId),
     );
   };

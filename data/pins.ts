@@ -111,6 +111,7 @@ export const PINS = [
         caption: "Sagrada Família",
       },
     ],
+    notes: [],
   },
   {
     id: "pin-2",
@@ -128,6 +129,7 @@ export const PINS = [
     documents: [],
     expenses: [],
     images: [],
+    notes: [],
   },
   {
     id: "pin-3",
@@ -145,6 +147,7 @@ export const PINS = [
     documents: [],
     expenses: [],
     images: [],
+    notes: [],
   },
   {
     id: "pin-4",
@@ -162,6 +165,7 @@ export const PINS = [
     documents: [],
     expenses: [],
     images: [],
+    notes: [],
   },
   {
     id: "pin-5",
@@ -179,5 +183,6 @@ export const PINS = [
     documents: [],
     expenses: [],
     images: [],
+    notes: [],
   },
 ] as const satisfies Pin[];

@@ -4,9 +4,13 @@ import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { actionListPublicUsers } from "@/lib/supabase/actions";
+import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
+import {
+  actionCreateTripInvitation,
+  actionListPublicUsers,
+} from "@/lib/supabase/actions";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Check as CheckIcon } from "lucide-react-native";
 import { useMemo, useState } from "react";
@@ -56,6 +60,27 @@ export default function UserSearchScreen() {
     enabled: Boolean(session?.user.id),
   });
 
+  const inviteMutation = useMutation({
+    mutationFn: actionCreateTripInvitation,
+    onSuccess: (_, variables) => {
+      router.replace({
+        pathname: "/(stack)/trip/[id]/(drawer)/companions",
+        params: {
+          id: params.tripId ?? "",
+          invitedUserId: variables.inviteeUserId,
+          invitedUserName:
+            availableUsers.find((user) => user.id === variables.inviteeUserId)
+              ?.username ?? "",
+        },
+      });
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Failed to invite companion";
+      showMessage(message, "error");
+    },
+  });
+
   const availableUsers = useMemo(() => {
     const publicUsers = usersQuery.data ?? [];
 
@@ -72,19 +97,27 @@ export default function UserSearchScreen() {
     });
   }, [searchQuery, session?.user.id, usersQuery.data]);
 
-  const handleInviteUser = (user: { id: string; username: string }) => {
+  const handleInviteUser = async (user: { id: string; username: string }) => {
     if (invitedUserIds.length + inTripUserIds.length >= MAX_COMPANIONS) {
       showMessage(`You can invite up to ${MAX_COMPANIONS} companions`, "error");
       return;
     }
 
-    router.replace({
-      pathname: "/(stack)/trip/[id]/(drawer)/companions",
-      params: {
-        id: params.tripId ?? "",
-        invitedUserId: user.id,
-        invitedUserName: user.username,
-      },
+    if (!params.tripId || !session?.user.id) {
+      showMessage("Unable to invite companion right now", "error");
+      return;
+    }
+
+    const localTrip = await actionGetLocalTrip(params.tripId, session.user.id);
+
+    if (!localTrip || localTrip.syncStatus !== "synced") {
+      showMessage("Trip is still syncing. Please try again in a moment.", "error");
+      return;
+    }
+
+    inviteMutation.mutate({
+      tripId: localTrip.id,
+      inviteeUserId: user.id,
     });
   };
 
@@ -167,7 +200,9 @@ export default function UserSearchScreen() {
                 fullname: item.username,
               }}
               state={getUserState(item.id)}
-              onPress={() => handleInviteUser(item)}
+              onPress={() => {
+                void handleInviteUser(item);
+              }}
             />
           </View>
         )}
