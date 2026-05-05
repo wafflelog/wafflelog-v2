@@ -4,6 +4,7 @@ import { DialogNewTrip } from "@/components/dialog/new-trip";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { actionSyncPendingLocalPins } from "@/lib/sqlite/model/pin";
 import {
   actionListLocalTrips,
   actionSyncPendingLocalTrips,
@@ -52,8 +53,6 @@ export default function IndexScreen() {
     enabled: Boolean(session?.user.id),
   });
 
-  console.log("Accepted Companion Trips:", acceptedCompanionTrips);
-
   useEffect(() => {
     if (!session?.user.id) {
       return;
@@ -61,6 +60,10 @@ export default function IndexScreen() {
 
     void actionSyncPendingLocalTrips(session.user.id).catch((error) => {
       console.error("Error syncing pending trips:", error);
+    });
+
+    void actionSyncPendingLocalPins(session.user.id).catch((error) => {
+      console.error("Error syncing pending pins:", error);
     });
   }, [session?.user.id]);
 

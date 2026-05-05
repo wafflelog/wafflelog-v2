@@ -37,7 +37,10 @@ export async function initializeDatabase() {
       time text not null,
       category_id text not null,
       created_at text not null,
-      updated_at text not null
+      updated_at text not null,
+      sync_status text not null,
+      last_synced_at text,
+      sync_error text
     );
 
     create table if not exists note (
@@ -159,6 +162,43 @@ export async function initializeDatabase() {
   const documentTableColumns = await sqlite.getAllAsync<{ name: string }>(
     `pragma table_info(document);`,
   );
+
+  const pinTableColumns = await sqlite.getAllAsync<{ name: string }>(
+    `pragma table_info(pin);`,
+  );
+
+  const hasPinSyncStatusColumn = pinTableColumns.some(
+    (column) => column.name === "sync_status",
+  );
+
+  if (!hasPinSyncStatusColumn) {
+    await sqlite.execAsync(`
+      alter table pin
+      add column sync_status text not null default 'pending';
+    `);
+  }
+
+  const hasPinLastSyncedAtColumn = pinTableColumns.some(
+    (column) => column.name === "last_synced_at",
+  );
+
+  if (!hasPinLastSyncedAtColumn) {
+    await sqlite.execAsync(`
+      alter table pin
+      add column last_synced_at text;
+    `);
+  }
+
+  const hasPinSyncErrorColumn = pinTableColumns.some(
+    (column) => column.name === "sync_error",
+  );
+
+  if (!hasPinSyncErrorColumn) {
+    await sqlite.execAsync(`
+      alter table pin
+      add column sync_error text;
+    `);
+  }
 
   const hasLocalUriColumn = documentTableColumns.some(
     (column) => column.name === "local_uri",

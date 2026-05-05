@@ -7,7 +7,10 @@ import { gaps } from "@/constants/theme";
 import { CATEGORIES } from "@/data/pins";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { actionCreateLocalPin } from "@/lib/sqlite/model/pin";
+import {
+  actionCreateLocalPin,
+  actionSyncLocalPin,
+} from "@/lib/sqlite/model/pin";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -34,7 +37,7 @@ export const DialogNewPin = ({
 
   const createPinMutation = useMutation({
     mutationFn: actionCreateLocalPin,
-    onSuccess: () => {
+    onSuccess: async (localPin) => {
       if (session?.user.id) {
         queryClient.invalidateQueries({
           queryKey: ["local-pins", tripId, session.user.id],
@@ -46,6 +49,18 @@ export const DialogNewPin = ({
       setPinCategoryId("");
       onDismiss();
       showMessage("Pin saved locally", "info");
+
+      try {
+        await actionSyncLocalPin(localPin);
+
+        if (session?.user.id) {
+          await queryClient.invalidateQueries({
+            queryKey: ["local-pins", tripId, session.user.id],
+          });
+        }
+      } catch (error) {
+        console.error("Error syncing new pin:", error);
+      }
     },
     onError: (error) => {
       console.error("Error creating pin:", error);

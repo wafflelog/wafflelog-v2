@@ -8,6 +8,15 @@ export type CreateTripInput = {
   endDate: string;
 };
 
+export type CreatePinInput = {
+  id?: string;
+  tripId: string;
+  name: string;
+  date: string;
+  time: string;
+  categoryId: string;
+};
+
 export type SignUpInput = {
   email: string;
   password: string;
@@ -35,6 +44,28 @@ const mapTripRow = (trip: TripRow) => ({
   endDate: trip.end_date,
   createdAt: trip.created_at,
   updatedAt: trip.updated_at,
+});
+
+const mapPinRow = (pin: {
+  id: string;
+  trip_id: string;
+  user_id: string;
+  name: string;
+  date: string;
+  time: string;
+  category_id: string;
+  created_at: string;
+  updated_at: string;
+}) => ({
+  id: pin.id,
+  tripId: pin.trip_id,
+  userId: pin.user_id,
+  name: pin.name,
+  date: pin.date,
+  time: pin.time,
+  categoryId: pin.category_id,
+  createdAt: pin.created_at,
+  updatedAt: pin.updated_at,
 });
 
 const mapPublicUserRow = (user: PublicUserRow) => ({
@@ -121,6 +152,45 @@ export async function actionUpsertRemoteTripFromLocal(input: CreateTripInput) {
   }
 
   return mapTripRow(data);
+}
+
+export async function actionUpsertRemotePinFromLocal(input: CreatePinInput) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to sync a pin");
+  }
+
+  const payload = {
+    id: input.id,
+    trip_id: input.tripId,
+    user_id: user.id,
+    name: input.name.trim(),
+    date: input.date,
+    time: input.time.trim(),
+    category_id: input.categoryId,
+  };
+
+  const { data, error } = await supabase
+    .from("pin")
+    .upsert(payload)
+    .select(
+      "id, trip_id, user_id, name, date, time, category_id, created_at, updated_at",
+    )
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapPinRow(data);
 }
 
 export async function actionSignUpWithEmail(input: SignUpInput) {
