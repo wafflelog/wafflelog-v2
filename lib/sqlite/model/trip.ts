@@ -1,4 +1,5 @@
-import { sqlite } from "../client";
+import { sqlite } from "@/lib/sqlite/client";
+import { buildUUID } from "@/lib/sqlite/utils";
 import { actionUpsertRemoteTripFromLocal } from "@/lib/supabase/actions";
 
 export type CreateLocalTripInput = {
@@ -20,18 +21,6 @@ export type LocalTrip = {
   lastSyncedAt: string | null;
   syncError: string | null;
 };
-
-function createLocalId() {
-  if (typeof globalThis.crypto?.randomUUID === "function") {
-    return globalThis.crypto.randomUUID();
-  }
-
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
-    const random = Math.floor(Math.random() * 16);
-    const value = char === "x" ? random : (random & 0x3) | 0x8;
-    return value.toString(16);
-  });
-}
 
 function mapLocalTripRow(row: {
   id: string;
@@ -62,7 +51,7 @@ function mapLocalTripRow(row: {
 export async function actionCreateLocalTrip(input: CreateLocalTripInput) {
   const now = new Date().toISOString();
   const localTrip = {
-    id: createLocalId(),
+    id: buildUUID(),
     user_id: input.userId,
     title: input.title.trim(),
     start_date: input.startDate,
@@ -275,7 +264,11 @@ export async function actionSyncLocalTrip(localTrip: LocalTrip) {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to sync trip";
-    await actionMarkLocalTripSyncFailed(localTrip.id, localTrip.userId, message);
+    await actionMarkLocalTripSyncFailed(
+      localTrip.id,
+      localTrip.userId,
+      message,
+    );
     throw error;
   }
 }

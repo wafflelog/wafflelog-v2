@@ -1,4 +1,5 @@
-import { sqlite } from "../client";
+import { sqlite } from "@/lib/sqlite/client";
+import { buildUUID } from "@/lib/sqlite/utils";
 
 export type LocalNote = {
   id: string;
@@ -17,18 +18,6 @@ export type CreateLocalNoteInput = {
   userId: string;
   text: string;
 };
-
-function createLocalId() {
-  if (typeof globalThis.crypto?.randomUUID === "function") {
-    return globalThis.crypto.randomUUID();
-  }
-
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
-    const random = Math.floor(Math.random() * 16);
-    const value = char === "x" ? random : (random & 0x3) | 0x8;
-    return value.toString(16);
-  });
-}
 
 function mapLocalNoteRow(row: {
   id: string;
@@ -63,7 +52,7 @@ export async function actionCreateLocalNote(input: CreateLocalNoteInput) {
   }
 
   const localNote = {
-    id: createLocalId(),
+    id: buildUUID(),
     pin_id: input.pinId,
     user_id: input.userId,
     text: normalizedText,

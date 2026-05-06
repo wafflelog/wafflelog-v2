@@ -1,4 +1,5 @@
-import { sqlite } from "../client";
+import { sqlite } from "@/lib/sqlite/client";
+import { buildUUID } from "@/lib/sqlite/utils";
 
 export type CreateLocalChecklistItemInput = {
   tripId: string;
@@ -18,18 +19,6 @@ export type LocalChecklistItem = {
   lastSyncedAt: string | null;
   syncError: string | null;
 };
-
-function createLocalId() {
-  if (typeof globalThis.crypto?.randomUUID === "function") {
-    return globalThis.crypto.randomUUID();
-  }
-
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
-    const random = Math.floor(Math.random() * 16);
-    const value = char === "x" ? random : (random & 0x3) | 0x8;
-    return value.toString(16);
-  });
-}
 
 function mapLocalChecklistItemRow(row: {
   id: string;
@@ -62,7 +51,7 @@ export async function actionCreateLocalChecklistItem(
 ) {
   const now = new Date().toISOString();
   const localChecklistItem = {
-    id: createLocalId(),
+    id: buildUUID(),
     trip_id: input.tripId,
     user_id: input.userId,
     title: input.title.trim(),

@@ -1,4 +1,5 @@
-import { sqlite } from "../client";
+import { sqlite } from "@/lib/sqlite/client";
+import { buildUUID } from "@/lib/sqlite/utils";
 
 export type LocalImage = {
   id: string;
@@ -28,18 +29,6 @@ export type CreateLocalImageInput = {
   height: number;
   caption?: string;
 };
-
-function createLocalId() {
-  if (typeof globalThis.crypto?.randomUUID === "function") {
-    return globalThis.crypto.randomUUID();
-  }
-
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
-    const random = Math.floor(Math.random() * 16);
-    const value = char === "x" ? random : (random & 0x3) | 0x8;
-    return value.toString(16);
-  });
-}
 
 function mapLocalImageRow(row: {
   id: string;
@@ -78,7 +67,7 @@ function mapLocalImageRow(row: {
 export async function actionCreateLocalImage(input: CreateLocalImageInput) {
   const now = new Date().toISOString();
   const localImage = {
-    id: input.id ?? createLocalId(),
+    id: input.id ?? buildUUID(),
     pin_id: input.pinId,
     trip_id: input.tripId,
     user_id: input.userId,
@@ -134,7 +123,10 @@ export async function actionCreateLocalImage(input: CreateLocalImageInput) {
   return mapLocalImageRow(localImage);
 }
 
-export async function actionListLocalImagesByPin(pinId: string, userId: string) {
+export async function actionListLocalImagesByPin(
+  pinId: string,
+  userId: string,
+) {
   const rows = await sqlite.getAllAsync<{
     id: string;
     pin_id: string;
@@ -177,7 +169,10 @@ export async function actionListLocalImagesByPin(pinId: string, userId: string) 
   return rows.map(mapLocalImageRow);
 }
 
-export async function actionCountLocalImagesByPin(pinId: string, userId: string) {
+export async function actionCountLocalImagesByPin(
+  pinId: string,
+  userId: string,
+) {
   const row = await sqlite.getFirstAsync<{ total: number }>(
     `
       select count(*) as total

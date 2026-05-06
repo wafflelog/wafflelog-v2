@@ -1,5 +1,6 @@
+import { sqlite } from "@/lib/sqlite/client";
+import { buildUUID } from "@/lib/sqlite/utils";
 import { actionUpsertRemotePinFromLocal } from "@/lib/supabase/actions";
-import { sqlite } from "../client";
 
 export type LocalPin = {
   id: string;
@@ -24,18 +25,6 @@ export type CreateLocalPinInput = {
   time: string;
   categoryId: string;
 };
-
-function createLocalId() {
-  if (typeof globalThis.crypto?.randomUUID === "function") {
-    return globalThis.crypto.randomUUID();
-  }
-
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
-    const random = Math.floor(Math.random() * 16);
-    const value = char === "x" ? random : (random & 0x3) | 0x8;
-    return value.toString(16);
-  });
-}
 
 function mapLocalPinRow(row: {
   id: string;
@@ -70,7 +59,7 @@ function mapLocalPinRow(row: {
 export async function actionCreateLocalPin(input: CreateLocalPinInput) {
   const now = new Date().toISOString();
   const localPin = {
-    id: createLocalId(),
+    id: buildUUID(),
     trip_id: input.tripId,
     user_id: input.userId,
     name: input.name.trim(),
@@ -344,7 +333,8 @@ export async function actionSyncLocalPin(localPin: LocalPin) {
 
     await actionMarkLocalPinSynced(localPin.id, localPin.userId);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to sync pin";
+    const message =
+      error instanceof Error ? error.message : "Failed to sync pin";
     await actionMarkLocalPinSyncFailed(localPin.id, localPin.userId, message);
     throw error;
   }

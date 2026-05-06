@@ -1,4 +1,5 @@
-import { sqlite } from "../client";
+import { sqlite } from "@/lib/sqlite/client";
+import { buildUUID } from "@/lib/sqlite/utils";
 
 export type LocalExpense = {
   id: string;
@@ -27,18 +28,6 @@ export type CreateLocalExpenseInput = {
   paidByUserId: string;
   paidByName: string;
 };
-
-function createLocalId() {
-  if (typeof globalThis.crypto?.randomUUID === "function") {
-    return globalThis.crypto.randomUUID();
-  }
-
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
-    const random = Math.floor(Math.random() * 16);
-    const value = char === "x" ? random : (random & 0x3) | 0x8;
-    return value.toString(16);
-  });
-}
 
 function mapLocalExpenseRow(row: {
   id: string;
@@ -74,12 +63,10 @@ function mapLocalExpenseRow(row: {
   };
 }
 
-export async function actionCreateLocalExpense(
-  input: CreateLocalExpenseInput,
-) {
+export async function actionCreateLocalExpense(input: CreateLocalExpenseInput) {
   const now = new Date().toISOString();
   const localExpense = {
-    id: createLocalId(),
+    id: buildUUID(),
     pin_id: input.pinId,
     trip_id: input.tripId,
     user_id: input.userId,
@@ -135,7 +122,10 @@ export async function actionCreateLocalExpense(
   return mapLocalExpenseRow(localExpense);
 }
 
-export async function actionListLocalExpensesByPin(pinId: string, userId: string) {
+export async function actionListLocalExpensesByPin(
+  pinId: string,
+  userId: string,
+) {
   const rows = await sqlite.getAllAsync<{
     id: string;
     pin_id: string;

@@ -1,4 +1,4 @@
-import { sqlite } from "../client";
+import { sqlite } from "@/lib/sqlite/client";
 
 export type LocalPinLocation = {
   pinId: string;

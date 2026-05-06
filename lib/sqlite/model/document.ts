@@ -1,4 +1,5 @@
-import { sqlite } from "../client";
+import { sqlite } from "@/lib/sqlite/client";
+import { buildUUID } from "@/lib/sqlite/utils";
 
 export type LocalDocument = {
   id: string;
@@ -30,18 +31,6 @@ export type CreateLocalDocumentInput = {
   storagePath?: string;
   caption?: string;
 };
-
-function createLocalId() {
-  if (typeof globalThis.crypto?.randomUUID === "function") {
-    return globalThis.crypto.randomUUID();
-  }
-
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
-    const random = Math.floor(Math.random() * 16);
-    const value = char === "x" ? random : (random & 0x3) | 0x8;
-    return value.toString(16);
-  });
-}
 
 function mapLocalDocumentRow(row: {
   id: string;
@@ -84,7 +73,7 @@ export async function actionCreateLocalDocument(
 ) {
   const now = new Date().toISOString();
   const localDocument = {
-    id: input.id ?? createLocalId(),
+    id: input.id ?? buildUUID(),
     trip_id: input.tripId,
     pin_id: input.pinId ?? null,
     user_id: input.userId,
