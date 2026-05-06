@@ -26,6 +26,8 @@ export type CreateLocalPinInput = {
   categoryId: string;
 };
 
+const DEFAULT_SYNC_BATCH_SIZE = 25;
+
 function mapLocalPinRow(row: {
   id: string;
   trip_id: string;
@@ -230,7 +232,10 @@ export async function actionGetLocalPin(id: string, userId: string) {
   return row ? mapLocalPinRow(row) : null;
 }
 
-export async function actionListPendingLocalPins(userId: string) {
+export async function actionListPendingLocalPins(
+  userId: string,
+  limit = DEFAULT_SYNC_BATCH_SIZE,
+) {
   const rows = await sqlite.getAllAsync<{
     id: string;
     trip_id: string;
@@ -262,8 +267,9 @@ export async function actionListPendingLocalPins(userId: string) {
       from pin
       where user_id = ? and sync_status != 'synced'
       order by created_at asc
+      limit ?
     `,
-    [userId],
+    [userId, limit],
   );
 
   return rows.map(mapLocalPinRow);
@@ -340,10 +346,18 @@ export async function actionSyncLocalPin(localPin: LocalPin) {
   }
 }
 
-export async function actionSyncPendingLocalPins(userId: string) {
-  const pendingPins = await actionListPendingLocalPins(userId);
+export async function actionSyncPendingLocalPins(
+  userId: string,
+  limit = DEFAULT_SYNC_BATCH_SIZE,
+) {
+  const pendingPins = await actionListPendingLocalPins(userId, limit);
 
   for (const pin of pendingPins) {
     await actionSyncLocalPin(pin);
   }
+
+  return {
+    processed: pendingPins.length,
+    hasMore: pendingPins.length === limit,
+  };
 }

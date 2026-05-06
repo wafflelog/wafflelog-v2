@@ -22,6 +22,8 @@ export type LocalTrip = {
   syncError: string | null;
 };
 
+const DEFAULT_SYNC_BATCH_SIZE = 25;
+
 function mapLocalTripRow(row: {
   id: string;
   user_id: string;
@@ -165,7 +167,10 @@ export async function actionGetLocalTrip(id: string, userId: string) {
   return row ? mapLocalTripRow(row) : null;
 }
 
-export async function actionListPendingLocalTrips(userId: string) {
+export async function actionListPendingLocalTrips(
+  userId: string,
+  limit = DEFAULT_SYNC_BATCH_SIZE,
+) {
   const rows = await sqlite.getAllAsync<{
     id: string;
     user_id: string;
@@ -193,8 +198,9 @@ export async function actionListPendingLocalTrips(userId: string) {
       from trip
       where user_id = ? and sync_status != 'synced'
       order by created_at asc
+      limit ?
     `,
-    [userId],
+    [userId, limit],
   );
 
   return rows.map(mapLocalTripRow);
@@ -273,10 +279,18 @@ export async function actionSyncLocalTrip(localTrip: LocalTrip) {
   }
 }
 
-export async function actionSyncPendingLocalTrips(userId: string) {
-  const pendingTrips = await actionListPendingLocalTrips(userId);
+export async function actionSyncPendingLocalTrips(
+  userId: string,
+  limit = DEFAULT_SYNC_BATCH_SIZE,
+) {
+  const pendingTrips = await actionListPendingLocalTrips(userId, limit);
 
   for (const trip of pendingTrips) {
     await actionSyncLocalTrip(trip);
   }
+
+  return {
+    processed: pendingTrips.length,
+    hasMore: pendingTrips.length === limit,
+  };
 }

@@ -4,10 +4,8 @@ import { DialogNewTrip } from "@/components/dialog/new-trip";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
-import { actionSyncPendingLocalPins } from "@/lib/sqlite/model/pin";
 import {
-  actionListLocalTrips,
-  actionSyncPendingLocalTrips,
+  actionListLocalTrips
 } from "@/lib/sqlite/model/trip";
 import { actionListAcceptedCompanionTrips } from "@/lib/supabase/actions";
 import { supabase } from "@/lib/supabase/client";
@@ -22,7 +20,7 @@ import {
   Plane as PlaneIcon,
   Plus as PlusIcon,
 } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ImageBackground,
   ScrollView,
@@ -52,20 +50,6 @@ export default function IndexScreen() {
     queryFn: actionListAcceptedCompanionTrips,
     enabled: Boolean(session?.user.id),
   });
-
-  useEffect(() => {
-    if (!session?.user.id) {
-      return;
-    }
-
-    void actionSyncPendingLocalTrips(session.user.id).catch((error) => {
-      console.error("Error syncing pending trips:", error);
-    });
-
-    void actionSyncPendingLocalPins(session.user.id).catch((error) => {
-      console.error("Error syncing pending pins:", error);
-    });
-  }, [session?.user.id]);
 
   if (isLoading) {
     return (
