@@ -116,7 +116,7 @@ export async function actionCreateLocalImage(input: CreateLocalImageInput) {
         sync_status,
         last_synced_at,
         sync_error
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       localImage.id,

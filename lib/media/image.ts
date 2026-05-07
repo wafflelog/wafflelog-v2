@@ -19,6 +19,40 @@ function sanitizeFileName(fileName: string) {
     .toLowerCase();
 }
 
+function decodeBase64(base64: string) {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  let buffer = 0;
+  let bitsCollected = 0;
+  const bytes: number[] = [];
+
+  for (const char of base64.replace(/=+$/, "")) {
+    const value = chars.indexOf(char);
+
+    if (value === -1) {
+      continue;
+    }
+
+    buffer = (buffer << 6) | value;
+    bitsCollected += 6;
+
+    if (bitsCollected >= 8) {
+      bitsCollected -= 8;
+      bytes.push((buffer >> bitsCollected) & 0xff);
+    }
+  }
+
+  return new Uint8Array(bytes);
+}
+
+async function readLocalFileAsBytes(localUri: string) {
+  const base64 = await FileSystem.readAsStringAsync(localUri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  return decodeBase64(base64);
+}
+
 export function isAllowedLocalImageMimeType(mimeType: string) {
   return ALLOWED_IMAGE_MIME_TYPES.includes(
     mimeType as (typeof ALLOWED_IMAGE_MIME_TYPES)[number],
@@ -65,13 +99,7 @@ export async function uploadPinImageToStorage(input: {
   mimeType: string;
   localUri: string;
 }) {
-  const response = await fetch(input.localUri);
-
-  if (!response.ok) {
-    throw new Error("Failed to read local image file");
-  }
-
-  const imageBlob = await response.blob();
+  const imageBytes = await readLocalFileAsBytes(input.localUri);
   const storagePath = buildPinImageStoragePath({
     tripId: input.tripId,
     pinId: input.pinId,
@@ -81,7 +109,7 @@ export async function uploadPinImageToStorage(input: {
 
   const { error } = await supabase.storage
     .from(PIN_IMAGE_STORAGE_BUCKET)
-    .upload(storagePath, imageBlob, {
+    .upload(storagePath, imageBytes, {
       contentType: input.mimeType,
       upsert: false,
     });

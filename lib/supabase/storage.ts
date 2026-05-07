@@ -24,6 +24,40 @@ function getFileExtension(fileName: string) {
   return parts.length > 1 ? parts.at(-1)?.toLowerCase() ?? "" : "";
 }
 
+function decodeBase64(base64: string) {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  let buffer = 0;
+  let bitsCollected = 0;
+  const bytes: number[] = [];
+
+  for (const char of base64.replace(/=+$/, "")) {
+    const value = chars.indexOf(char);
+
+    if (value === -1) {
+      continue;
+    }
+
+    buffer = (buffer << 6) | value;
+    bitsCollected += 6;
+
+    if (bitsCollected >= 8) {
+      bitsCollected -= 8;
+      bytes.push((buffer >> bitsCollected) & 0xff);
+    }
+  }
+
+  return new Uint8Array(bytes);
+}
+
+async function readLocalFileAsBytes(localUri: string) {
+  const base64 = await FileSystem.readAsStringAsync(localUri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  return decodeBase64(base64);
+}
+
 export function inferDocumentMimeType(fileName: string) {
   return DOCUMENT_MIME_TYPE_BY_EXTENSION[getFileExtension(fileName)] ?? null;
 }
@@ -69,13 +103,7 @@ export async function uploadTravelDocumentToStorage(input: {
   mimeType: string;
   localUri: string;
 }) {
-  const response = await fetch(input.localUri);
-
-  if (!response.ok) {
-    throw new Error("Failed to read local document file");
-  }
-
-  const fileBlob = await response.blob();
+  const fileBytes = await readLocalFileAsBytes(input.localUri);
   const storagePath = buildTravelDocumentStoragePath({
     tripId: input.tripId,
     documentId: input.documentId,
@@ -84,7 +112,7 @@ export async function uploadTravelDocumentToStorage(input: {
 
   const { error } = await supabase.storage
     .from(TRAVEL_DOCUMENT_STORAGE_BUCKET)
-    .upload(storagePath, fileBlob, {
+    .upload(storagePath, fileBytes, {
       contentType: input.mimeType,
       upsert: false,
     });
