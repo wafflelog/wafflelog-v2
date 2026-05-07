@@ -1,4 +1,5 @@
 import * as FileSystem from "expo-file-system/legacy";
+import { supabase } from "./client";
 
 const DOCUMENT_MIME_TYPE_BY_EXTENSION: Record<string, string> = {
   pdf: "application/pdf",
@@ -6,6 +7,7 @@ const DOCUMENT_MIME_TYPE_BY_EXTENSION: Record<string, string> = {
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 };
 
+const TRAVEL_DOCUMENT_STORAGE_BUCKET = "travel-documents";
 const LOCAL_TRAVEL_DOCUMENT_DIRECTORY =
   `${FileSystem.documentDirectory}travel-documents`;
 
@@ -30,6 +32,15 @@ export function isAllowedTravelDocumentMimeType(mimeType: string) {
   return Object.values(DOCUMENT_MIME_TYPE_BY_EXTENSION).includes(mimeType);
 }
 
+export function buildTravelDocumentStoragePath(input: {
+  tripId: string;
+  documentId: string;
+  fileName: string;
+}) {
+  const safeFileName = sanitizeFileName(input.fileName || "document");
+  return `trip/${input.tripId}/documents/${input.documentId}-${safeFileName}`;
+}
+
 export async function persistLocalTravelDocument(input: {
   localDocumentId: string;
   fileName: string;
@@ -49,4 +60,41 @@ export async function persistLocalTravelDocument(input: {
   });
 
   return localUri;
+}
+
+export async function uploadTravelDocumentToStorage(input: {
+  tripId: string;
+  documentId: string;
+  fileName: string;
+  mimeType: string;
+  localUri: string;
+}) {
+  const response = await fetch(input.localUri);
+
+  if (!response.ok) {
+    throw new Error("Failed to read local document file");
+  }
+
+  const fileBlob = await response.blob();
+  const storagePath = buildTravelDocumentStoragePath({
+    tripId: input.tripId,
+    documentId: input.documentId,
+    fileName: input.fileName,
+  });
+
+  const { error } = await supabase.storage
+    .from(TRAVEL_DOCUMENT_STORAGE_BUCKET)
+    .upload(storagePath, fileBlob, {
+      contentType: input.mimeType,
+      upsert: false,
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    storageBucket: TRAVEL_DOCUMENT_STORAGE_BUCKET,
+    storagePath,
+  };
 }

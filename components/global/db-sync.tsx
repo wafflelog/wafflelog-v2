@@ -1,6 +1,8 @@
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionSyncPendingLocalChecklistItems } from "@/lib/sqlite/model/checklist-item";
+import { actionSyncPendingLocalDocuments } from "@/lib/sqlite/model/document";
 import { actionSyncPendingLocalExpenses } from "@/lib/sqlite/model/expense";
+import { actionSyncPendingLocalImages } from "@/lib/sqlite/model/image";
 import { actionSyncPendingLocalNotes } from "@/lib/sqlite/model/note";
 import { actionSyncPendingLocalPins } from "@/lib/sqlite/model/pin";
 import { actionSyncPendingLocalReferenceLinks } from "@/lib/sqlite/model/reference-link";
@@ -66,6 +68,28 @@ async function runPendingUploadSync(userId: string) {
     );
 
     if (!expenseResult.hasMore) {
+      break;
+    }
+  }
+
+  while (true) {
+    const documentResult = await actionSyncPendingLocalDocuments(
+      userId,
+      SYNC_BATCH_SIZE,
+    );
+
+    if (!documentResult.hasMore) {
+      break;
+    }
+  }
+
+  while (true) {
+    const imageResult = await actionSyncPendingLocalImages(
+      userId,
+      SYNC_BATCH_SIZE,
+    );
+
+    if (!imageResult.hasMore) {
       break;
     }
   }

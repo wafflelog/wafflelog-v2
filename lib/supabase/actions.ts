@@ -49,6 +49,29 @@ export type CreateExpenseInput = {
   paidByName: string;
 };
 
+export type CreateDocumentInput = {
+  id?: string;
+  tripId: string;
+  pinId: string | null;
+  fileName: string;
+  mimeType: string;
+  storageBucket: string;
+  storagePath: string;
+  caption: string | null;
+};
+
+export type CreateImageInput = {
+  id?: string;
+  pinId: string;
+  tripId: string;
+  storageBucket: string;
+  storagePath: string;
+  mimeType: string;
+  width: number;
+  height: number;
+  caption: string | null;
+};
+
 export type SignUpInput = {
   email: string;
   password: string;
@@ -178,6 +201,60 @@ const mapExpenseRow = (expense: {
   paidByName: expense.paid_by_name,
   createdAt: expense.created_at,
   updatedAt: expense.updated_at,
+});
+
+const mapDocumentRow = (document: {
+  id: string;
+  trip_id: string;
+  pin_id: string | null;
+  user_id: string;
+  file_name: string;
+  mime_type: string;
+  storage_bucket: string;
+  storage_path: string;
+  caption: string | null;
+  created_at: string;
+  updated_at: string;
+}) => ({
+  id: document.id,
+  tripId: document.trip_id,
+  pinId: document.pin_id,
+  userId: document.user_id,
+  fileName: document.file_name,
+  mimeType: document.mime_type,
+  storageBucket: document.storage_bucket,
+  storagePath: document.storage_path,
+  caption: document.caption,
+  createdAt: document.created_at,
+  updatedAt: document.updated_at,
+});
+
+const mapImageRow = (image: {
+  id: string;
+  pin_id: string;
+  trip_id: string;
+  user_id: string;
+  storage_bucket: string;
+  storage_path: string;
+  mime_type: string;
+  width: number;
+  height: number;
+  caption: string | null;
+  created_at: string;
+  updated_at: string;
+}) => ({
+  id: image.id,
+  pinId: image.pin_id,
+  tripId: image.trip_id,
+  userId: image.user_id,
+  storageBucket: image.storage_bucket,
+  storagePath: image.storage_path,
+  mimeType: image.mime_type,
+  width: image.width,
+  height: image.height,
+  caption: image.caption,
+  createdAt: image.created_at,
+  updatedAt: image.updated_at,
 });
 
 const mapPublicUserRow = (user: PublicUserRow) => ({
@@ -463,6 +540,91 @@ export async function actionUpsertRemoteExpenseFromLocal(
   }
 
   return mapExpenseRow(data);
+}
+
+export async function actionUpsertRemoteDocumentFromLocal(
+  input: CreateDocumentInput,
+) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to sync a document");
+  }
+
+  const payload: TablesInsert<"document"> = {
+    id: input.id,
+    trip_id: input.tripId,
+    pin_id: input.pinId,
+    user_id: user.id,
+    file_name: input.fileName.trim(),
+    mime_type: input.mimeType.trim(),
+    storage_bucket: input.storageBucket.trim(),
+    storage_path: input.storagePath.trim(),
+    caption: input.caption,
+  };
+
+  const { data, error } = await supabase
+    .from("document")
+    .upsert(payload)
+    .select(
+      "id, trip_id, pin_id, user_id, file_name, mime_type, storage_bucket, storage_path, caption, created_at, updated_at",
+    )
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapDocumentRow(data);
+}
+
+export async function actionUpsertRemoteImageFromLocal(input: CreateImageInput) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to sync an image");
+  }
+
+  const payload: TablesInsert<"image"> = {
+    id: input.id,
+    pin_id: input.pinId,
+    trip_id: input.tripId,
+    user_id: user.id,
+    storage_bucket: input.storageBucket.trim(),
+    storage_path: input.storagePath.trim(),
+    mime_type: input.mimeType.trim(),
+    width: input.width,
+    height: input.height,
+    caption: input.caption,
+  };
+
+  const { data, error } = await supabase
+    .from("image")
+    .upsert(payload)
+    .select(
+      "id, pin_id, trip_id, user_id, storage_bucket, storage_path, mime_type, width, height, caption, created_at, updated_at",
+    )
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapImageRow(data);
 }
 
 export async function actionSignUpWithEmail(input: SignUpInput) {

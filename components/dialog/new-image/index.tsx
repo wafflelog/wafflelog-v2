@@ -12,6 +12,7 @@ import {
   actionCountLocalImagesByPin,
   actionCreateLocalImage,
 } from "@/lib/sqlite/model/image";
+import { buildUUID } from "@/lib/sqlite/utils";
 import {
   isAllowedLocalImageMimeType,
   persistLocalPinImage,
@@ -67,9 +68,7 @@ export const DialogNewImage = ({
 
       await Promise.all(
         images.map(async (image) => {
-          const localImageId = `image_${Date.now()}_${Math.random()
-            .toString(36)
-            .slice(2, 10)}`;
+          const localImageId = buildUUID();
           const localUri = await persistLocalPinImage({
             pinId,
             localImageId,

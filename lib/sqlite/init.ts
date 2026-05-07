@@ -92,6 +92,8 @@ export async function initializeDatabase() {
       trip_id text not null,
       user_id text not null,
       local_uri text not null,
+      storage_bucket text not null,
+      storage_path text not null,
       mime_type text not null,
       width integer not null,
       height integer not null,
@@ -163,6 +165,10 @@ export async function initializeDatabase() {
     `pragma table_info(document);`,
   );
 
+  const imageTableColumns = await sqlite.getAllAsync<{ name: string }>(
+    `pragma table_info(image);`,
+  );
+
   const pinTableColumns = await sqlite.getAllAsync<{ name: string }>(
     `pragma table_info(pin);`,
   );
@@ -208,6 +214,28 @@ export async function initializeDatabase() {
     await sqlite.execAsync(`
       alter table document
       add column local_uri text;
+    `);
+  }
+
+  const hasImageStorageBucketColumn = imageTableColumns.some(
+    (column) => column.name === "storage_bucket",
+  );
+
+  if (!hasImageStorageBucketColumn) {
+    await sqlite.execAsync(`
+      alter table image
+      add column storage_bucket text not null default '';
+    `);
+  }
+
+  const hasImageStoragePathColumn = imageTableColumns.some(
+    (column) => column.name === "storage_path",
+  );
+
+  if (!hasImageStoragePathColumn) {
+    await sqlite.execAsync(`
+      alter table image
+      add column storage_path text not null default '';
     `);
   }
 }

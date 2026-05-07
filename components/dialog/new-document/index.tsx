@@ -10,6 +10,7 @@ import {
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionCreateLocalDocument } from "@/lib/sqlite/model/document";
+import { buildUUID } from "@/lib/sqlite/utils";
 import {
   inferDocumentMimeType,
   isAllowedTravelDocumentMimeType,
@@ -68,9 +69,7 @@ export const DialogNewDocument = ({
         throw new Error("You must be signed in to save a document");
       }
 
-      const localDocumentId = `document_${Date.now()}_${Math.random()
-        .toString(36)
-        .slice(2, 10)}`;
+      const localDocumentId = buildUUID();
       const localUri = await persistLocalTravelDocument({
         localDocumentId,
         fileName: input.fileName,

@@ -1,5 +1,7 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
+import { actionUpsertRemoteDocumentFromLocal } from "@/lib/supabase/actions";
+import { uploadTravelDocumentToStorage } from "@/lib/supabase/storage";
 
 export type LocalDocument = {
   id: string;
@@ -31,6 +33,8 @@ export type CreateLocalDocumentInput = {
   storagePath?: string;
   caption?: string;
 };
+
+const DEFAULT_SYNC_BATCH_SIZE = 25;
 
 function mapLocalDocumentRow(row: {
   id: string;
@@ -226,4 +230,192 @@ export async function actionListLocalDocumentsByPin(
   );
 
   return rows.map(mapLocalDocumentRow);
+}
+
+export async function actionListPendingLocalDocuments(
+  userId: string,
+  limit = DEFAULT_SYNC_BATCH_SIZE,
+) {
+  const rows = await sqlite.getAllAsync<{
+    id: string;
+    trip_id: string;
+    pin_id: string | null;
+    user_id: string;
+    file_name: string;
+    mime_type: string;
+    local_uri: string | null;
+    storage_bucket: string;
+    storage_path: string;
+    caption: string | null;
+    created_at: string;
+    updated_at: string;
+    sync_status: string;
+    last_synced_at: string | null;
+    sync_error: string | null;
+  }>(
+    `
+      select
+        id,
+        trip_id,
+        pin_id,
+        user_id,
+        file_name,
+        mime_type,
+        local_uri,
+        storage_bucket,
+        storage_path,
+        caption,
+        created_at,
+        updated_at,
+        sync_status,
+        last_synced_at,
+        sync_error
+      from document
+      where user_id = ? and sync_status != 'synced'
+      order by created_at asc
+      limit ?
+    `,
+    [userId, limit],
+  );
+
+  return rows.map(mapLocalDocumentRow);
+}
+
+export async function actionMarkLocalDocumentSyncing(id: string, userId: string) {
+  await sqlite.runAsync(
+    `
+      update document
+      set
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    ["syncing", null, new Date().toISOString(), id, userId],
+  );
+}
+
+export async function actionMarkLocalDocumentStorageUploaded(
+  id: string,
+  userId: string,
+  storageBucket: string,
+  storagePath: string,
+) {
+  await sqlite.runAsync(
+    `
+      update document
+      set
+        storage_bucket = ?,
+        storage_path = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    [storageBucket, storagePath, new Date().toISOString(), id, userId],
+  );
+}
+
+export async function actionMarkLocalDocumentSynced(id: string, userId: string) {
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      update document
+      set
+        sync_status = ?,
+        last_synced_at = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    ["synced", now, null, now, id, userId],
+  );
+}
+
+export async function actionMarkLocalDocumentSyncFailed(
+  id: string,
+  userId: string,
+  errorMessage: string,
+) {
+  await sqlite.runAsync(
+    `
+      update document
+      set
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    ["failed", errorMessage, new Date().toISOString(), id, userId],
+  );
+}
+
+export async function actionSyncLocalDocument(localDocument: LocalDocument) {
+  await actionMarkLocalDocumentSyncing(localDocument.id, localDocument.userId);
+
+  try {
+    let storageBucket = localDocument.storageBucket;
+    let storagePath = localDocument.storagePath;
+
+    if (!storageBucket || !storagePath) {
+      if (!localDocument.localUri) {
+        throw new Error("Local document file not found");
+      }
+
+      const uploadResult = await uploadTravelDocumentToStorage({
+        tripId: localDocument.tripId,
+        documentId: localDocument.id,
+        fileName: localDocument.fileName,
+        mimeType: localDocument.mimeType,
+        localUri: localDocument.localUri,
+      });
+
+      storageBucket = uploadResult.storageBucket;
+      storagePath = uploadResult.storagePath;
+
+      await actionMarkLocalDocumentStorageUploaded(
+        localDocument.id,
+        localDocument.userId,
+        storageBucket,
+        storagePath,
+      );
+    }
+
+    await actionUpsertRemoteDocumentFromLocal({
+      id: localDocument.id,
+      tripId: localDocument.tripId,
+      pinId: localDocument.pinId,
+      fileName: localDocument.fileName,
+      mimeType: localDocument.mimeType,
+      storageBucket,
+      storagePath,
+      caption: localDocument.caption,
+    });
+
+    await actionMarkLocalDocumentSynced(localDocument.id, localDocument.userId);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to sync document";
+    await actionMarkLocalDocumentSyncFailed(
+      localDocument.id,
+      localDocument.userId,
+      message,
+    );
+    throw error;
+  }
+}
+
+export async function actionSyncPendingLocalDocuments(
+  userId: string,
+  limit = DEFAULT_SYNC_BATCH_SIZE,
+) {
+  const pendingDocuments = await actionListPendingLocalDocuments(userId, limit);
+
+  for (const document of pendingDocuments) {
+    await actionSyncLocalDocument(document);
+  }
+
+  return {
+    processed: pendingDocuments.length,
+    hasMore: pendingDocuments.length === limit,
+  };
 }

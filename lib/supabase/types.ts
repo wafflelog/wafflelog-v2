@@ -127,6 +127,70 @@ export type Database = {
           },
         ]
       }
+      document: {
+        Row: {
+          caption: string | null
+          created_at: string
+          file_name: string
+          id: string
+          mime_type: string
+          pin_id: string | null
+          storage_bucket: string
+          storage_path: string
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          file_name: string
+          id?: string
+          mime_type: string
+          pin_id?: string | null
+          storage_bucket: string
+          storage_path: string
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          file_name?: string
+          id?: string
+          mime_type?: string
+          pin_id?: string | null
+          storage_bucket?: string
+          storage_path?: string
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_pin_id_fkey"
+            columns: ["pin_id"]
+            isOneToOne: false
+            referencedRelation: "pin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trip"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense: {
         Row: {
           amount: number
@@ -191,6 +255,73 @@ export type Database = {
           },
           {
             foreignKeyName: "expense_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      image: {
+        Row: {
+          caption: string | null
+          created_at: string
+          height: number
+          id: string
+          mime_type: string
+          pin_id: string
+          storage_bucket: string
+          storage_path: string
+          trip_id: string
+          updated_at: string
+          user_id: string
+          width: number
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          height: number
+          id?: string
+          mime_type: string
+          pin_id: string
+          storage_bucket: string
+          storage_path: string
+          trip_id: string
+          updated_at?: string
+          user_id: string
+          width: number
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          height?: number
+          id?: string
+          mime_type?: string
+          pin_id?: string
+          storage_bucket?: string
+          storage_path?: string
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "image_pin_id_fkey"
+            columns: ["pin_id"]
+            isOneToOne: false
+            referencedRelation: "pin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "image_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trip"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "image_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user"

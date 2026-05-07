@@ -1,6 +1,8 @@
 import * as FileSystem from "expo-file-system/legacy";
+import { supabase } from "@/lib/supabase/client";
 
 const LOCAL_PIN_IMAGE_DIRECTORY = `${FileSystem.documentDirectory}pin-images`;
+const PIN_IMAGE_STORAGE_BUCKET = "images";
 
 const ALLOWED_IMAGE_MIME_TYPES = [
   "image/jpeg",
@@ -23,6 +25,16 @@ export function isAllowedLocalImageMimeType(mimeType: string) {
   );
 }
 
+export function buildPinImageStoragePath(input: {
+  tripId: string;
+  pinId: string;
+  imageId: string;
+  fileName: string;
+}) {
+  const safeFileName = sanitizeFileName(input.fileName || "image");
+  return `trip/${input.tripId}/pin/${input.pinId}/images/${input.imageId}-${safeFileName}`;
+}
+
 export async function persistLocalPinImage(input: {
   pinId: string;
   localImageId: string;
@@ -43,4 +55,43 @@ export async function persistLocalPinImage(input: {
   });
 
   return localUri;
+}
+
+export async function uploadPinImageToStorage(input: {
+  tripId: string;
+  pinId: string;
+  imageId: string;
+  fileName: string;
+  mimeType: string;
+  localUri: string;
+}) {
+  const response = await fetch(input.localUri);
+
+  if (!response.ok) {
+    throw new Error("Failed to read local image file");
+  }
+
+  const imageBlob = await response.blob();
+  const storagePath = buildPinImageStoragePath({
+    tripId: input.tripId,
+    pinId: input.pinId,
+    imageId: input.imageId,
+    fileName: input.fileName,
+  });
+
+  const { error } = await supabase.storage
+    .from(PIN_IMAGE_STORAGE_BUCKET)
+    .upload(storagePath, imageBlob, {
+      contentType: input.mimeType,
+      upsert: false,
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    storageBucket: PIN_IMAGE_STORAGE_BUCKET,
+    storagePath,
+  };
 }
