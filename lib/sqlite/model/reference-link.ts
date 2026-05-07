@@ -1,5 +1,6 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
+import { actionUpsertRemoteReferenceLinkFromLocal } from "@/lib/supabase/actions";
 
 export type LocalReferenceLink = {
   id: string;
@@ -21,6 +22,8 @@ export type CreateLocalReferenceLinkInput = {
   url: string;
   caption?: string;
 };
+
+const DEFAULT_SYNC_BATCH_SIZE = 25;
 
 function deriveTitleFromUrl(url: string) {
   try {
@@ -192,4 +195,152 @@ export async function actionListLocalReferenceLinksByTrip(
   );
 
   return rows.map(mapLocalReferenceLinkRow);
+}
+
+export async function actionListPendingLocalReferenceLinks(
+  userId: string,
+  limit = DEFAULT_SYNC_BATCH_SIZE,
+) {
+  const rows = await sqlite.getAllAsync<{
+    id: string;
+    pin_id: string;
+    user_id: string;
+    title: string | null;
+    url: string;
+    caption: string | null;
+    created_at: string;
+    updated_at: string;
+    sync_status: string;
+    last_synced_at: string | null;
+    sync_error: string | null;
+  }>(
+    `
+      select
+        id,
+        pin_id,
+        user_id,
+        title,
+        url,
+        caption,
+        created_at,
+        updated_at,
+        sync_status,
+        last_synced_at,
+        sync_error
+      from reference_link
+      where user_id = ? and sync_status != 'synced'
+      order by created_at asc
+      limit ?
+    `,
+    [userId, limit],
+  );
+
+  return rows.map(mapLocalReferenceLinkRow);
+}
+
+export async function actionMarkLocalReferenceLinkSyncing(
+  id: string,
+  userId: string,
+) {
+  await sqlite.runAsync(
+    `
+      update reference_link
+      set
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    ["syncing", null, new Date().toISOString(), id, userId],
+  );
+}
+
+export async function actionMarkLocalReferenceLinkSynced(
+  id: string,
+  userId: string,
+) {
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      update reference_link
+      set
+        sync_status = ?,
+        last_synced_at = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    ["synced", now, null, now, id, userId],
+  );
+}
+
+export async function actionMarkLocalReferenceLinkSyncFailed(
+  id: string,
+  userId: string,
+  errorMessage: string,
+) {
+  await sqlite.runAsync(
+    `
+      update reference_link
+      set
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    ["failed", errorMessage, new Date().toISOString(), id, userId],
+  );
+}
+
+export async function actionSyncLocalReferenceLink(
+  localReferenceLink: LocalReferenceLink,
+) {
+  await actionMarkLocalReferenceLinkSyncing(
+    localReferenceLink.id,
+    localReferenceLink.userId,
+  );
+
+  try {
+    await actionUpsertRemoteReferenceLinkFromLocal({
+      id: localReferenceLink.id,
+      pinId: localReferenceLink.pinId,
+      title: localReferenceLink.title,
+      url: localReferenceLink.url,
+      caption: localReferenceLink.caption,
+    });
+
+    await actionMarkLocalReferenceLinkSynced(
+      localReferenceLink.id,
+      localReferenceLink.userId,
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to sync reference link";
+    await actionMarkLocalReferenceLinkSyncFailed(
+      localReferenceLink.id,
+      localReferenceLink.userId,
+      message,
+    );
+    throw error;
+  }
+}
+
+export async function actionSyncPendingLocalReferenceLinks(
+  userId: string,
+  limit = DEFAULT_SYNC_BATCH_SIZE,
+) {
+  const pendingReferenceLinks = await actionListPendingLocalReferenceLinks(
+    userId,
+    limit,
+  );
+
+  for (const referenceLink of pendingReferenceLinks) {
+    await actionSyncLocalReferenceLink(referenceLink);
+  }
+
+  return {
+    processed: pendingReferenceLinks.length,
+    hasMore: pendingReferenceLinks.length === limit,
+  };
 }

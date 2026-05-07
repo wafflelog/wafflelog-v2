@@ -1,5 +1,6 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
+import { actionUpsertRemoteNoteFromLocal } from "@/lib/supabase/actions";
 
 export type LocalNote = {
   id: string;
@@ -18,6 +19,8 @@ export type CreateLocalNoteInput = {
   userId: string;
   text: string;
 };
+
+const DEFAULT_SYNC_BATCH_SIZE = 25;
 
 function mapLocalNoteRow(row: {
   id: string;
@@ -124,4 +127,124 @@ export async function actionListLocalNotesByPin(pinId: string, userId: string) {
   );
 
   return rows.map(mapLocalNoteRow);
+}
+
+export async function actionListPendingLocalNotes(
+  userId: string,
+  limit = DEFAULT_SYNC_BATCH_SIZE,
+) {
+  const rows = await sqlite.getAllAsync<{
+    id: string;
+    pin_id: string;
+    user_id: string;
+    text: string;
+    created_at: string;
+    updated_at: string;
+    sync_status: string;
+    last_synced_at: string | null;
+    sync_error: string | null;
+  }>(
+    `
+      select
+        id,
+        pin_id,
+        user_id,
+        text,
+        created_at,
+        updated_at,
+        sync_status,
+        last_synced_at,
+        sync_error
+      from note
+      where user_id = ? and sync_status != 'synced'
+      order by created_at asc
+      limit ?
+    `,
+    [userId, limit],
+  );
+
+  return rows.map(mapLocalNoteRow);
+}
+
+export async function actionMarkLocalNoteSyncing(id: string, userId: string) {
+  await sqlite.runAsync(
+    `
+      update note
+      set
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    ["syncing", null, new Date().toISOString(), id, userId],
+  );
+}
+
+export async function actionMarkLocalNoteSynced(id: string, userId: string) {
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      update note
+      set
+        sync_status = ?,
+        last_synced_at = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    ["synced", now, null, now, id, userId],
+  );
+}
+
+export async function actionMarkLocalNoteSyncFailed(
+  id: string,
+  userId: string,
+  errorMessage: string,
+) {
+  await sqlite.runAsync(
+    `
+      update note
+      set
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    ["failed", errorMessage, new Date().toISOString(), id, userId],
+  );
+}
+
+export async function actionSyncLocalNote(localNote: LocalNote) {
+  await actionMarkLocalNoteSyncing(localNote.id, localNote.userId);
+
+  try {
+    await actionUpsertRemoteNoteFromLocal({
+      id: localNote.id,
+      pinId: localNote.pinId,
+      text: localNote.text,
+    });
+
+    await actionMarkLocalNoteSynced(localNote.id, localNote.userId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to sync note";
+    await actionMarkLocalNoteSyncFailed(localNote.id, localNote.userId, message);
+    throw error;
+  }
+}
+
+export async function actionSyncPendingLocalNotes(
+  userId: string,
+  limit = DEFAULT_SYNC_BATCH_SIZE,
+) {
+  const pendingNotes = await actionListPendingLocalNotes(userId, limit);
+
+  for (const note of pendingNotes) {
+    await actionSyncLocalNote(note);
+  }
+
+  return {
+    processed: pendingNotes.length,
+    hasMore: pendingNotes.length === limit,
+  };
 }

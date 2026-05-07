@@ -1,5 +1,6 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
+import { actionUpsertRemoteExpenseFromLocal } from "@/lib/supabase/actions";
 
 export type LocalExpense = {
   id: string;
@@ -28,6 +29,8 @@ export type CreateLocalExpenseInput = {
   paidByUserId: string;
   paidByName: string;
 };
+
+const DEFAULT_SYNC_BATCH_SIZE = 25;
 
 function mapLocalExpenseRow(row: {
   id: string;
@@ -212,4 +215,144 @@ export async function actionListLocalExpensesByTrip(
   );
 
   return rows.map(mapLocalExpenseRow);
+}
+
+export async function actionListPendingLocalExpenses(
+  userId: string,
+  limit = DEFAULT_SYNC_BATCH_SIZE,
+) {
+  const rows = await sqlite.getAllAsync<{
+    id: string;
+    pin_id: string;
+    trip_id: string;
+    user_id: string;
+    description: string;
+    amount: number;
+    currency: string;
+    paid_by_user_id: string;
+    paid_by_name: string;
+    created_at: string;
+    updated_at: string;
+    sync_status: string;
+    last_synced_at: string | null;
+    sync_error: string | null;
+  }>(
+    `
+      select
+        id,
+        pin_id,
+        trip_id,
+        user_id,
+        description,
+        amount,
+        currency,
+        paid_by_user_id,
+        paid_by_name,
+        created_at,
+        updated_at,
+        sync_status,
+        last_synced_at,
+        sync_error
+      from expense
+      where user_id = ? and sync_status != 'synced'
+      order by created_at asc
+      limit ?
+    `,
+    [userId, limit],
+  );
+
+  return rows.map(mapLocalExpenseRow);
+}
+
+export async function actionMarkLocalExpenseSyncing(id: string, userId: string) {
+  await sqlite.runAsync(
+    `
+      update expense
+      set
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    ["syncing", null, new Date().toISOString(), id, userId],
+  );
+}
+
+export async function actionMarkLocalExpenseSynced(id: string, userId: string) {
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      update expense
+      set
+        sync_status = ?,
+        last_synced_at = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    ["synced", now, null, now, id, userId],
+  );
+}
+
+export async function actionMarkLocalExpenseSyncFailed(
+  id: string,
+  userId: string,
+  errorMessage: string,
+) {
+  await sqlite.runAsync(
+    `
+      update expense
+      set
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    ["failed", errorMessage, new Date().toISOString(), id, userId],
+  );
+}
+
+export async function actionSyncLocalExpense(localExpense: LocalExpense) {
+  await actionMarkLocalExpenseSyncing(localExpense.id, localExpense.userId);
+
+  try {
+    await actionUpsertRemoteExpenseFromLocal({
+      id: localExpense.id,
+      pinId: localExpense.pinId,
+      tripId: localExpense.tripId,
+      description: localExpense.description,
+      amount: localExpense.amount,
+      currency: localExpense.currency,
+      paidByUserId: localExpense.paidByUserId,
+      paidByName: localExpense.paidByName,
+    });
+
+    await actionMarkLocalExpenseSynced(localExpense.id, localExpense.userId);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to sync expense";
+    await actionMarkLocalExpenseSyncFailed(
+      localExpense.id,
+      localExpense.userId,
+      message,
+    );
+    throw error;
+  }
+}
+
+export async function actionSyncPendingLocalExpenses(
+  userId: string,
+  limit = DEFAULT_SYNC_BATCH_SIZE,
+) {
+  const pendingExpenses = await actionListPendingLocalExpenses(userId, limit);
+
+  for (const expense of pendingExpenses) {
+    await actionSyncLocalExpense(expense);
+  }
+
+  return {
+    processed: pendingExpenses.length,
+    hasMore: pendingExpenses.length === limit,
+  };
 }

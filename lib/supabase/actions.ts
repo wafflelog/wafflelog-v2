@@ -17,6 +17,38 @@ export type CreatePinInput = {
   categoryId: string;
 };
 
+export type CreateChecklistItemInput = {
+  id?: string;
+  tripId: string;
+  title: string;
+  completed: boolean;
+};
+
+export type CreateNoteInput = {
+  id?: string;
+  pinId: string;
+  text: string;
+};
+
+export type CreateReferenceLinkInput = {
+  id?: string;
+  pinId: string;
+  title: string | null;
+  url: string;
+  caption: string | null;
+};
+
+export type CreateExpenseInput = {
+  id?: string;
+  pinId: string;
+  tripId: string;
+  description: string;
+  amount: number;
+  currency: string;
+  paidByUserId: string;
+  paidByName: string;
+};
+
 export type SignUpInput = {
   email: string;
   password: string;
@@ -66,6 +98,86 @@ const mapPinRow = (pin: {
   categoryId: pin.category_id,
   createdAt: pin.created_at,
   updatedAt: pin.updated_at,
+});
+
+const mapChecklistItemRow = (checklistItem: {
+  id: string;
+  trip_id: string;
+  user_id: string;
+  title: string;
+  completed: boolean;
+  created_at: string;
+  updated_at: string;
+}) => ({
+  id: checklistItem.id,
+  tripId: checklistItem.trip_id,
+  userId: checklistItem.user_id,
+  title: checklistItem.title,
+  completed: checklistItem.completed,
+  createdAt: checklistItem.created_at,
+  updatedAt: checklistItem.updated_at,
+});
+
+const mapNoteRow = (note: {
+  id: string;
+  pin_id: string;
+  user_id: string;
+  text: string;
+  created_at: string;
+  updated_at: string;
+}) => ({
+  id: note.id,
+  pinId: note.pin_id,
+  userId: note.user_id,
+  text: note.text,
+  createdAt: note.created_at,
+  updatedAt: note.updated_at,
+});
+
+const mapReferenceLinkRow = (referenceLink: {
+  id: string;
+  pin_id: string;
+  user_id: string;
+  title: string | null;
+  url: string;
+  caption: string | null;
+  created_at: string;
+  updated_at: string;
+}) => ({
+  id: referenceLink.id,
+  pinId: referenceLink.pin_id,
+  userId: referenceLink.user_id,
+  title: referenceLink.title,
+  url: referenceLink.url,
+  caption: referenceLink.caption,
+  createdAt: referenceLink.created_at,
+  updatedAt: referenceLink.updated_at,
+});
+
+const mapExpenseRow = (expense: {
+  id: string;
+  pin_id: string;
+  trip_id: string;
+  user_id: string;
+  description: string;
+  amount: number;
+  currency: string;
+  paid_by_user_id: string;
+  paid_by_name: string;
+  created_at: string;
+  updated_at: string;
+}) => ({
+  id: expense.id,
+  pinId: expense.pin_id,
+  tripId: expense.trip_id,
+  userId: expense.user_id,
+  description: expense.description,
+  amount: expense.amount,
+  currency: expense.currency,
+  paidByUserId: expense.paid_by_user_id,
+  paidByName: expense.paid_by_name,
+  createdAt: expense.created_at,
+  updatedAt: expense.updated_at,
 });
 
 const mapPublicUserRow = (user: PublicUserRow) => ({
@@ -191,6 +303,166 @@ export async function actionUpsertRemotePinFromLocal(input: CreatePinInput) {
   }
 
   return mapPinRow(data);
+}
+
+export async function actionUpsertRemoteChecklistItemFromLocal(
+  input: CreateChecklistItemInput,
+) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to sync a checklist item");
+  }
+
+  const payload: TablesInsert<"checklist_item"> = {
+    id: input.id,
+    trip_id: input.tripId,
+    user_id: user.id,
+    title: input.title.trim(),
+    completed: input.completed,
+  };
+
+  const { data, error } = await supabase
+    .from("checklist_item")
+    .upsert(payload)
+    .select("id, trip_id, user_id, title, completed, created_at, updated_at")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapChecklistItemRow(data);
+}
+
+export async function actionUpsertRemoteNoteFromLocal(input: CreateNoteInput) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to sync a note");
+  }
+
+  const normalizedText = input.text.trim();
+
+  if (!normalizedText) {
+    throw new Error("Note cannot be empty");
+  }
+
+  const payload: TablesInsert<"note"> = {
+    id: input.id,
+    pin_id: input.pinId,
+    user_id: user.id,
+    text: normalizedText,
+  };
+
+  const { data, error } = await supabase
+    .from("note")
+    .upsert(payload)
+    .select("id, pin_id, user_id, text, created_at, updated_at")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapNoteRow(data);
+}
+
+export async function actionUpsertRemoteReferenceLinkFromLocal(
+  input: CreateReferenceLinkInput,
+) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to sync a reference link");
+  }
+
+  const payload: TablesInsert<"reference_link"> = {
+    id: input.id,
+    pin_id: input.pinId,
+    user_id: user.id,
+    title: input.title,
+    url: input.url.trim(),
+    caption: input.caption,
+  };
+
+  const { data, error } = await supabase
+    .from("reference_link")
+    .upsert(payload)
+    .select(
+      "id, pin_id, user_id, title, url, caption, created_at, updated_at",
+    )
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapReferenceLinkRow(data);
+}
+
+export async function actionUpsertRemoteExpenseFromLocal(
+  input: CreateExpenseInput,
+) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to sync an expense");
+  }
+
+  const payload: TablesInsert<"expense"> = {
+    id: input.id,
+    pin_id: input.pinId,
+    trip_id: input.tripId,
+    user_id: user.id,
+    description: input.description.trim(),
+    amount: input.amount,
+    currency: input.currency.trim(),
+    paid_by_user_id: input.paidByUserId,
+    paid_by_name: input.paidByName.trim(),
+  };
+
+  const { data, error } = await supabase
+    .from("expense")
+    .upsert(payload)
+    .select(
+      "id, pin_id, trip_id, user_id, description, amount, currency, paid_by_user_id, paid_by_name, created_at, updated_at",
+    )
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapExpenseRow(data);
 }
 
 export async function actionSignUpWithEmail(input: SignUpInput) {
