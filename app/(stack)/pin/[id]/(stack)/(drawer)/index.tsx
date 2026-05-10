@@ -1,5 +1,8 @@
-import { CardDocument } from "@/components/card/document";
 import { HeaderPin } from "@/components/header/pin";
+import { PinDocuments } from "@/components/pin/documents";
+import { PinExpenses } from "@/components/pin/expenses";
+import { PinImages } from "@/components/pin/images";
+import { PinLinks } from "@/components/pin/links";
 import { UIText } from "@/components/ui/text";
 import { CATEGORIES } from "@/data/pins";
 import { useAuthSession } from "@/hook/use-auth-session";
@@ -16,32 +19,15 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { ButtonAdd } from "@/components/button/add";
-import { CardExpenseRegular } from "@/components/card/expense/regular";
-import { CardImageRegular } from "@/components/card/image/regular";
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
-import { CardPinReferenceLinkRegular } from "@/components/card/reference-link/regular";
-import { DialogNewDocument } from "@/components/dialog/new-document";
-import { DialogNewExpense } from "@/components/dialog/new-expense";
-import { DialogNewImage } from "@/components/dialog/new-image";
-import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { actionListLocalDocumentsByPin } from "@/lib/sqlite/model/document";
-import { actionListLocalExpensesByPin } from "@/lib/sqlite/model/expense";
-import { actionListLocalImagesByPin } from "@/lib/sqlite/model/image";
 import { actionGetLocalPinLocation } from "@/lib/sqlite/model/pin-location";
-import { actionListLocalReferenceLinksByPin } from "@/lib/sqlite/model/reference-link";
 import {
-  FileText as FileTextIcon,
-  Image as ImageIcon,
-  Link2 as Link2Icon,
   MapPin as MapPinIcon,
   SquarePen as SquarePenIcon,
-  Wallet as WalletIcon,
 } from "lucide-react-native";
-import { useState } from "react";
 
 export default function PinIndexScreen() {
   const { id } = useLocalSearchParams();
@@ -51,11 +37,6 @@ export default function PinIndexScreen() {
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const { showMessage, SystemMessageModal } = useSystemMessage();
-  const [isDialogNewExpenseOpen, setIsDialogNewExpenseOpen] = useState(false);
-  const [isDialogNewDocumentOpen, setIsDialogNewDocumentOpen] = useState(false);
-  const [isDialogNewImageOpen, setIsDialogNewImageOpen] = useState(false);
-  const [isDialogNewReferenceLinkOpen, setIsDialogNewReferenceLinkOpen] =
-    useState(false);
 
   const { data: localPin } = useQuery({
     queryKey: ["local-pin", String(id), session?.user.id],
@@ -85,27 +66,6 @@ export default function PinIndexScreen() {
     staleTime: 0,
     gcTime: 0,
   });
-
-  const { data: localReferenceLinks = [] } = useQuery({
-    queryKey: ["local-reference-links", String(id), session?.user.id],
-    queryFn: () => actionListLocalReferenceLinksByPin(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
-  });
-  const { data: localDocuments = [] } = useQuery({
-    queryKey: ["local-pin-documents", String(id), session?.user.id],
-    queryFn: () => actionListLocalDocumentsByPin(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
-  });
-  const { data: localExpenses = [] } = useQuery({
-    queryKey: ["local-pin-expenses", String(id), session?.user.id],
-    queryFn: () => actionListLocalExpensesByPin(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
-  });
-  const { data: localImages = [] } = useQuery({
-    queryKey: ["local-pin-images", String(id), session?.user.id],
-    queryFn: () => actionListLocalImagesByPin(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
-  });
   const { data: localPinLocation } = useQuery({
     queryKey: ["local-pin-location", String(id), session?.user.id],
     queryFn: () => actionGetLocalPinLocation(String(id), session!.user.id),
@@ -127,36 +87,10 @@ export default function PinIndexScreen() {
           longitude: localPinLocation?.longitude ?? 0,
         },
         time: dayjs(`${localPin.date} ${localPin.time}`).toISOString(),
-        referenceLinks: localReferenceLinks.map((referenceLink) => ({
-          id: referenceLink.id,
-          title: referenceLink.title ?? referenceLink.url,
-          url: referenceLink.url,
-          caption: referenceLink.caption ?? undefined,
-        })),
-        documents: localDocuments.map((document) => ({
-          id: document.id,
-          fileName: document.fileName,
-          mimeType: document.mimeType,
-          url: document.localUri ?? "",
-          caption: document.caption ?? undefined,
-        })),
-        expenses: localExpenses.map((expense) => ({
-          id: expense.id,
-          description: expense.description,
-          amount: expense.amount,
-          currency: expense.currency as Pin["expenses"][number]["currency"],
-          paidBy: {
-            id: expense.paidByUserId,
-            fullname: expense.paidByName,
-          },
-        })),
-        images: localImages.map((image) => ({
-          id: image.id,
-          url: image.localUri,
-          width: image.width,
-          height: image.height,
-          caption: image.caption ?? undefined,
-        })),
+        referenceLinks: [],
+        documents: [],
+        expenses: [],
+        images: [],
         notes: [],
       }
     : null;
@@ -206,7 +140,7 @@ export default function PinIndexScreen() {
     });
   };
 
-  if (!pin) {
+  if (!pin || !localPin || !session?.user.id) {
     return <UIText>Pin not found</UIText>;
   }
 
@@ -241,123 +175,31 @@ export default function PinIndexScreen() {
             />
           </View>
 
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <WalletIcon size={24} color={color} />
-              <TitleRegular size="md" weight="600">
-                Expenses
-              </TitleRegular>
-            </View>
-            <View style={styles.sectionCard}>
-              {pin.expenses.map((expense, index) => (
-                <View key={expense.id}>
-                  <CardExpenseRegular expense={expense} onPress={() => {}} />
-                  {index < pin.expenses.length - 1 && (
-                    <View style={styles.divider} />
-                  )}
-                </View>
-              ))}
-            </View>
-            <ButtonAdd
-              text="Add Expense"
-              onPress={() => {
-                setIsDialogNewExpenseOpen(true);
-              }}
-            />
-          </View>
+          <PinExpenses
+            pinId={pin.id}
+            tripId={localPin.tripId}
+            userId={session.user.id}
+          />
 
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <ImageIcon size={24} color={color} />
-              <TitleRegular size="md" weight="600">
-                Images
-              </TitleRegular>
-            </View>
-            <View style={styles.sectionCard}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.imageList}
-              >
-                {pin.images.map((image) => (
-                  <View key={image.id} style={styles.imageCard}>
-                    <CardImageRegular
-                      image={image}
-                      onPress={() => {
-                        void handleOpenImage(image.id, pin.images);
-                      }}
-                    />
-                  </View>
-                ))}
-                <ButtonAdd
-                  style={styles.addImageButton}
-                  text="Add Image"
-                  onPress={() => {
-                    setIsDialogNewImageOpen(true);
-                  }}
-                />
-              </ScrollView>
-            </View>
-          </View>
+          <PinImages
+            pinId={pin.id}
+            tripId={localPin.tripId}
+            userId={session.user.id}
+            onOpenImage={handleOpenImage}
+          />
 
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <FileTextIcon size={24} color={color} />
-              <TitleRegular size="md" weight="600">
-                Documents
-              </TitleRegular>
-            </View>
-            <View style={styles.sectionCard}>
-              {pin.documents.map((document, index) => (
-                <View key={document.id}>
-                  <CardDocument
-                    document={document}
-                    variant="regular"
-                    onPress={() =>
-                      void handleOpenDocument({
-                        fileName: document.fileName,
-                        localUri: document.url || null,
-                      })
-                    }
-                  />
-                  {index < pin.documents.length - 1 && (
-                    <View style={styles.divider} />
-                  )}
-                </View>
-              ))}
-            </View>
-            <ButtonAdd
-              text="Add Document"
-              onPress={() => {
-                setIsDialogNewDocumentOpen(true);
-              }}
-            />
-          </View>
+          <PinDocuments
+            pinId={pin.id}
+            tripId={localPin.tripId}
+            userId={session.user.id}
+            onOpenDocument={handleOpenDocument}
+          />
 
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Link2Icon size={24} color={color} />
-              <TitleRegular size="md" weight="600">
-                Reference Links
-              </TitleRegular>
-            </View>
-            <View style={styles.sectionCard}>
-              {pin.referenceLinks.map((referenceLink, index) => (
-                <View key={referenceLink.id}>
-                  <CardPinReferenceLinkRegular referenceLink={referenceLink} />
-                  {index < pin.referenceLinks.length - 1 && (
-                    <View style={styles.divider} />
-                  )}
-                </View>
-              ))}
-            </View>
-            <ButtonAdd
-              text="Add Reference Link"
-              onPress={() => {
-                setIsDialogNewReferenceLinkOpen(true);
-              }}
-            />
-          </View>
+          <PinLinks
+            pinId={pin.id}
+            tripId={localPin.tripId}
+            userId={session.user.id}
+          />
         </View>
       </ScrollView>
       <TouchableOpacity
@@ -367,30 +209,6 @@ export default function PinIndexScreen() {
       >
         <SquarePenIcon size={24} color="#fff" />
       </TouchableOpacity>
-      <DialogNewReferenceLink
-        pinId={localPin?.id}
-        tripId={localPin?.tripId}
-        visible={isDialogNewReferenceLinkOpen}
-        onDismiss={() => setIsDialogNewReferenceLinkOpen(false)}
-      />
-      <DialogNewExpense
-        pinId={localPin?.id ?? ""}
-        tripId={localPin?.tripId ?? ""}
-        visible={isDialogNewExpenseOpen}
-        onDismiss={() => setIsDialogNewExpenseOpen(false)}
-      />
-      <DialogNewDocument
-        tripId={localPin?.tripId ?? ""}
-        pinId={localPin?.id}
-        visible={isDialogNewDocumentOpen}
-        onDismiss={() => setIsDialogNewDocumentOpen(false)}
-      />
-      <DialogNewImage
-        tripId={localPin?.tripId ?? ""}
-        pinId={localPin?.id ?? ""}
-        visible={isDialogNewImageOpen}
-        onDismiss={() => setIsDialogNewImageOpen(false)}
-      />
       <SystemMessageModal />
     </SafeAreaView>
   );
@@ -417,25 +235,8 @@ const styles = StyleSheet.create({
     aspectRatio: 1.5,
     backgroundColor: "red",
   },
-  imageList: {
-    gap: 12,
-  },
-  imageCard: {
-    width: 120,
-    height: 120,
-    backgroundColor: "red",
-  },
   section: {
     gap: 6,
-  },
-  sectionCard: {
-    gap: 12,
-    ...getCardBasicStyle("sm"),
-  },
-  divider: {
-    height: 1,
-    marginTop: 12,
-    backgroundColor: getColor(colors.textLightGrey, 0.2),
   },
   fab: {
     position: "absolute",
@@ -448,9 +249,5 @@ const styles = StyleSheet.create({
     ...getCardBasicStyle("lg"),
     backgroundColor: getColor(colors.purple),
     borderRadius: "50%",
-  },
-  addImageButton: {
-    width: 120,
-    flexDirection: "column",
   },
 });
