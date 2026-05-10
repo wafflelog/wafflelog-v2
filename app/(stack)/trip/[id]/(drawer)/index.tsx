@@ -8,12 +8,16 @@ import { TripPinsList } from "@/components/trip/pins-list";
 import { colors, getColor } from "@/constants/theme";
 import { CATEGORIES } from "@/data";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { actionGetRemoteTripById } from "@/lib/supabase/actions";
 import { actionListLocalPinsByTripAndDate } from "@/lib/sqlite/model/pin";
-import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
+import {
+  actionGetLocalTrip,
+  actionUpsertLocalTripFromRemote,
+} from "@/lib/sqlite/model/trip";
 import { type Pin } from "@/types/pin";
 import { type Trip } from "@/types/trip";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Plus as PlusIcon } from "lucide-react-native";
@@ -26,6 +30,7 @@ export default function TripIndexScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const { session } = useAuthSession();
+  const queryClient = useQueryClient();
   const carouselRef = useRef<FlatList>(null);
 
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
@@ -35,6 +40,29 @@ export default function TripIndexScreen() {
     queryKey: ["local-trip", String(id), session?.user.id],
     queryFn: () => actionGetLocalTrip(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
+  });
+
+  useQuery({
+    queryKey: ["remote-trip", String(id), session?.user.id],
+    queryFn: async () => {
+      const remoteTrip = await actionGetRemoteTripById(String(id));
+      const shouldApplyRemote =
+        !localTrip ||
+        (localTrip.syncStatus === "synced" &&
+          dayjs(remoteTrip.updatedAt).isAfter(dayjs(localTrip.updatedAt)));
+
+      if (shouldApplyRemote) {
+        await actionUpsertLocalTripFromRemote(remoteTrip);
+        await queryClient.invalidateQueries({
+          queryKey: ["local-trip", String(id), session?.user.id],
+        });
+      }
+
+      return remoteTrip;
+    },
+    enabled: Boolean(id && session?.user.id),
+    staleTime: 0,
+    gcTime: 0,
   });
 
   const trip: Trip | null = useMemo(() => {

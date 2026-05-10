@@ -167,6 +167,57 @@ export async function actionGetLocalTrip(id: string, userId: string) {
   return row ? mapLocalTripRow(row) : null;
 }
 
+export async function actionUpsertLocalTripFromRemote(remoteTrip: {
+  id: string;
+  userId: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  updatedAt: string;
+}) {
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      insert into trip (
+        id,
+        user_id,
+        title,
+        start_date,
+        end_date,
+        created_at,
+        updated_at,
+        sync_status,
+        last_synced_at,
+        sync_error
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      on conflict(id) do update set
+        user_id = excluded.user_id,
+        title = excluded.title,
+        start_date = excluded.start_date,
+        end_date = excluded.end_date,
+        created_at = excluded.created_at,
+        updated_at = excluded.updated_at,
+        sync_status = excluded.sync_status,
+        last_synced_at = excluded.last_synced_at,
+        sync_error = excluded.sync_error
+    `,
+    [
+      remoteTrip.id,
+      remoteTrip.userId,
+      remoteTrip.title,
+      remoteTrip.startDate,
+      remoteTrip.endDate,
+      remoteTrip.createdAt,
+      remoteTrip.updatedAt,
+      "synced",
+      now,
+      null,
+    ],
+  );
+}
+
 export async function actionListPendingLocalTrips(
   userId: string,
   limit = DEFAULT_SYNC_BATCH_SIZE,

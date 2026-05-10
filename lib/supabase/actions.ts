@@ -839,6 +839,41 @@ export async function actionListAcceptedCompanionTrips() {
   }));
 }
 
+export async function actionGetRemoteTripById(tripId: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to view a trip");
+  }
+
+  const { data, error } = await supabase
+    .from("trip")
+    .select("id, user_id, title, start_date, end_date, created_at, updated_at")
+    .eq("id", tripId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    id: data.id,
+    userId: data.user_id,
+    title: data.title,
+    startDate: data.start_date,
+    endDate: data.end_date,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
+}
+
 export async function actionSignInWithEmail(input: SignInInput) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email: input.email.trim(),
