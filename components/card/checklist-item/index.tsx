@@ -8,12 +8,14 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 type CardTripChecklistItemProps = {
   checklistItem: ChecklistItem;
   onPress: () => void;
+  onDeletePress?: () => void;
   color?: keyof typeof colors;
 };
 
 export const CardTripChecklistItem = ({
   checklistItem,
   onPress,
+  onDeletePress,
   color = "waffle",
 }: CardTripChecklistItemProps) => {
   return (
@@ -40,9 +42,15 @@ export const CardTripChecklistItem = ({
           {checklistItem.title}
         </TitleRegular>
       </View>
-      <View style={styles.trash}>
-        <Trash2Icon size={18} color={getColor(colors.textLightGrey)} />
-      </View>
+      {onDeletePress && (
+        <TouchableOpacity
+          style={styles.trash}
+          onPress={onDeletePress}
+          hitSlop={8}
+        >
+          <Trash2Icon size={18} color={getColor(colors.textLightGrey)} />
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 };

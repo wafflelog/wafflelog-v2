@@ -1,6 +1,9 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
-import { actionUpsertRemoteChecklistItemFromLocal } from "@/lib/supabase/actions";
+import {
+  actionDeleteRemoteChecklistItem,
+  actionUpsertRemoteChecklistItemFromLocal,
+} from "@/lib/supabase/actions";
 
 export type CreateLocalChecklistItemInput = {
   tripId: string;
@@ -19,6 +22,7 @@ export type LocalChecklistItem = {
   syncStatus: string;
   lastSyncedAt: string | null;
   syncError: string | null;
+  deletedAt: string | null;
 };
 
 const DEFAULT_SYNC_BATCH_SIZE = 25;
@@ -34,6 +38,7 @@ function mapLocalChecklistItemRow(row: {
   sync_status: string;
   last_synced_at: string | null;
   sync_error: string | null;
+  deleted_at: string | null;
 }): LocalChecklistItem {
   return {
     id: row.id,
@@ -46,6 +51,7 @@ function mapLocalChecklistItemRow(row: {
     syncStatus: row.sync_status,
     lastSyncedAt: row.last_synced_at,
     syncError: row.sync_error,
+    deletedAt: row.deleted_at,
   };
 }
 
@@ -64,6 +70,7 @@ export async function actionCreateLocalChecklistItem(
     sync_status: "pending",
     last_synced_at: null,
     sync_error: null,
+    deleted_at: null,
   };
 
   await sqlite.runAsync(
@@ -78,8 +85,9 @@ export async function actionCreateLocalChecklistItem(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        sync_error,
+        deleted_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       localChecklistItem.id,
@@ -92,6 +100,7 @@ export async function actionCreateLocalChecklistItem(
       localChecklistItem.sync_status,
       localChecklistItem.last_synced_at,
       localChecklistItem.sync_error,
+      localChecklistItem.deleted_at,
     ],
   );
 
@@ -113,6 +122,7 @@ export async function actionListLocalChecklistItems(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -125,9 +135,10 @@ export async function actionListLocalChecklistItems(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from checklist_item
-      where trip_id = ? and user_id = ?
+      where trip_id = ? and user_id = ? and deleted_at is null
       order by created_at asc
     `,
     [tripId, userId],
@@ -151,6 +162,39 @@ export async function actionToggleLocalChecklistItemCompleted(id: string) {
   );
 }
 
+export async function actionSoftDeleteLocalChecklistItem(
+  id: string,
+  userId: string,
+) {
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      update checklist_item
+      set
+        deleted_at = ?,
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    [now, "pending", null, now, id, userId],
+  );
+}
+
+export async function actionHardDeleteLocalChecklistItem(
+  id: string,
+  userId: string,
+) {
+  await sqlite.runAsync(
+    `
+      delete from checklist_item
+      where id = ? and user_id = ?
+    `,
+    [id, userId],
+  );
+}
+
 export async function actionListPendingLocalChecklistItems(
   userId: string,
   limit = DEFAULT_SYNC_BATCH_SIZE,
@@ -166,6 +210,7 @@ export async function actionListPendingLocalChecklistItems(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -178,7 +223,8 @@ export async function actionListPendingLocalChecklistItems(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from checklist_item
       where user_id = ? and sync_status != 'synced'
       order by created_at asc
@@ -248,6 +294,41 @@ export async function actionMarkLocalChecklistItemSyncFailed(
 export async function actionSyncLocalChecklistItem(
   localChecklistItem: LocalChecklistItem,
 ) {
+  if (localChecklistItem.deletedAt) {
+    if (!localChecklistItem.lastSyncedAt) {
+      await actionHardDeleteLocalChecklistItem(
+        localChecklistItem.id,
+        localChecklistItem.userId,
+      );
+      return;
+    }
+
+    await actionMarkLocalChecklistItemSyncing(
+      localChecklistItem.id,
+      localChecklistItem.userId,
+    );
+
+    try {
+      await actionDeleteRemoteChecklistItem(localChecklistItem.id);
+      await actionHardDeleteLocalChecklistItem(
+        localChecklistItem.id,
+        localChecklistItem.userId,
+      );
+      return;
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to delete checklist item";
+      await actionMarkLocalChecklistItemSyncFailed(
+        localChecklistItem.id,
+        localChecklistItem.userId,
+        message,
+      );
+      throw error;
+    }
+  }
+
   await actionMarkLocalChecklistItemSyncing(
     localChecklistItem.id,
     localChecklistItem.userId,

@@ -1,11 +1,13 @@
 import { ButtonFab } from "@/components/button/fab";
 import { CardTripChecklistItem } from "@/components/card/checklist-item";
+import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { DialogNewChecklistItem } from "@/components/dialog/new-checklist-item";
 import { UITab } from "@/components/ui/tab";
 import { gaps } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import {
   actionListLocalChecklistItems,
+  actionSoftDeleteLocalChecklistItem,
   actionToggleLocalChecklistItemCompleted,
 } from "@/lib/sqlite/model/checklist-item";
 import { useNavigation } from "@react-navigation/native";
@@ -32,6 +34,10 @@ export default function TripChecklistScreen() {
   const [activeTab, setActiveTab] = useState<TabId>("my");
   const [isDialogNewChecklistItemVisible, setIsDialogNewChecklistItemVisible] =
     useState(false);
+  const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
+  const [selectedChecklistItemId, setSelectedChecklistItemId] = useState<
+    string | null
+  >(null);
 
   const { data: checklistData } = useQuery({
     queryKey: ["local-checklist-items", String(id), session?.user.id],
@@ -45,6 +51,18 @@ export default function TripChecklistScreen() {
       queryClient.invalidateQueries({
         queryKey: ["local-checklist-items", String(id), session?.user.id],
       });
+    },
+  });
+
+  const softDeleteChecklistItemMutation = useMutation({
+    mutationFn: (checklistItemId: string) =>
+      actionSoftDeleteLocalChecklistItem(checklistItemId, session!.user.id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["local-checklist-items", String(id), session?.user.id],
+      });
+      setIsDeleteDialogVisible(false);
+      setSelectedChecklistItemId(null);
     },
   });
 
@@ -85,6 +103,10 @@ export default function TripChecklistScreen() {
           <CardTripChecklistItem
             checklistItem={item}
             onPress={() => toggleChecklistItemMutation.mutate(item.id)}
+            onDeletePress={() => {
+              setSelectedChecklistItemId(item.id);
+              setIsDeleteDialogVisible(true);
+            }}
           />
         )}
       />
@@ -100,6 +122,25 @@ export default function TripChecklistScreen() {
         tripId={String(id)}
         visible={isDialogNewChecklistItemVisible}
         onDismiss={() => setIsDialogNewChecklistItemVisible(false)}
+      />
+      <ConfirmActionDialog
+        visible={isDeleteDialogVisible}
+        title="Delete Checklist Item"
+        message="Are you sure you want to delete this checklist item?"
+        confirmText="Delete"
+        onDismiss={() => {
+          setIsDeleteDialogVisible(false);
+          setSelectedChecklistItemId(null);
+        }}
+        onConfirm={() => {
+          if (!selectedChecklistItemId) {
+            return;
+          }
+
+          softDeleteChecklistItemMutation.mutate(selectedChecklistItemId);
+        }}
+        isPending={softDeleteChecklistItemMutation.isPending}
+        confirmVariant="danger"
       />
     </SafeAreaView>
   );

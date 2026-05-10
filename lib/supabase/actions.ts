@@ -419,6 +419,27 @@ export async function actionUpsertRemoteChecklistItemFromLocal(
   return mapChecklistItemRow(data);
 }
 
+export async function actionDeleteRemoteChecklistItem(id: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to delete a checklist item");
+  }
+
+  const { error } = await supabase.from("checklist_item").delete().eq("id", id);
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function actionUpsertRemoteNoteFromLocal(input: CreateNoteInput) {
   const {
     data: { user },
