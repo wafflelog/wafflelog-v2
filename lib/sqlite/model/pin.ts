@@ -232,6 +232,65 @@ export async function actionGetLocalPin(id: string, userId: string) {
   return row ? mapLocalPinRow(row) : null;
 }
 
+export async function actionUpsertLocalPinFromRemote(remotePin: {
+  id: string;
+  tripId: string;
+  userId: string;
+  name: string;
+  date: string;
+  time: string;
+  categoryId: string;
+  createdAt: string;
+  updatedAt: string;
+}) {
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      insert into pin (
+        id,
+        trip_id,
+        user_id,
+        name,
+        date,
+        time,
+        category_id,
+        created_at,
+        updated_at,
+        sync_status,
+        last_synced_at,
+        sync_error
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      on conflict(id) do update set
+        trip_id = excluded.trip_id,
+        user_id = excluded.user_id,
+        name = excluded.name,
+        date = excluded.date,
+        time = excluded.time,
+        category_id = excluded.category_id,
+        created_at = excluded.created_at,
+        updated_at = excluded.updated_at,
+        sync_status = excluded.sync_status,
+        last_synced_at = excluded.last_synced_at,
+        sync_error = excluded.sync_error
+    `,
+    [
+      remotePin.id,
+      remotePin.tripId,
+      remotePin.userId,
+      remotePin.name,
+      remotePin.date,
+      remotePin.time,
+      remotePin.categoryId,
+      remotePin.createdAt,
+      remotePin.updatedAt,
+      "synced",
+      now,
+      null,
+    ],
+  );
+}
+
 export async function actionListPendingLocalPins(
   userId: string,
   limit = DEFAULT_SYNC_BATCH_SIZE,

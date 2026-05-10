@@ -3,10 +3,14 @@ import { HeaderPin } from "@/components/header/pin";
 import { UIText } from "@/components/ui/text";
 import { CATEGORIES } from "@/data/pins";
 import { useAuthSession } from "@/hook/use-auth-session";
-import { actionGetLocalPin } from "@/lib/sqlite/model/pin";
+import { actionGetRemotePinById } from "@/lib/supabase/actions";
+import {
+  actionGetLocalPin,
+  actionUpsertLocalPinFromRemote,
+} from "@/lib/sqlite/model/pin";
 import { type Pin } from "@/types/pin";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
@@ -45,6 +49,7 @@ export default function PinIndexScreen() {
   const { session } = useAuthSession();
   const color = getColor(colors.purple);
   const navigation = useNavigation();
+  const queryClient = useQueryClient();
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const [isDialogNewExpenseOpen, setIsDialogNewExpenseOpen] = useState(false);
   const [isDialogNewDocumentOpen, setIsDialogNewDocumentOpen] = useState(false);
@@ -57,6 +62,30 @@ export default function PinIndexScreen() {
     queryFn: () => actionGetLocalPin(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
   });
+
+  useQuery({
+    queryKey: ["remote-pin", String(id), session?.user.id],
+    queryFn: async () => {
+      const remotePin = await actionGetRemotePinById(String(id));
+      const shouldApplyRemote =
+        !localPin ||
+        (localPin.syncStatus === "synced" &&
+          dayjs(remotePin.updatedAt).isAfter(dayjs(localPin.updatedAt)));
+
+      if (shouldApplyRemote) {
+        await actionUpsertLocalPinFromRemote(remotePin);
+        await queryClient.invalidateQueries({
+          queryKey: ["local-pin", String(id), session?.user.id],
+        });
+      }
+
+      return remotePin;
+    },
+    enabled: Boolean(id && session?.user.id),
+    staleTime: 0,
+    gcTime: 0,
+  });
+
   const { data: localReferenceLinks = [] } = useQuery({
     queryKey: ["local-reference-links", String(id), session?.user.id],
     queryFn: () => actionListLocalReferenceLinksByPin(String(id), session!.user.id),

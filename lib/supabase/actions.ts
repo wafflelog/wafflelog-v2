@@ -874,6 +874,35 @@ export async function actionGetRemoteTripById(tripId: string) {
   };
 }
 
+export async function actionGetRemotePinById(pinId: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to view a pin");
+  }
+
+  const { data, error } = await supabase
+    .from("pin")
+    .select(
+      "id, trip_id, user_id, name, date, time, category_id, created_at, updated_at",
+    )
+    .eq("id", pinId)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapPinRow(data);
+}
+
 export async function actionSignInWithEmail(input: SignInInput) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email: input.email.trim(),
