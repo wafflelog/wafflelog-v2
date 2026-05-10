@@ -499,6 +499,27 @@ export async function actionUpsertRemoteReferenceLinkFromLocal(
   return mapReferenceLinkRow(data);
 }
 
+export async function actionDeleteRemoteReferenceLink(id: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to delete a reference link");
+  }
+
+  const { error } = await supabase.from("reference_link").delete().eq("id", id);
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function actionUpsertRemoteExpenseFromLocal(
   input: CreateExpenseInput,
 ) {
@@ -540,6 +561,27 @@ export async function actionUpsertRemoteExpenseFromLocal(
   }
 
   return mapExpenseRow(data);
+}
+
+export async function actionDeleteRemoteExpense(id: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to delete an expense");
+  }
+
+  const { error } = await supabase.from("expense").delete().eq("id", id);
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function actionUpsertRemoteDocumentFromLocal(

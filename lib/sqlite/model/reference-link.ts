@@ -1,6 +1,9 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
-import { actionUpsertRemoteReferenceLinkFromLocal } from "@/lib/supabase/actions";
+import {
+  actionDeleteRemoteReferenceLink,
+  actionUpsertRemoteReferenceLinkFromLocal,
+} from "@/lib/supabase/actions";
 
 export type LocalReferenceLink = {
   id: string;
@@ -14,6 +17,7 @@ export type LocalReferenceLink = {
   syncStatus: string;
   lastSyncedAt: string | null;
   syncError: string | null;
+  deletedAt: string | null;
 };
 
 export type CreateLocalReferenceLinkInput = {
@@ -45,6 +49,7 @@ function mapLocalReferenceLinkRow(row: {
   sync_status: string;
   last_synced_at: string | null;
   sync_error: string | null;
+  deleted_at: string | null;
 }): LocalReferenceLink {
   return {
     id: row.id,
@@ -58,6 +63,7 @@ function mapLocalReferenceLinkRow(row: {
     syncStatus: row.sync_status,
     lastSyncedAt: row.last_synced_at,
     syncError: row.sync_error,
+    deletedAt: row.deleted_at,
   };
 }
 
@@ -80,6 +86,7 @@ export async function actionCreateLocalReferenceLink(
     sync_status: "pending",
     last_synced_at: null,
     sync_error: null,
+    deleted_at: null,
   };
 
   await sqlite.runAsync(
@@ -95,8 +102,9 @@ export async function actionCreateLocalReferenceLink(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        sync_error,
+        deleted_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       localReferenceLink.id,
@@ -110,6 +118,7 @@ export async function actionCreateLocalReferenceLink(
       localReferenceLink.sync_status,
       localReferenceLink.last_synced_at,
       localReferenceLink.sync_error,
+      localReferenceLink.deleted_at,
     ],
   );
 
@@ -132,6 +141,7 @@ export async function actionListLocalReferenceLinksByPin(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -145,9 +155,10 @@ export async function actionListLocalReferenceLinksByPin(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from reference_link
-      where pin_id = ? and user_id = ?
+      where pin_id = ? and user_id = ? and deleted_at is null
       order by created_at desc
     `,
     [pinId, userId],
@@ -172,6 +183,7 @@ export async function actionListLocalReferenceLinksByTrip(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -185,10 +197,11 @@ export async function actionListLocalReferenceLinksByTrip(
         rl.updated_at,
         rl.sync_status,
         rl.last_synced_at,
-        rl.sync_error
+        rl.sync_error,
+        rl.deleted_at
       from reference_link rl
       join pin p on p.id = rl.pin_id
-      where p.trip_id = ? and rl.user_id = ?
+      where p.trip_id = ? and rl.user_id = ? and rl.deleted_at is null
       order by rl.created_at desc
     `,
     [tripId, userId],
@@ -213,6 +226,7 @@ export async function actionListPendingLocalReferenceLinks(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -226,7 +240,8 @@ export async function actionListPendingLocalReferenceLinks(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from reference_link
       where user_id = ? and sync_status != 'synced'
       order by created_at asc
@@ -236,6 +251,39 @@ export async function actionListPendingLocalReferenceLinks(
   );
 
   return rows.map(mapLocalReferenceLinkRow);
+}
+
+export async function actionSoftDeleteLocalReferenceLink(
+  id: string,
+  userId: string,
+) {
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      update reference_link
+      set
+        deleted_at = ?,
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    [now, "pending", null, now, id, userId],
+  );
+}
+
+export async function actionHardDeleteLocalReferenceLink(
+  id: string,
+  userId: string,
+) {
+  await sqlite.runAsync(
+    `
+      delete from reference_link
+      where id = ? and user_id = ?
+    `,
+    [id, userId],
+  );
 }
 
 export async function actionMarkLocalReferenceLinkSyncing(
@@ -296,6 +344,39 @@ export async function actionMarkLocalReferenceLinkSyncFailed(
 export async function actionSyncLocalReferenceLink(
   localReferenceLink: LocalReferenceLink,
 ) {
+  if (localReferenceLink.deletedAt) {
+    if (!localReferenceLink.lastSyncedAt) {
+      await actionHardDeleteLocalReferenceLink(
+        localReferenceLink.id,
+        localReferenceLink.userId,
+      );
+      return;
+    }
+
+    await actionMarkLocalReferenceLinkSyncing(
+      localReferenceLink.id,
+      localReferenceLink.userId,
+    );
+
+    try {
+      await actionDeleteRemoteReferenceLink(localReferenceLink.id);
+      await actionHardDeleteLocalReferenceLink(
+        localReferenceLink.id,
+        localReferenceLink.userId,
+      );
+      return;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete reference link";
+      await actionMarkLocalReferenceLinkSyncFailed(
+        localReferenceLink.id,
+        localReferenceLink.userId,
+        message,
+      );
+      throw error;
+    }
+  }
+
   await actionMarkLocalReferenceLinkSyncing(
     localReferenceLink.id,
     localReferenceLink.userId,

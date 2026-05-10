@@ -1,6 +1,9 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
-import { actionUpsertRemoteExpenseFromLocal } from "@/lib/supabase/actions";
+import {
+  actionDeleteRemoteExpense,
+  actionUpsertRemoteExpenseFromLocal,
+} from "@/lib/supabase/actions";
 
 export type LocalExpense = {
   id: string;
@@ -17,6 +20,7 @@ export type LocalExpense = {
   syncStatus: string;
   lastSyncedAt: string | null;
   syncError: string | null;
+  deletedAt: string | null;
 };
 
 export type CreateLocalExpenseInput = {
@@ -47,6 +51,7 @@ function mapLocalExpenseRow(row: {
   sync_status: string;
   last_synced_at: string | null;
   sync_error: string | null;
+  deleted_at: string | null;
 }): LocalExpense {
   return {
     id: row.id,
@@ -63,6 +68,7 @@ function mapLocalExpenseRow(row: {
     syncStatus: row.sync_status,
     lastSyncedAt: row.last_synced_at,
     syncError: row.sync_error,
+    deletedAt: row.deleted_at,
   };
 }
 
@@ -83,6 +89,7 @@ export async function actionCreateLocalExpense(input: CreateLocalExpenseInput) {
     sync_status: "pending",
     last_synced_at: null,
     sync_error: null,
+    deleted_at: null,
   };
 
   await sqlite.runAsync(
@@ -101,8 +108,9 @@ export async function actionCreateLocalExpense(input: CreateLocalExpenseInput) {
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        sync_error,
+        deleted_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       localExpense.id,
@@ -119,6 +127,7 @@ export async function actionCreateLocalExpense(input: CreateLocalExpenseInput) {
       localExpense.sync_status,
       localExpense.last_synced_at,
       localExpense.sync_error,
+      localExpense.deleted_at,
     ],
   );
 
@@ -144,6 +153,7 @@ export async function actionListLocalExpensesByPin(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -160,9 +170,10 @@ export async function actionListLocalExpensesByPin(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from expense
-      where pin_id = ? and user_id = ?
+      where pin_id = ? and user_id = ? and deleted_at is null
       order by created_at desc
     `,
     [pinId, userId],
@@ -190,6 +201,7 @@ export async function actionListLocalExpensesByTrip(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -206,9 +218,10 @@ export async function actionListLocalExpensesByTrip(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from expense
-      where trip_id = ? and user_id = ?
+      where trip_id = ? and user_id = ? and deleted_at is null
       order by created_at desc
     `,
     [tripId, userId],
@@ -236,6 +249,7 @@ export async function actionListPendingLocalExpenses(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -252,7 +266,8 @@ export async function actionListPendingLocalExpenses(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from expense
       where user_id = ? and sync_status != 'synced'
       order by created_at asc
@@ -262,6 +277,33 @@ export async function actionListPendingLocalExpenses(
   );
 
   return rows.map(mapLocalExpenseRow);
+}
+
+export async function actionSoftDeleteLocalExpense(id: string, userId: string) {
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      update expense
+      set
+        deleted_at = ?,
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    [now, "pending", null, now, id, userId],
+  );
+}
+
+export async function actionHardDeleteLocalExpense(id: string, userId: string) {
+  await sqlite.runAsync(
+    `
+      delete from expense
+      where id = ? and user_id = ?
+    `,
+    [id, userId],
+  );
 }
 
 export async function actionMarkLocalExpenseSyncing(id: string, userId: string) {
@@ -314,6 +356,30 @@ export async function actionMarkLocalExpenseSyncFailed(
 }
 
 export async function actionSyncLocalExpense(localExpense: LocalExpense) {
+  if (localExpense.deletedAt) {
+    if (!localExpense.lastSyncedAt) {
+      await actionHardDeleteLocalExpense(localExpense.id, localExpense.userId);
+      return;
+    }
+
+    await actionMarkLocalExpenseSyncing(localExpense.id, localExpense.userId);
+
+    try {
+      await actionDeleteRemoteExpense(localExpense.id);
+      await actionHardDeleteLocalExpense(localExpense.id, localExpense.userId);
+      return;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete expense";
+      await actionMarkLocalExpenseSyncFailed(
+        localExpense.id,
+        localExpense.userId,
+        message,
+      );
+      throw error;
+    }
+  }
+
   await actionMarkLocalExpenseSyncing(localExpense.id, localExpense.userId);
 
   try {

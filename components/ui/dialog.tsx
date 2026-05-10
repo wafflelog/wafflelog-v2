@@ -25,6 +25,7 @@ type DialogProps = {
   confirmText?: string;
   cancelText?: string;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
+  confirmVariant?: "primary" | "danger";
 };
 
 const sizes = {
@@ -46,6 +47,7 @@ export function Dialog({
   confirmText = "Create",
   cancelText = "Cancel",
   size = "md",
+  confirmVariant = "primary",
 }: DialogProps) {
   const handleBackdropPress = () => {
     if (dismissible && onDismiss) {
@@ -109,7 +111,12 @@ export function Dialog({
                 </TitleRegular>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, styles.createButton]}
+                style={[
+                  styles.button,
+                  confirmVariant === "danger"
+                    ? styles.dangerButton
+                    : styles.createButton,
+                ]}
                 onPress={onConfirm}
               >
                 <TitleRegular size="sm" weight="600" color={colors.white}>
@@ -184,5 +191,8 @@ const styles = StyleSheet.create({
   },
   createButton: {
     backgroundColor: getColor(colors.blue),
+  },
+  dangerButton: {
+    backgroundColor: getColor(colors.red),
   },
 });

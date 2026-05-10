@@ -5,48 +5,64 @@ import { useRouter } from "expo-router";
 import {
   ExternalLink as ExternalLinkIcon,
   Globe as GlobeIcon,
+  Trash2 as Trash2Icon,
 } from "lucide-react-native";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 type CardPinReferenceLinkRegularProps = {
   referenceLink: ReferenceLink;
   onPress?: () => void;
+  onDeletePress?: () => void;
 };
 
 export function CardPinReferenceLinkRegular({
   referenceLink,
   onPress,
+  onDeletePress,
 }: CardPinReferenceLinkRegularProps) {
   const router = useRouter();
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={() => {
-        router.push({
-          pathname: "/web-viewer",
-          params: { url: referenceLink.url, title: referenceLink.title },
-        });
-        onPress?.();
-      }}
-    >
+    <View style={styles.container}>
       <View style={styles.iconContainer}>
         <GlobeIcon size={20} color={getColor(colors.pineGreen)} />
       </View>
 
-      <View style={styles.content}>
-        <TitleRegular size="sm" weight="600">
-          {referenceLink.title}
-        </TitleRegular>
-        <TitleRegular size="xs">{referenceLink.caption}</TitleRegular>
-        <TitleRegular size="xs" color={colors.purple}>
-          {referenceLink.url}
-        </TitleRegular>
-      </View>
+      <TouchableOpacity
+        style={styles.content}
+        onPress={() => {
+          router.push({
+            pathname: "/web-viewer",
+            params: { url: referenceLink.url, title: referenceLink.title },
+          });
+          onPress?.();
+        }}
+      >
+        <>
+          <TitleRegular size="sm" weight="600">
+            {referenceLink.title}
+          </TitleRegular>
+          <TitleRegular size="xs">{referenceLink.caption}</TitleRegular>
+          <TitleRegular size="xs" color={colors.purple}>
+            {referenceLink.url}
+          </TitleRegular>
+        </>
+      </TouchableOpacity>
 
-      <View style={styles.button}>
-        <ExternalLinkIcon size={16} color={getColor(colors.pineGreen)} />
+      <View style={styles.actions}>
+        {onDeletePress && (
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={onDeletePress}
+            hitSlop={8}
+          >
+            <Trash2Icon size={16} color={getColor(colors.red)} />
+          </TouchableOpacity>
+        )}
+        <View style={styles.iconButton}>
+          <ExternalLinkIcon size={16} color={getColor(colors.pineGreen)} />
+        </View>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -69,9 +85,12 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: gaps.xxs,
   },
-  button: {
+  actions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: gaps.xs,
+  },
+  iconButton: {
+    padding: gaps.xxs,
   },
 });

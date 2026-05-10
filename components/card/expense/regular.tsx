@@ -1,17 +1,22 @@
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import { type Expense } from "@/types/pin";
-import { DollarSign as DollarSignIcon } from "lucide-react-native";
-import { StyleSheet, View } from "react-native";
+import {
+  DollarSign as DollarSignIcon,
+  Trash2 as Trash2Icon,
+} from "lucide-react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 type CardExpenseRegularProps = {
   expense: Expense;
   onPress: () => void;
+  onDeletePress?: () => void;
 };
 
 export function CardExpenseRegular({
   expense,
   onPress,
+  onDeletePress,
 }: CardExpenseRegularProps) {
   return (
     <View style={styles.container}>
@@ -31,6 +36,15 @@ export function CardExpenseRegular({
         <TitleRegular size="sm" weight="600">
           {expense.amount} {expense.currency.toUpperCase()}
         </TitleRegular>
+        {onDeletePress && (
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={onDeletePress}
+            hitSlop={8}
+          >
+            <Trash2Icon size={16} color={getColor(colors.red)} />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -57,6 +71,9 @@ const styles = StyleSheet.create({
   right: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: gaps.xs,
+  },
+  iconButton: {
+    padding: gaps.xxs,
   },
 });

@@ -66,7 +66,8 @@ export async function initializeDatabase() {
       updated_at text not null,
       sync_status text not null,
       last_synced_at text,
-      sync_error text
+      sync_error text,
+      deleted_at text
     );
 
     create table if not exists document (
@@ -119,7 +120,8 @@ export async function initializeDatabase() {
       updated_at text not null,
       sync_status text not null,
       last_synced_at text,
-      sync_error text
+      sync_error text,
+      deleted_at text
     );
 
     create table if not exists pin_location (
@@ -163,6 +165,14 @@ export async function initializeDatabase() {
 
   const documentTableColumns = await sqlite.getAllAsync<{ name: string }>(
     `pragma table_info(document);`,
+  );
+
+  const referenceLinkTableColumns = await sqlite.getAllAsync<{ name: string }>(
+    `pragma table_info(reference_link);`,
+  );
+
+  const expenseTableColumns = await sqlite.getAllAsync<{ name: string }>(
+    `pragma table_info(expense);`,
   );
 
   const imageTableColumns = await sqlite.getAllAsync<{ name: string }>(
@@ -236,6 +246,28 @@ export async function initializeDatabase() {
     await sqlite.execAsync(`
       alter table image
       add column storage_path text not null default '';
+    `);
+  }
+
+  const hasReferenceLinkDeletedAtColumn = referenceLinkTableColumns.some(
+    (column) => column.name === "deleted_at",
+  );
+
+  if (!hasReferenceLinkDeletedAtColumn) {
+    await sqlite.execAsync(`
+      alter table reference_link
+      add column deleted_at text;
+    `);
+  }
+
+  const hasExpenseDeletedAtColumn = expenseTableColumns.some(
+    (column) => column.name === "deleted_at",
+  );
+
+  if (!hasExpenseDeletedAtColumn) {
+    await sqlite.execAsync(`
+      alter table expense
+      add column deleted_at text;
     `);
   }
 }
