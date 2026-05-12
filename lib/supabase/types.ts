@@ -86,6 +86,7 @@ export type Database = {
         Row: {
           completed: boolean
           created_at: string
+          deleted_at: string | null
           id: string
           title: string
           trip_id: string
@@ -95,7 +96,8 @@ export type Database = {
         Insert: {
           completed?: boolean
           created_at?: string
-          id?: string
+          deleted_at?: string | null
+          id: string
           title: string
           trip_id: string
           updated_at?: string
@@ -104,6 +106,7 @@ export type Database = {
         Update: {
           completed?: boolean
           created_at?: string
+          deleted_at?: string | null
           id?: string
           title?: string
           trip_id?: string
@@ -145,7 +148,7 @@ export type Database = {
           caption?: string | null
           created_at?: string
           file_name: string
-          id?: string
+          id: string
           mime_type: string
           pin_id?: string | null
           storage_bucket: string
@@ -196,6 +199,7 @@ export type Database = {
           amount: number
           created_at: string
           currency: string
+          deleted_at: string | null
           description: string
           id: string
           paid_by_name: string
@@ -209,8 +213,9 @@ export type Database = {
           amount: number
           created_at?: string
           currency: string
+          deleted_at?: string | null
           description: string
-          id?: string
+          id: string
           paid_by_name: string
           paid_by_user_id: string
           pin_id: string
@@ -222,6 +227,7 @@ export type Database = {
           amount?: number
           created_at?: string
           currency?: string
+          deleted_at?: string | null
           description?: string
           id?: string
           paid_by_name?: string
@@ -281,7 +287,7 @@ export type Database = {
           caption?: string | null
           created_at?: string
           height: number
-          id?: string
+          id: string
           mime_type: string
           pin_id: string
           storage_bucket: string
@@ -340,7 +346,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          id?: string
+          id: string
           pin_id: string
           text: string
           updated_at?: string
@@ -419,6 +425,7 @@ export type Database = {
         Row: {
           caption: string | null
           created_at: string
+          deleted_at: string | null
           id: string
           pin_id: string
           title: string | null
@@ -429,7 +436,8 @@ export type Database = {
         Insert: {
           caption?: string | null
           created_at?: string
-          id?: string
+          deleted_at?: string | null
+          id: string
           pin_id: string
           title?: string | null
           updated_at?: string
@@ -439,6 +447,7 @@ export type Database = {
         Update: {
           caption?: string | null
           created_at?: string
+          deleted_at?: string | null
           id?: string
           pin_id?: string
           title?: string | null

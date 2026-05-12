@@ -18,20 +18,20 @@ export type CreatePinInput = {
 };
 
 export type CreateChecklistItemInput = {
-  id?: string;
+  id: string;
   tripId: string;
   title: string;
   completed: boolean;
 };
 
 export type CreateNoteInput = {
-  id?: string;
+  id: string;
   pinId: string;
   text: string;
 };
 
 export type CreateReferenceLinkInput = {
-  id?: string;
+  id: string;
   pinId: string;
   title: string | null;
   url: string;
@@ -39,7 +39,7 @@ export type CreateReferenceLinkInput = {
 };
 
 export type CreateExpenseInput = {
-  id?: string;
+  id: string;
   pinId: string;
   tripId: string;
   description: string;
@@ -50,7 +50,7 @@ export type CreateExpenseInput = {
 };
 
 export type CreateDocumentInput = {
-  id?: string;
+  id: string;
   tripId: string;
   pinId: string | null;
   fileName: string;
@@ -61,7 +61,7 @@ export type CreateDocumentInput = {
 };
 
 export type CreateImageInput = {
-  id?: string;
+  id: string;
   pinId: string;
   tripId: string;
   storageBucket: string;
@@ -131,6 +131,7 @@ const mapChecklistItemRow = (checklistItem: {
   completed: boolean;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }) => ({
   id: checklistItem.id,
   tripId: checklistItem.trip_id,
@@ -139,6 +140,7 @@ const mapChecklistItemRow = (checklistItem: {
   completed: checklistItem.completed,
   createdAt: checklistItem.created_at,
   updatedAt: checklistItem.updated_at,
+  deletedAt: checklistItem.deleted_at,
 });
 
 const mapNoteRow = (note: {
@@ -166,6 +168,7 @@ const mapReferenceLinkRow = (referenceLink: {
   caption: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }) => ({
   id: referenceLink.id,
   pinId: referenceLink.pin_id,
@@ -175,6 +178,7 @@ const mapReferenceLinkRow = (referenceLink: {
   caption: referenceLink.caption,
   createdAt: referenceLink.created_at,
   updatedAt: referenceLink.updated_at,
+  deletedAt: referenceLink.deleted_at,
 });
 
 const mapExpenseRow = (expense: {
@@ -189,6 +193,7 @@ const mapExpenseRow = (expense: {
   paid_by_name: string;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }) => ({
   id: expense.id,
   pinId: expense.pin_id,
@@ -201,6 +206,7 @@ const mapExpenseRow = (expense: {
   paidByName: expense.paid_by_name,
   createdAt: expense.created_at,
   updatedAt: expense.updated_at,
+  deletedAt: expense.deleted_at,
 });
 
 const mapDocumentRow = (document: {
@@ -409,7 +415,9 @@ export async function actionUpsertRemoteChecklistItemFromLocal(
   const { data, error } = await supabase
     .from("checklist_item")
     .upsert(payload)
-    .select("id, trip_id, user_id, title, completed, created_at, updated_at")
+    .select(
+      "id, trip_id, user_id, title, completed, created_at, updated_at, deleted_at",
+    )
     .single();
 
   if (error) {
@@ -419,7 +427,7 @@ export async function actionUpsertRemoteChecklistItemFromLocal(
   return mapChecklistItemRow(data);
 }
 
-export async function actionDeleteRemoteChecklistItem(id: string) {
+export async function actionSoftDeleteRemoteChecklistItem(id: string) {
   const {
     data: { user },
     error: authError,
@@ -433,7 +441,12 @@ export async function actionDeleteRemoteChecklistItem(id: string) {
     throw new Error("You must be signed in to delete a checklist item");
   }
 
-  const { error } = await supabase.from("checklist_item").delete().eq("id", id);
+  const deletedAt = new Date().toISOString();
+
+  const { error } = await supabase
+    .from("checklist_item")
+    .update({ deleted_at: deletedAt, updated_at: deletedAt })
+    .eq("id", id);
 
   if (error) {
     throw error;
@@ -509,7 +522,7 @@ export async function actionUpsertRemoteReferenceLinkFromLocal(
     .from("reference_link")
     .upsert(payload)
     .select(
-      "id, pin_id, user_id, title, url, caption, created_at, updated_at",
+      "id, pin_id, user_id, title, url, caption, created_at, updated_at, deleted_at",
     )
     .single();
 
@@ -520,7 +533,7 @@ export async function actionUpsertRemoteReferenceLinkFromLocal(
   return mapReferenceLinkRow(data);
 }
 
-export async function actionDeleteRemoteReferenceLink(id: string) {
+export async function actionSoftDeleteRemoteReferenceLink(id: string) {
   const {
     data: { user },
     error: authError,
@@ -534,7 +547,12 @@ export async function actionDeleteRemoteReferenceLink(id: string) {
     throw new Error("You must be signed in to delete a reference link");
   }
 
-  const { error } = await supabase.from("reference_link").delete().eq("id", id);
+  const deletedAt = new Date().toISOString();
+
+  const { error } = await supabase
+    .from("reference_link")
+    .update({ deleted_at: deletedAt, updated_at: deletedAt })
+    .eq("id", id);
 
   if (error) {
     throw error;
@@ -573,7 +591,7 @@ export async function actionUpsertRemoteExpenseFromLocal(
     .from("expense")
     .upsert(payload)
     .select(
-      "id, pin_id, trip_id, user_id, description, amount, currency, paid_by_user_id, paid_by_name, created_at, updated_at",
+      "id, pin_id, trip_id, user_id, description, amount, currency, paid_by_user_id, paid_by_name, created_at, updated_at, deleted_at",
     )
     .single();
 
@@ -584,7 +602,7 @@ export async function actionUpsertRemoteExpenseFromLocal(
   return mapExpenseRow(data);
 }
 
-export async function actionDeleteRemoteExpense(id: string) {
+export async function actionSoftDeleteRemoteExpense(id: string) {
   const {
     data: { user },
     error: authError,
@@ -598,7 +616,12 @@ export async function actionDeleteRemoteExpense(id: string) {
     throw new Error("You must be signed in to delete an expense");
   }
 
-  const { error } = await supabase.from("expense").delete().eq("id", id);
+  const deletedAt = new Date().toISOString();
+
+  const { error } = await supabase
+    .from("expense")
+    .update({ deleted_at: deletedAt, updated_at: deletedAt })
+    .eq("id", id);
 
   if (error) {
     throw error;

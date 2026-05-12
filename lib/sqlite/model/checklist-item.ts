@@ -1,7 +1,7 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
 import {
-  actionDeleteRemoteChecklistItem,
+  actionSoftDeleteRemoteChecklistItem,
   actionUpsertRemoteChecklistItemFromLocal,
 } from "@/lib/supabase/actions";
 
@@ -309,7 +309,7 @@ export async function actionSyncLocalChecklistItem(
     );
 
     try {
-      await actionDeleteRemoteChecklistItem(localChecklistItem.id);
+      await actionSoftDeleteRemoteChecklistItem(localChecklistItem.id);
       await actionHardDeleteLocalChecklistItem(
         localChecklistItem.id,
         localChecklistItem.userId,

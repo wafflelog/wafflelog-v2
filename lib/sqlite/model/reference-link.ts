@@ -1,7 +1,7 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
 import {
-  actionDeleteRemoteReferenceLink,
+  actionSoftDeleteRemoteReferenceLink,
   actionUpsertRemoteReferenceLinkFromLocal,
 } from "@/lib/supabase/actions";
 
@@ -359,7 +359,7 @@ export async function actionSyncLocalReferenceLink(
     );
 
     try {
-      await actionDeleteRemoteReferenceLink(localReferenceLink.id);
+      await actionSoftDeleteRemoteReferenceLink(localReferenceLink.id);
       await actionHardDeleteLocalReferenceLink(
         localReferenceLink.id,
         localReferenceLink.userId,

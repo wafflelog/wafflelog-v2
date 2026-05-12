@@ -1,7 +1,7 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
 import {
-  actionDeleteRemoteExpense,
+  actionSoftDeleteRemoteExpense,
   actionUpsertRemoteExpenseFromLocal,
 } from "@/lib/supabase/actions";
 
@@ -365,7 +365,7 @@ export async function actionSyncLocalExpense(localExpense: LocalExpense) {
     await actionMarkLocalExpenseSyncing(localExpense.id, localExpense.userId);
 
     try {
-      await actionDeleteRemoteExpense(localExpense.id);
+      await actionSoftDeleteRemoteExpense(localExpense.id);
       await actionHardDeleteLocalExpense(localExpense.id, localExpense.userId);
       return;
     } catch (error) {
