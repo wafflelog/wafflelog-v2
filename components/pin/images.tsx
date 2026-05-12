@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image as ImageIcon } from "lucide-react-native";
 
 import { CardImageRegular } from "@/components/card/image/regular";
+import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { DialogNewImage } from "@/components/dialog/new-image";
 import { colors, getColor } from "@/constants/theme";
-import { actionListLocalImagesByPin } from "@/lib/sqlite/model/image";
+import {
+  actionListLocalImagesByPin,
+  actionSoftDeleteLocalImage,
+} from "@/lib/sqlite/model/image";
 import { type Pin } from "@/types/pin";
 import { PinSectionTemplate } from "./section-template";
 
@@ -24,11 +28,25 @@ export const PinImages = ({
   onOpenImage,
 }: PinImagesProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: localImages = [] } = useQuery({
     queryKey: ["local-pin-images", pinId, userId],
     queryFn: () => actionListLocalImagesByPin(pinId, userId),
     enabled: Boolean(pinId && userId),
+  });
+
+  const softDeleteImageMutation = useMutation({
+    mutationFn: (imageId: string) => actionSoftDeleteLocalImage(imageId, userId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["local-pin-images", pinId, userId],
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedImageId(null);
+    },
   });
 
   const images: Pin["images"] = localImages.map((image) => ({
@@ -58,6 +76,10 @@ export const PinImages = ({
               <CardImageRegular
                 image={image}
                 onPress={() => onOpenImage(image.id, images)}
+                onDeletePress={() => {
+                  setSelectedImageId(image.id);
+                  setIsDeleteDialogOpen(true);
+                }}
               />
             </View>
           ))}
@@ -69,6 +91,26 @@ export const PinImages = ({
         tripId={tripId}
         visible={isDialogOpen}
         onDismiss={() => setIsDialogOpen(false)}
+      />
+
+      <ConfirmActionDialog
+        visible={isDeleteDialogOpen}
+        title="Delete Image"
+        message="Are you sure you want to delete this image?"
+        confirmText="Delete"
+        onDismiss={() => {
+          setIsDeleteDialogOpen(false);
+          setSelectedImageId(null);
+        }}
+        onConfirm={() => {
+          if (!selectedImageId) {
+            return;
+          }
+
+          softDeleteImageMutation.mutate(selectedImageId);
+        }}
+        isPending={softDeleteImageMutation.isPending}
+        confirmVariant="danger"
       />
     </>
   );

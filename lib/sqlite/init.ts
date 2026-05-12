@@ -12,7 +12,8 @@ export async function initializeDatabase() {
       updated_at text not null,
       sync_status text not null,
       last_synced_at text,
-      sync_error text
+      sync_error text,
+      deleted_at text
     );
 
     create table if not exists checklist_item (
@@ -251,6 +252,17 @@ export async function initializeDatabase() {
     await sqlite.execAsync(`
       alter table image
       add column storage_path text not null default '';
+    `);
+  }
+
+  const hasImageDeletedAtColumn = imageTableColumns.some(
+    (column) => column.name === "deleted_at",
+  );
+
+  if (!hasImageDeletedAtColumn) {
+    await sqlite.execAsync(`
+      alter table image
+      add column deleted_at text;
     `);
   }
 

@@ -1,6 +1,9 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
-import { actionUpsertRemoteImageFromLocal } from "@/lib/supabase/actions";
+import {
+  actionSoftDeleteRemoteImage,
+  actionUpsertRemoteImageFromLocal,
+} from "@/lib/supabase/actions";
 import { uploadPinImageToStorage } from "@/lib/media/image";
 
 export type LocalImage = {
@@ -20,6 +23,7 @@ export type LocalImage = {
   syncStatus: string;
   lastSyncedAt: string | null;
   syncError: string | null;
+  deletedAt: string | null;
 };
 
 export type CreateLocalImageInput = {
@@ -55,6 +59,7 @@ function mapLocalImageRow(row: {
   sync_status: string;
   last_synced_at: string | null;
   sync_error: string | null;
+  deleted_at: string | null;
 }): LocalImage {
   return {
     id: row.id,
@@ -73,6 +78,7 @@ function mapLocalImageRow(row: {
     syncStatus: row.sync_status,
     lastSyncedAt: row.last_synced_at,
     syncError: row.sync_error,
+    deletedAt: row.deleted_at,
   };
 }
 
@@ -95,6 +101,7 @@ export async function actionCreateLocalImage(input: CreateLocalImageInput) {
     sync_status: "pending",
     last_synced_at: null,
     sync_error: null,
+    deleted_at: null,
   };
 
   await sqlite.runAsync(
@@ -115,8 +122,9 @@ export async function actionCreateLocalImage(input: CreateLocalImageInput) {
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        sync_error,
+        deleted_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       localImage.id,
@@ -135,6 +143,7 @@ export async function actionCreateLocalImage(input: CreateLocalImageInput) {
       localImage.sync_status,
       localImage.last_synced_at,
       localImage.sync_error,
+      localImage.deleted_at,
     ],
   );
 
@@ -162,6 +171,7 @@ export async function actionListLocalImagesByPin(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -180,9 +190,10 @@ export async function actionListLocalImagesByPin(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from image
-      where pin_id = ? and user_id = ?
+      where pin_id = ? and user_id = ? and deleted_at is null
       order by created_at desc
     `,
     [pinId, userId],
@@ -199,7 +210,7 @@ export async function actionCountLocalImagesByPin(
     `
       select count(*) as total
       from image
-      where pin_id = ? and user_id = ?
+      where pin_id = ? and user_id = ? and deleted_at is null
     `,
     [pinId, userId],
   );
@@ -228,6 +239,7 @@ export async function actionListLocalImagesByTrip(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -246,9 +258,10 @@ export async function actionListLocalImagesByTrip(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from image
-      where trip_id = ? and user_id = ?
+      where trip_id = ? and user_id = ? and deleted_at is null
       order by created_at desc
     `,
     [tripId, userId],
@@ -278,6 +291,7 @@ export async function actionListPendingLocalImages(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -296,7 +310,8 @@ export async function actionListPendingLocalImages(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from image
       where user_id = ? and sync_status != 'synced'
       order by created_at asc
@@ -306,6 +321,33 @@ export async function actionListPendingLocalImages(
   );
 
   return rows.map(mapLocalImageRow);
+}
+
+export async function actionSoftDeleteLocalImage(id: string, userId: string) {
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      update image
+      set
+        deleted_at = ?,
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    [now, "pending", null, now, id, userId],
+  );
+}
+
+export async function actionHardDeleteLocalImage(id: string, userId: string) {
+  await sqlite.runAsync(
+    `
+      delete from image
+      where id = ? and user_id = ?
+    `,
+    [id, userId],
+  );
 }
 
 export async function actionMarkLocalImageSyncing(id: string, userId: string) {
@@ -377,6 +419,30 @@ export async function actionMarkLocalImageSyncFailed(
 }
 
 export async function actionSyncLocalImage(localImage: LocalImage) {
+  if (localImage.deletedAt) {
+    if (!localImage.lastSyncedAt) {
+      await actionHardDeleteLocalImage(localImage.id, localImage.userId);
+      return;
+    }
+
+    await actionMarkLocalImageSyncing(localImage.id, localImage.userId);
+
+    try {
+      await actionSoftDeleteRemoteImage(localImage.id);
+      await actionHardDeleteLocalImage(localImage.id, localImage.userId);
+      return;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete image";
+      await actionMarkLocalImageSyncFailed(
+        localImage.id,
+        localImage.userId,
+        message,
+      );
+      throw error;
+    }
+  }
+
   await actionMarkLocalImageSyncing(localImage.id, localImage.userId);
 
   try {

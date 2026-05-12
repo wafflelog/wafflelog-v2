@@ -248,6 +248,7 @@ const mapImageRow = (image: {
   caption: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }) => ({
   id: image.id,
   pinId: image.pin_id,
@@ -261,6 +262,7 @@ const mapImageRow = (image: {
   caption: image.caption,
   createdAt: image.created_at,
   updatedAt: image.updated_at,
+  deletedAt: image.deleted_at,
 });
 
 const mapPublicUserRow = (user: PublicUserRow) => ({
@@ -702,7 +704,7 @@ export async function actionUpsertRemoteImageFromLocal(input: CreateImageInput) 
     .from("image")
     .upsert(payload)
     .select(
-      "id, pin_id, trip_id, user_id, storage_bucket, storage_path, mime_type, width, height, caption, created_at, updated_at",
+      "id, pin_id, trip_id, user_id, storage_bucket, storage_path, mime_type, width, height, caption, created_at, updated_at, deleted_at",
     )
     .single();
 
@@ -711,6 +713,32 @@ export async function actionUpsertRemoteImageFromLocal(input: CreateImageInput) 
   }
 
   return mapImageRow(data);
+}
+
+export async function actionSoftDeleteRemoteImage(id: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to delete an image");
+  }
+
+  const deletedAt = new Date().toISOString();
+
+  const { error } = await supabase
+    .from("image")
+    .update({ deleted_at: deletedAt, updated_at: deletedAt })
+    .eq("id", id);
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function actionSignUpWithEmail(input: SignUpInput) {
