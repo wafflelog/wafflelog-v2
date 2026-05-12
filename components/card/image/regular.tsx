@@ -25,7 +25,10 @@ export function CardImageRegular({
       {onDeletePress && (
         <TouchableOpacity
           style={styles.deleteButton}
-          onPress={onDeletePress}
+          onPress={(event) => {
+            event.stopPropagation();
+            onDeletePress();
+          }}
           hitSlop={8}
         >
           <Trash2Icon size={16} color={getColor(colors.white)} />

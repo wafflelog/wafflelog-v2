@@ -9,6 +9,7 @@ import { CardDocumentSquare } from "./square";
 type CardDocumentProps = {
   document: Document;
   onPress?: () => void;
+  onDeletePress?: () => void;
   variant?: "regular" | "square";
   containerStyle?: StyleProp<ViewStyle>;
 };
@@ -18,6 +19,7 @@ export const CardDocument = ({
   document,
   variant = "regular",
   onPress,
+  onDeletePress,
 }: CardDocumentProps) => {
   const router = useRouter();
   const onPressHandler = () => {
@@ -38,6 +40,7 @@ export const CardDocument = ({
         containerStyle={containerStyle}
         document={document}
         onPress={onPressHandler}
+        onDeletePress={onDeletePress}
       />
     ))
     .with("square", () => (
@@ -45,6 +48,7 @@ export const CardDocument = ({
         containerStyle={containerStyle}
         document={document}
         onPress={onPressHandler}
+        onDeletePress={onDeletePress}
       />
     ))
     .exhaustive();

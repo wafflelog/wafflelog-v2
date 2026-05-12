@@ -1,15 +1,19 @@
 import { CardDocument } from "@/components/card/document";
 import { ButtonFab } from "@/components/button/fab";
+import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { DialogNewDocument } from "@/components/dialog/new-document";
 import { HeaderTrip } from "@/components/header/trip";
 import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { actionListLocalDocumentsByTrip } from "@/lib/sqlite/model/document";
+import {
+  actionListLocalDocumentsByTrip,
+  actionSoftDeleteLocalDocument,
+} from "@/lib/sqlite/model/document";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Plus as PlusIcon } from "lucide-react-native";
 import { useState } from "react";
@@ -19,11 +23,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function TripDocumentsScreen() {
   const [isDialogNewDocumentVisible, setIsDialogNewDocumentVisible] =
     useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
+    null,
+  );
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const navigation = useNavigation();
   const { session } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
+  const queryClient = useQueryClient();
 
   const { data: localTrip } = useQuery({
     queryKey: ["local-trip", String(id), session?.user.id],
@@ -35,6 +44,18 @@ export default function TripDocumentsScreen() {
     queryKey: ["local-trip-documents", String(id), session?.user.id],
     queryFn: () => actionListLocalDocumentsByTrip(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
+  });
+
+  const softDeleteDocumentMutation = useMutation({
+    mutationFn: (documentId: string) =>
+      actionSoftDeleteLocalDocument(documentId, session!.user.id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["local-trip-documents", String(id), session!.user.id],
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedDocumentId(null);
+    },
   });
 
   const trip = localTrip
@@ -112,6 +133,10 @@ export default function TripDocumentsScreen() {
                     localUri: item.localUri,
                   })
                 }
+                onDeletePress={() => {
+                  setSelectedDocumentId(item.id);
+                  setIsDeleteDialogOpen(true);
+                }}
               />
             </View>
           </View>
@@ -128,6 +153,25 @@ export default function TripDocumentsScreen() {
         tripId={String(id)}
         visible={isDialogNewDocumentVisible}
         onDismiss={() => setIsDialogNewDocumentVisible(false)}
+      />
+      <ConfirmActionDialog
+        visible={isDeleteDialogOpen}
+        title="Delete Document"
+        message="Are you sure you want to delete this document?"
+        confirmText="Delete"
+        onDismiss={() => {
+          setIsDeleteDialogOpen(false);
+          setSelectedDocumentId(null);
+        }}
+        onConfirm={() => {
+          if (!selectedDocumentId) {
+            return;
+          }
+
+          softDeleteDocumentMutation.mutate(selectedDocumentId);
+        }}
+        isPending={softDeleteDocumentMutation.isPending}
+        confirmVariant="danger"
       />
       <SystemMessageModal />
     </SafeAreaView>

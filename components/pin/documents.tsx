@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { View } from "react-native";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText as FileTextIcon } from "lucide-react-native";
 
 import { CardDocument } from "@/components/card/document";
+import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { DialogNewDocument } from "@/components/dialog/new-document";
 import { colors, getColor } from "@/constants/theme";
-import { actionListLocalDocumentsByPin } from "@/lib/sqlite/model/document";
+import {
+  actionListLocalDocumentsByPin,
+  actionSoftDeleteLocalDocument,
+} from "@/lib/sqlite/model/document";
 import { PinSectionTemplate, pinSectionStyles } from "./section-template";
 
 type PinDocumentsProps = {
@@ -26,11 +30,28 @@ export const PinDocuments = ({
   onOpenDocument,
 }: PinDocumentsProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
+    null,
+  );
+  const queryClient = useQueryClient();
 
   const { data: localDocuments = [] } = useQuery({
     queryKey: ["local-pin-documents", pinId, userId],
     queryFn: () => actionListLocalDocumentsByPin(pinId, userId),
     enabled: Boolean(pinId && userId),
+  });
+
+  const softDeleteDocumentMutation = useMutation({
+    mutationFn: (documentId: string) =>
+      actionSoftDeleteLocalDocument(documentId, userId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["local-pin-documents", pinId, userId],
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedDocumentId(null);
+    },
   });
 
   return (
@@ -58,6 +79,10 @@ export const PinDocuments = ({
                   localUri: document.localUri,
                 })
               }
+              onDeletePress={() => {
+                setSelectedDocumentId(document.id);
+                setIsDeleteDialogOpen(true);
+              }}
             />
             {index < localDocuments.length - 1 && (
               <View style={pinSectionStyles.divider} />
@@ -71,6 +96,26 @@ export const PinDocuments = ({
         pinId={pinId}
         visible={isDialogOpen}
         onDismiss={() => setIsDialogOpen(false)}
+      />
+
+      <ConfirmActionDialog
+        visible={isDeleteDialogOpen}
+        title="Delete Document"
+        message="Are you sure you want to delete this document?"
+        confirmText="Delete"
+        onDismiss={() => {
+          setIsDeleteDialogOpen(false);
+          setSelectedDocumentId(null);
+        }}
+        onConfirm={() => {
+          if (!selectedDocumentId) {
+            return;
+          }
+
+          softDeleteDocumentMutation.mutate(selectedDocumentId);
+        }}
+        isPending={softDeleteDocumentMutation.isPending}
+        confirmVariant="danger"
       />
     </>
   );

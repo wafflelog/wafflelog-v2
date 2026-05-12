@@ -221,6 +221,7 @@ const mapDocumentRow = (document: {
   caption: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }) => ({
   id: document.id,
   tripId: document.trip_id,
@@ -233,6 +234,7 @@ const mapDocumentRow = (document: {
   caption: document.caption,
   createdAt: document.created_at,
   updatedAt: document.updated_at,
+  deletedAt: document.deleted_at,
 });
 
 const mapImageRow = (image: {
@@ -662,7 +664,7 @@ export async function actionUpsertRemoteDocumentFromLocal(
     .from("document")
     .upsert(payload)
     .select(
-      "id, trip_id, pin_id, user_id, file_name, mime_type, storage_bucket, storage_path, caption, created_at, updated_at",
+      "id, trip_id, pin_id, user_id, file_name, mime_type, storage_bucket, storage_path, caption, created_at, updated_at, deleted_at",
     )
     .single();
 
@@ -671,6 +673,32 @@ export async function actionUpsertRemoteDocumentFromLocal(
   }
 
   return mapDocumentRow(data);
+}
+
+export async function actionSoftDeleteRemoteDocument(id: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to delete a document");
+  }
+
+  const deletedAt = new Date().toISOString();
+
+  const { error } = await supabase
+    .from("document")
+    .update({ deleted_at: deletedAt, updated_at: deletedAt })
+    .eq("id", id);
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function actionUpsertRemoteImageFromLocal(input: CreateImageInput) {

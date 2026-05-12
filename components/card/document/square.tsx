@@ -4,6 +4,7 @@ import { type Document } from "@/types/pin";
 import {
   ExternalLink as ExternalLinkIcon,
   FileText as FileTextIcon,
+  Trash2 as Trash2Icon,
 } from "lucide-react-native";
 import {
   StyleProp,
@@ -16,12 +17,14 @@ import {
 type CardDocumentSquareProps = {
   document: Document;
   onPress: () => void;
+  onDeletePress?: () => void;
   containerStyle?: StyleProp<ViewStyle>;
 };
 
 export function CardDocumentSquare({
   document,
   onPress,
+  onDeletePress,
   containerStyle,
 }: CardDocumentSquareProps) {
   return (
@@ -42,9 +45,23 @@ export function CardDocumentSquare({
         </TitleRegular>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={onPress}>
-        <ExternalLinkIcon size={16} color={getColor(colors.pineGreen)} />
-      </TouchableOpacity>
+      <View style={styles.actions}>
+        {onDeletePress && (
+          <TouchableOpacity
+            style={styles.button}
+            onPress={(event) => {
+              event.stopPropagation();
+              onDeletePress();
+            }}
+            hitSlop={8}
+          >
+            <Trash2Icon size={16} color={getColor(colors.red)} />
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity style={styles.button} onPress={onPress}>
+          <ExternalLinkIcon size={16} color={getColor(colors.pineGreen)} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -69,10 +86,13 @@ const styles = StyleSheet.create({
     gap: gaps.xxs,
     alignItems: "center",
   },
-  button: {
+  actions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+  },
+  button: {
+    padding: gaps.xxs,
   },
   caption: {
     textAlign: "center",

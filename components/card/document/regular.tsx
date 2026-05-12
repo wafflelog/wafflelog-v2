@@ -4,6 +4,7 @@ import { type Document } from "@/types/pin";
 import {
   ExternalLink as ExternalLinkIcon,
   FileText as FileTextIcon,
+  Trash2 as Trash2Icon,
 } from "lucide-react-native";
 import {
   StyleProp,
@@ -16,12 +17,14 @@ import {
 type CardDocumentRegularProps = {
   document: Document;
   onPress: () => void;
+  onDeletePress?: () => void;
   containerStyle?: StyleProp<ViewStyle>;
 };
 
 export function CardDocumentRegular({
   document,
   onPress,
+  onDeletePress,
   containerStyle,
 }: CardDocumentRegularProps) {
   return (
@@ -43,8 +46,22 @@ export function CardDocumentRegular({
         </TitleRegular>
       </View>
 
-      <View style={styles.button}>
-        <ExternalLinkIcon size={16} color={getColor(colors.pineGreen)} />
+      <View style={styles.actions}>
+        {onDeletePress && (
+          <TouchableOpacity
+            style={styles.button}
+            onPress={(event) => {
+              event.stopPropagation();
+              onDeletePress();
+            }}
+            hitSlop={8}
+          >
+            <Trash2Icon size={16} color={getColor(colors.red)} />
+          </TouchableOpacity>
+        )}
+        <View style={styles.button}>
+          <ExternalLinkIcon size={16} color={getColor(colors.pineGreen)} />
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -69,9 +86,12 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: gaps.xxs,
   },
-  button: {
+  actions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+  },
+  button: {
+    padding: gaps.xxs,
   },
 });

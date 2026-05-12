@@ -1,6 +1,9 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
-import { actionUpsertRemoteDocumentFromLocal } from "@/lib/supabase/actions";
+import {
+  actionSoftDeleteRemoteDocument,
+  actionUpsertRemoteDocumentFromLocal,
+} from "@/lib/supabase/actions";
 import { uploadTravelDocumentToStorage } from "@/lib/supabase/storage";
 
 export type LocalDocument = {
@@ -19,6 +22,7 @@ export type LocalDocument = {
   syncStatus: string;
   lastSyncedAt: string | null;
   syncError: string | null;
+  deletedAt: string | null;
 };
 
 export type CreateLocalDocumentInput = {
@@ -52,6 +56,7 @@ function mapLocalDocumentRow(row: {
   sync_status: string;
   last_synced_at: string | null;
   sync_error: string | null;
+  deleted_at: string | null;
 }): LocalDocument {
   return {
     id: row.id,
@@ -69,6 +74,7 @@ function mapLocalDocumentRow(row: {
     syncStatus: row.sync_status,
     lastSyncedAt: row.last_synced_at,
     syncError: row.sync_error,
+    deletedAt: row.deleted_at,
   };
 }
 
@@ -92,6 +98,7 @@ export async function actionCreateLocalDocument(
     sync_status: "pending",
     last_synced_at: null,
     sync_error: null,
+    deleted_at: null,
   };
 
   await sqlite.runAsync(
@@ -111,8 +118,9 @@ export async function actionCreateLocalDocument(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        sync_error,
+        deleted_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       localDocument.id,
@@ -130,6 +138,7 @@ export async function actionCreateLocalDocument(
       localDocument.sync_status,
       localDocument.last_synced_at,
       localDocument.sync_error,
+      localDocument.deleted_at,
     ],
   );
 
@@ -156,6 +165,7 @@ export async function actionListLocalDocumentsByTrip(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -173,9 +183,10 @@ export async function actionListLocalDocumentsByTrip(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from document
-      where trip_id = ? and user_id = ?
+      where trip_id = ? and user_id = ? and deleted_at is null
       order by created_at desc
     `,
     [tripId, userId],
@@ -204,6 +215,7 @@ export async function actionListLocalDocumentsByPin(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -221,9 +233,10 @@ export async function actionListLocalDocumentsByPin(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from document
-      where pin_id = ? and user_id = ?
+      where pin_id = ? and user_id = ? and deleted_at is null
       order by created_at desc
     `,
     [pinId, userId],
@@ -252,6 +265,7 @@ export async function actionListPendingLocalDocuments(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -269,7 +283,8 @@ export async function actionListPendingLocalDocuments(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from document
       where user_id = ? and sync_status != 'synced'
       order by created_at asc
@@ -279,6 +294,39 @@ export async function actionListPendingLocalDocuments(
   );
 
   return rows.map(mapLocalDocumentRow);
+}
+
+export async function actionSoftDeleteLocalDocument(
+  id: string,
+  userId: string,
+) {
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      update document
+      set
+        deleted_at = ?,
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    [now, "pending", null, now, id, userId],
+  );
+}
+
+export async function actionHardDeleteLocalDocument(
+  id: string,
+  userId: string,
+) {
+  await sqlite.runAsync(
+    `
+      delete from document
+      where id = ? and user_id = ?
+    `,
+    [id, userId],
+  );
 }
 
 export async function actionMarkLocalDocumentSyncing(id: string, userId: string) {
@@ -350,6 +398,39 @@ export async function actionMarkLocalDocumentSyncFailed(
 }
 
 export async function actionSyncLocalDocument(localDocument: LocalDocument) {
+  if (localDocument.deletedAt) {
+    if (!localDocument.lastSyncedAt) {
+      await actionHardDeleteLocalDocument(
+        localDocument.id,
+        localDocument.userId,
+      );
+      return;
+    }
+
+    await actionMarkLocalDocumentSyncing(
+      localDocument.id,
+      localDocument.userId,
+    );
+
+    try {
+      await actionSoftDeleteRemoteDocument(localDocument.id);
+      await actionHardDeleteLocalDocument(
+        localDocument.id,
+        localDocument.userId,
+      );
+      return;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete document";
+      await actionMarkLocalDocumentSyncFailed(
+        localDocument.id,
+        localDocument.userId,
+        message,
+      );
+      throw error;
+    }
+  }
+
   await actionMarkLocalDocumentSyncing(localDocument.id, localDocument.userId);
 
   try {

@@ -12,8 +12,7 @@ export async function initializeDatabase() {
       updated_at text not null,
       sync_status text not null,
       last_synced_at text,
-      sync_error text,
-      deleted_at text
+      sync_error text
     );
 
     create table if not exists checklist_item (
@@ -86,7 +85,8 @@ export async function initializeDatabase() {
       updated_at text not null,
       sync_status text not null,
       last_synced_at text,
-      sync_error text
+      sync_error text,
+      deleted_at text
     );
 
     create table if not exists image (
@@ -105,7 +105,8 @@ export async function initializeDatabase() {
       updated_at text not null,
       sync_status text not null,
       last_synced_at text,
-      sync_error text
+      sync_error text,
+      deleted_at text
     );
 
     create table if not exists expense (
@@ -230,6 +231,17 @@ export async function initializeDatabase() {
     await sqlite.execAsync(`
       alter table document
       add column local_uri text;
+    `);
+  }
+
+  const hasDocumentDeletedAtColumn = documentTableColumns.some(
+    (column) => column.name === "deleted_at",
+  );
+
+  if (!hasDocumentDeletedAtColumn) {
+    await sqlite.execAsync(`
+      alter table document
+      add column deleted_at text;
     `);
   }
 
