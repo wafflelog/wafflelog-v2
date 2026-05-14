@@ -12,7 +12,8 @@ export async function initializeDatabase() {
       updated_at text not null,
       sync_status text not null,
       last_synced_at text,
-      sync_error text
+      sync_error text,
+      deleted_at text
     );
 
     create table if not exists checklist_item (
@@ -53,7 +54,8 @@ export async function initializeDatabase() {
       updated_at text not null,
       sync_status text not null,
       last_synced_at text,
-      sync_error text
+      sync_error text,
+      deleted_at text
     );
 
     create table if not exists reference_link (
@@ -220,6 +222,21 @@ export async function initializeDatabase() {
     await sqlite.execAsync(`
       alter table pin
       add column sync_error text;
+    `);
+  }
+
+  const noteTableColumns = await sqlite.getAllAsync<{ name: string }>(
+    `pragma table_info(note);`,
+  );
+
+  const hasNoteDeletedAtColumn = noteTableColumns.some(
+    (column) => column.name === "deleted_at",
+  );
+
+  if (!hasNoteDeletedAtColumn) {
+    await sqlite.execAsync(`
+      alter table note
+      add column deleted_at text;
     `);
   }
 

@@ -1,6 +1,9 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
-import { actionUpsertRemoteNoteFromLocal } from "@/lib/supabase/actions";
+import {
+  actionSoftDeleteRemoteNote,
+  actionUpsertRemoteNoteFromLocal,
+} from "@/lib/supabase/actions";
 
 export type LocalNote = {
   id: string;
@@ -12,6 +15,7 @@ export type LocalNote = {
   syncStatus: string;
   lastSyncedAt: string | null;
   syncError: string | null;
+  deletedAt: string | null;
 };
 
 export type CreateLocalNoteInput = {
@@ -32,6 +36,7 @@ function mapLocalNoteRow(row: {
   sync_status: string;
   last_synced_at: string | null;
   sync_error: string | null;
+  deleted_at: string | null;
 }): LocalNote {
   return {
     id: row.id,
@@ -43,6 +48,7 @@ function mapLocalNoteRow(row: {
     syncStatus: row.sync_status,
     lastSyncedAt: row.last_synced_at,
     syncError: row.sync_error,
+    deletedAt: row.deleted_at,
   };
 }
 
@@ -64,6 +70,7 @@ export async function actionCreateLocalNote(input: CreateLocalNoteInput) {
     sync_status: "pending",
     last_synced_at: null,
     sync_error: null,
+    deleted_at: null,
   };
 
   await sqlite.runAsync(
@@ -77,8 +84,9 @@ export async function actionCreateLocalNote(input: CreateLocalNoteInput) {
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        sync_error,
+        deleted_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       localNote.id,
@@ -90,6 +98,7 @@ export async function actionCreateLocalNote(input: CreateLocalNoteInput) {
       localNote.sync_status,
       localNote.last_synced_at,
       localNote.sync_error,
+      localNote.deleted_at,
     ],
   );
 
@@ -107,6 +116,7 @@ export async function actionListLocalNotesByPin(pinId: string, userId: string) {
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -118,9 +128,10 @@ export async function actionListLocalNotesByPin(pinId: string, userId: string) {
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from note
-      where pin_id = ? and user_id = ?
+      where pin_id = ? and user_id = ? and deleted_at is null
       order by created_at desc
     `,
     [pinId, userId],
@@ -143,6 +154,7 @@ export async function actionListPendingLocalNotes(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -154,7 +166,8 @@ export async function actionListPendingLocalNotes(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from note
       where user_id = ? and sync_status != 'synced'
       order by created_at asc
@@ -164,6 +177,33 @@ export async function actionListPendingLocalNotes(
   );
 
   return rows.map(mapLocalNoteRow);
+}
+
+export async function actionSoftDeleteLocalNote(id: string, userId: string) {
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      update note
+      set
+        deleted_at = ?,
+        sync_status = ?,
+        sync_error = ?,
+        updated_at = ?
+      where id = ? and user_id = ?
+    `,
+    [now, "pending", null, now, id, userId],
+  );
+}
+
+export async function actionHardDeleteLocalNote(id: string, userId: string) {
+  await sqlite.runAsync(
+    `
+      delete from note
+      where id = ? and user_id = ?
+    `,
+    [id, userId],
+  );
 }
 
 export async function actionMarkLocalNoteSyncing(id: string, userId: string) {
@@ -216,6 +256,30 @@ export async function actionMarkLocalNoteSyncFailed(
 }
 
 export async function actionSyncLocalNote(localNote: LocalNote) {
+  if (localNote.deletedAt) {
+    if (!localNote.lastSyncedAt) {
+      await actionHardDeleteLocalNote(localNote.id, localNote.userId);
+      return;
+    }
+
+    await actionMarkLocalNoteSyncing(localNote.id, localNote.userId);
+
+    try {
+      await actionSoftDeleteRemoteNote(localNote.id);
+      await actionHardDeleteLocalNote(localNote.id, localNote.userId);
+      return;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete note";
+      await actionMarkLocalNoteSyncFailed(
+        localNote.id,
+        localNote.userId,
+        message,
+      );
+      throw error;
+    }
+  }
+
   await actionMarkLocalNoteSyncing(localNote.id, localNote.userId);
 
   try {

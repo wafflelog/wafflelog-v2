@@ -150,6 +150,7 @@ const mapNoteRow = (note: {
   text: string;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }) => ({
   id: note.id,
   pinId: note.pin_id,
@@ -157,6 +158,7 @@ const mapNoteRow = (note: {
   text: note.text,
   createdAt: note.created_at,
   updatedAt: note.updated_at,
+  deletedAt: note.deleted_at,
 });
 
 const mapReferenceLinkRow = (referenceLink: {
@@ -487,7 +489,7 @@ export async function actionUpsertRemoteNoteFromLocal(input: CreateNoteInput) {
   const { data, error } = await supabase
     .from("note")
     .upsert(payload)
-    .select("id, pin_id, user_id, text, created_at, updated_at")
+    .select("id, pin_id, user_id, text, created_at, updated_at, deleted_at")
     .single();
 
   if (error) {
@@ -495,6 +497,32 @@ export async function actionUpsertRemoteNoteFromLocal(input: CreateNoteInput) {
   }
 
   return mapNoteRow(data);
+}
+
+export async function actionSoftDeleteRemoteNote(id: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to delete a note");
+  }
+
+  const deletedAt = new Date().toISOString();
+
+  const { error } = await supabase
+    .from("note")
+    .update({ deleted_at: deletedAt, updated_at: deletedAt })
+    .eq("id", id);
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function actionUpsertRemoteReferenceLinkFromLocal(

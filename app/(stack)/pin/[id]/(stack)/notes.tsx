@@ -18,11 +18,13 @@ import { UIInputText } from "@/components/ui/input/text";
 import { useState } from "react";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
+import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import {
   actionCreateLocalNote,
   actionListLocalNotesByPin,
+  actionSoftDeleteLocalNote,
 } from "@/lib/sqlite/model/note";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
@@ -50,6 +52,8 @@ export default function NotesScreen() {
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const queryClient = useQueryClient();
   const [newNote, setNewNote] = useState("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const { height } = useGradualAnimation();
   const fakeView = useAnimatedStyle(() => {
     return {
@@ -73,6 +77,23 @@ export default function NotesScreen() {
     },
     onError: (error) => {
       const message = error instanceof Error ? error.message : "Failed to save note";
+      showMessage(message, "error");
+    },
+  });
+
+  const softDeleteNoteMutation = useMutation({
+    mutationFn: (noteId: string) =>
+      actionSoftDeleteLocalNote(noteId, session!.user.id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["local-notes", String(id), session?.user.id],
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedNoteId(null);
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete note";
       showMessage(message, "error");
     },
   });
@@ -109,6 +130,10 @@ export default function NotesScreen() {
             note={item}
             containerStyle={styles.note}
             variant={index % 2 === 0 ? "user" : "self"}
+            onDeletePress={() => {
+              setSelectedNoteId(item.id);
+              setIsDeleteDialogOpen(true);
+            }}
           />
         )}
         keyExtractor={(item) => item.id}
@@ -139,6 +164,25 @@ export default function NotesScreen() {
       </View>
 
       <Animated.View style={fakeView} />
+      <ConfirmActionDialog
+        visible={isDeleteDialogOpen}
+        title="Delete Note"
+        message="Are you sure you want to delete this note?"
+        confirmText="Delete"
+        onDismiss={() => {
+          setIsDeleteDialogOpen(false);
+          setSelectedNoteId(null);
+        }}
+        onConfirm={() => {
+          if (!selectedNoteId) {
+            return;
+          }
+
+          softDeleteNoteMutation.mutate(selectedNoteId);
+        }}
+        isPending={softDeleteNoteMutation.isPending}
+        confirmVariant="danger"
+      />
       <SystemMessageModal />
     </View>
   );

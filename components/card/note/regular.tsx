@@ -1,19 +1,28 @@
 import { CardUserIcon } from "@/components/card/user/icon";
 import { TitleRegular } from "@/components/title/regular";
-import { colors, gaps } from "@/constants/theme";
+import { colors, gaps, getColor } from "@/constants/theme";
 import { formatCreatedAt } from "@/lib/utils";
 import { type Note } from "@/types/pin";
-import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import { Trash2 as Trash2Icon } from "lucide-react-native";
+import {
+  StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+} from "react-native";
 
 type CardNoteRegularProps = {
   note: Note;
   containerStyle?: StyleProp<ViewStyle>;
+  onDeletePress?: () => void;
   variant?: "user" | "self";
 };
 
 export function CardNoteRegular({
   note,
   containerStyle,
+  onDeletePress,
   variant = "user",
 }: CardNoteRegularProps) {
   return (
@@ -34,6 +43,11 @@ export function CardNoteRegular({
           <TitleRegular size="xxs">
             {formatCreatedAt(note.createdAt)}
           </TitleRegular>
+          {onDeletePress && (
+            <TouchableOpacity onPress={onDeletePress} hitSlop={8}>
+              <Trash2Icon size={16} color={getColor(colors.red)} />
+            </TouchableOpacity>
+          )}
         </View>
         <TitleRegular size="sm">{note.text}</TitleRegular>
       </View>
@@ -58,7 +72,6 @@ const styles = StyleSheet.create({
   metadata: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     gap: gaps.xxs,
   },
 });

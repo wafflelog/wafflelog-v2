@@ -344,6 +344,7 @@ export type Database = {
       note: {
         Row: {
           created_at: string
+          deleted_at: string | null
           id: string
           pin_id: string
           text: string
@@ -352,6 +353,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           id: string
           pin_id: string
           text: string
@@ -360,6 +362,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           pin_id?: string
           text?: string
