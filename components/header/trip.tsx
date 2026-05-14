@@ -13,6 +13,14 @@ type HeaderTripProps = {
   onMorePress: () => void;
 };
 
+type HeaderTripTitleProps = {
+  trip?: Pick<Trip, "title" | "startDate" | "endDate"> | null;
+};
+
+type HeaderTripButtonProps = {
+  onPress: () => void;
+};
+
 export const HeaderTrip = ({
   trip,
   onBackPress,
@@ -38,6 +46,39 @@ export const HeaderTrip = ({
   );
 };
 
+export const HeaderTripTitle = ({ trip }: HeaderTripTitleProps) => {
+  if (!trip) {
+    return null;
+  }
+
+  return (
+    <View style={styles.nativeTitle}>
+      <Text style={styles.headerTitle} numberOfLines={1}>
+        {trip.title}
+      </Text>
+      <Text style={styles.headerSubtitle} numberOfLines={1}>
+        {formatDate(trip.startDate)} - {formatDate(trip.endDate)}
+      </Text>
+    </View>
+  );
+};
+
+export const HeaderTripBackButton = ({ onPress }: HeaderTripButtonProps) => {
+  return (
+    <TouchableOpacity style={styles.nativeButton} onPress={onPress}>
+      <ChevronLeftIcon size={24} color={getColor(colors.textDarkGrey)} />
+    </TouchableOpacity>
+  );
+};
+
+export const HeaderTripMenuButton = ({ onPress }: HeaderTripButtonProps) => {
+  return (
+    <TouchableOpacity style={styles.nativeButton} onPress={onPress}>
+      <MenuIcon size={24} color={getColor(colors.textDarkGrey)} />
+    </TouchableOpacity>
+  );
+};
+
 const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
@@ -56,6 +97,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
   },
+  nativeTitle: {
+    alignItems: "center",
+  },
   headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
@@ -67,6 +111,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   moreButton: {
+    padding: 4,
+  },
+  nativeButton: {
     padding: 4,
   },
 });

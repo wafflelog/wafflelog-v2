@@ -1,26 +1,21 @@
 import { ButtonFab } from "@/components/button/fab";
 import { CardPinReferenceLinkRegular } from "@/components/card/reference-link/regular";
 import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
-import { HeaderTrip } from "@/components/header/trip";
 import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionListLocalReferenceLinksByTrip } from "@/lib/sqlite/model/reference-link";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
-import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { Plus as PlusIcon } from "lucide-react-native";
 import { useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TripLinksScreen() {
   const [isDialogNewReferenceLinkVisible, setIsDialogNewReferenceLinkVisible] =
     useState(false);
   const { id } = useLocalSearchParams();
-  const router = useRouter();
-  const navigation = useNavigation();
   const { session } = useAuthSession();
 
   const { data: localTrip } = useQuery({
@@ -57,13 +52,7 @@ export default function TripLinksScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <HeaderTrip
-        trip={trip}
-        onBackPress={() => router.back()}
-        onMorePress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-      />
-
+    <View style={styles.container}>
       <FlatList
         contentContainerStyle={styles.links}
         data={localReferenceLinks.map((referenceLink) => ({
@@ -89,7 +78,7 @@ export default function TripLinksScreen() {
         visible={isDialogNewReferenceLinkVisible}
         onDismiss={() => setIsDialogNewReferenceLinkVisible(false)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

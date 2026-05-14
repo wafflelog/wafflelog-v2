@@ -1,20 +1,16 @@
 import { CardImageRegular } from "@/components/card/image/regular";
-import { HeaderTrip } from "@/components/header/trip";
 import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionListLocalImagesByTrip } from "@/lib/sqlite/model/image";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
-import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { FlatList, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TripImagesScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const navigation = useNavigation();
   const { session } = useAuthSession();
 
   const { data: localTrip } = useQuery({
@@ -51,13 +47,7 @@ export default function TripImagesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <HeaderTrip
-        trip={trip}
-        onBackPress={() => router.back()}
-        onMorePress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-      />
-
+    <View style={styles.container}>
       <FlatList
         contentContainerStyle={styles.images}
         data={localImages}
@@ -87,7 +77,7 @@ export default function TripImagesScreen() {
           </View>
         )}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

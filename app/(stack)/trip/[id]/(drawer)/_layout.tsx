@@ -1,13 +1,25 @@
 import { DrawerTrip } from "@/components/drawer/trip";
+import {
+  HeaderTripBackButton,
+  HeaderTripTitle,
+} from "@/components/header/trip";
+import { useAuthSession } from "@/hook/use-auth-session";
+import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { DrawerToggleButton } from "@react-navigation/drawer";
+import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
-import { Text, TouchableOpacity } from "react-native";
 
 export default function Layout() {
-  // Get id from route params (available because we're nested under trip/[id])
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { session } = useAuthSession();
+
+  const { data: localTrip } = useQuery({
+    queryKey: ["local-trip", String(id), session?.user.id],
+    queryFn: () => actionGetLocalTrip(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
 
   return (
     <Drawer
@@ -16,10 +28,13 @@ export default function Layout() {
       }}
       screenOptions={{
         drawerPosition: "right",
-        headerLeft: (props) => (
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text>Go Back</Text>
-          </TouchableOpacity>
+        headerTitle: () => <HeaderTripTitle trip={localTrip} />,
+        headerLeft: () => (
+          <HeaderTripBackButton
+            onPress={() => {
+              router.back();
+            }}
+          />
         ),
         headerRight: () => <DrawerToggleButton />,
       }}
@@ -46,28 +61,24 @@ export default function Layout() {
         name="documents"
         options={{
           title: "Documents",
-          headerShown: false,
         }}
       />
       <Drawer.Screen
         name="images"
         options={{
           title: "Images",
-          headerShown: false,
         }}
       />
       <Drawer.Screen
         name="expenses"
         options={{
           title: "Expenses",
-          headerShown: false,
         }}
       />
       <Drawer.Screen
         name="companions"
         options={{
           title: "Companions",
-          headerShown: false,
         }}
       />
     </Drawer>

@@ -1,6 +1,5 @@
 import { CardCompanionRegular } from "@/components/card/companion/regular";
 import { ButtonFab } from "@/components/button/fab";
-import { HeaderTrip } from "@/components/header/trip";
 import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
@@ -8,13 +7,11 @@ import { useSystemMessage } from "@/hook/use-system-message";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { actionListTripInvitationsByTrip } from "@/lib/supabase/actions";
 import { type Companion } from "@/types/trip";
-import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Plus as PlusIcon } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 const MAX_COMPANIONS = 10;
 
@@ -25,7 +22,6 @@ export default function TripCompanionsScreen() {
     invitedUserName?: string;
   }>();
   const router = useRouter();
-  const navigation = useNavigation();
   const { session } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
 
@@ -121,13 +117,7 @@ export default function TripCompanionsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <HeaderTrip
-        trip={trip}
-        onBackPress={() => router.back()}
-        onMorePress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-      />
-
+    <View style={styles.container}>
       <FlatList
         contentContainerStyle={styles.companions}
         data={companions}
@@ -163,7 +153,7 @@ export default function TripCompanionsScreen() {
         icon={(color) => <PlusIcon size={20} color={color} />}
       />
       <SystemMessageModal />
-    </SafeAreaView>
+    </View>
   );
 }
 

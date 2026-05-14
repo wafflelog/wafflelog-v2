@@ -2,7 +2,6 @@ import { CardDocument } from "@/components/card/document";
 import { ButtonFab } from "@/components/button/fab";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { DialogNewDocument } from "@/components/dialog/new-document";
-import { HeaderTrip } from "@/components/header/trip";
 import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
@@ -12,13 +11,11 @@ import {
   actionSoftDeleteLocalDocument,
 } from "@/lib/sqlite/model/document";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
-import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Plus as PlusIcon } from "lucide-react-native";
 import { useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TripDocumentsScreen() {
   const [isDialogNewDocumentVisible, setIsDialogNewDocumentVisible] =
@@ -29,7 +26,6 @@ export default function TripDocumentsScreen() {
   );
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const navigation = useNavigation();
   const { session } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const queryClient = useQueryClient();
@@ -104,13 +100,7 @@ export default function TripDocumentsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <HeaderTrip
-        trip={trip}
-        onBackPress={() => router.back()}
-        onMorePress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-      />
-
+    <View style={styles.container}>
       <FlatList
         contentContainerStyle={styles.documents}
         data={localDocuments}
@@ -174,7 +164,7 @@ export default function TripDocumentsScreen() {
         confirmVariant="danger"
       />
       <SystemMessageModal />
-    </SafeAreaView>
+    </View>
   );
 }
 

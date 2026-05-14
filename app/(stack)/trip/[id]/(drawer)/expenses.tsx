@@ -1,5 +1,4 @@
 import { CardExpenseRegular } from "@/components/card/expense/regular";
-import { HeaderTrip } from "@/components/header/trip";
 import { TripExpenseSummary } from "@/components/trip/expense-summary";
 import { UITab } from "@/components/ui/tab";
 import { UIText } from "@/components/ui/text";
@@ -8,17 +7,13 @@ import { useAuthSession } from "@/hook/use-auth-session";
 import { actionListLocalExpensesByTrip } from "@/lib/sqlite/model/expense";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { type Currency } from "@/types/pin";
-import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TripExpensesScreen() {
   const { id } = useLocalSearchParams();
-  const router = useRouter();
-  const navigation = useNavigation();
   const { session } = useAuthSession();
 
   const [activeCurrency, setActiveCurrency] = useState<Currency | null>(null);
@@ -85,12 +80,7 @@ export default function TripExpensesScreen() {
   }));
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <HeaderTrip
-        trip={trip}
-        onBackPress={() => router.back()}
-        onMorePress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-      />
+    <View style={styles.container}>
       {tabs.length > 0 && (
         <View style={styles.tabs}>
           {tabs.map((tab) => (
@@ -138,7 +128,7 @@ export default function TripExpensesScreen() {
           )}
         />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

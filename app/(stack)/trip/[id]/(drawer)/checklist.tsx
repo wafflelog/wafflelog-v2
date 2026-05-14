@@ -10,9 +10,8 @@ import {
   actionSoftDeleteLocalChecklistItem,
   actionToggleLocalChecklistItemCompleted,
 } from "@/lib/sqlite/model/checklist-item";
-import { useNavigation } from "@react-navigation/native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import {
   Plus as PlusIcon,
   User as UserIcon,
@@ -20,14 +19,11 @@ import {
 } from "lucide-react-native";
 import { useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 type TabId = "my" | "public";
 
 export default function TripChecklistScreen() {
   const { id } = useLocalSearchParams();
-  const router = useRouter();
-  const navigation = useNavigation();
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
 
@@ -82,7 +78,7 @@ export default function TripChecklistScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <View style={styles.container}>
       <View style={styles.tabs}>
         {tabs.map((tab) => (
           <UITab
@@ -142,7 +138,7 @@ export default function TripChecklistScreen() {
         isPending={softDeleteChecklistItemMutation.isPending}
         confirmVariant="danger"
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

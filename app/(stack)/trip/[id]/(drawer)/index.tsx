@@ -1,6 +1,5 @@
 import { ButtonFab } from "@/components/button/fab";
 import { DialogNewPin } from "@/components/dialog/new-pin";
-import { HeaderTrip } from "@/components/header/trip";
 import { TitleRegular } from "@/components/title/regular";
 import { TripCategoryFilter } from "@/components/trip/category-filter";
 import { TripDaysTab } from "@/components/trip/days-tab";
@@ -16,19 +15,15 @@ import {
 } from "@/lib/sqlite/model/trip";
 import { type Pin } from "@/types/pin";
 import { type Trip } from "@/types/trip";
-import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { Plus as PlusIcon } from "lucide-react-native";
 import { useMemo, useRef, useState } from "react";
 import { FlatList, ScrollView, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TripIndexScreen() {
   const { id } = useLocalSearchParams();
-  const router = useRouter();
-  const navigation = useNavigation();
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
   const carouselRef = useRef<FlatList>(null);
@@ -147,24 +142,11 @@ export default function TripIndexScreen() {
   }, [trip, numOfDays, selectedDayIndex, selectedDayPins]);
 
   if (!trip) {
-    return (
-      <SafeAreaView style={styles.container} edges={["top"]}>
-        <HeaderTrip
-          onBackPress={() => router.back()}
-          onMorePress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-        />
-      </SafeAreaView>
-    );
+    return <View style={styles.container} />;
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <HeaderTrip
-        trip={trip}
-        onBackPress={() => router.back()}
-        onMorePress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-      />
-
+    <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
@@ -197,7 +179,7 @@ export default function TripIndexScreen() {
         visible={isDialogNewPinOpen}
         onDismiss={() => setIsDialogNewPinOpen(false)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
