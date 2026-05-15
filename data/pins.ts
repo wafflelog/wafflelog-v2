@@ -1,33 +1,6 @@
-import { Pin, PinCategory } from "@/types/pin";
+import { CATEGORIES } from "@/constants/pin-categories";
+import { Pin } from "@/types/pin";
 import { USERS } from "./users";
-
-export const CATEGORIES: PinCategory[] = [
-  {
-    id: "category-1",
-    name: "attraction",
-    color: "turquoise",
-  },
-  {
-    id: "category-2",
-    name: "restaurant",
-    color: "orange",
-  },
-  {
-    id: "category-3",
-    name: "hotel",
-    color: "purple",
-  },
-  {
-    id: "category-4",
-    name: "shopping",
-    color: "red",
-  },
-  {
-    id: "category-5",
-    name: "nature",
-    color: "pineGreen",
-  },
-];
 
 export const PINS = [
   {

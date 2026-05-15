@@ -3,18 +3,25 @@ import { PinExpenses } from "@/components/pin/expenses";
 import { PinImages } from "@/components/pin/images";
 import { PinLinks } from "@/components/pin/links";
 import { UIText } from "@/components/ui/text";
-import { CATEGORIES } from "@/data/pins";
+import { CATEGORIES } from "@/constants/pin-categories";
 import { useAuthSession } from "@/hook/use-auth-session";
 import {
   actionGetLocalPin,
   actionUpsertLocalPinFromRemote,
 } from "@/lib/sqlite/model/pin";
+import { actionListLocalNotesByPin } from "@/lib/sqlite/model/note";
 import { actionGetRemotePinById } from "@/lib/supabase/actions";
 import { type Pin } from "@/types/pin";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
@@ -68,6 +75,14 @@ export default function PinIndexScreen() {
     queryFn: () => actionGetLocalPinLocation(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
   });
+  const { data: localNotes = [] } = useQuery({
+    queryKey: ["local-notes", String(id), session?.user.id],
+    queryFn: () => actionListLocalNotesByPin(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
+
+  const noteCount = localNotes.length;
+  const noteBadgeText = noteCount > 99 ? "99+" : String(noteCount);
 
   const pin: Pin | null = localPin
     ? {
@@ -201,6 +216,11 @@ export default function PinIndexScreen() {
         activeOpacity={0.8}
       >
         <SquarePenIcon size={24} color="#fff" />
+        {noteCount > 0 && (
+          <View style={styles.noteBadge}>
+            <Text style={styles.noteBadgeText}>{noteBadgeText}</Text>
+          </View>
+        )}
       </TouchableOpacity>
       <SystemMessageModal />
     </SafeAreaView>
@@ -242,5 +262,23 @@ const styles = StyleSheet.create({
     ...getCardBasicStyle("lg"),
     backgroundColor: getColor(colors.purple),
     borderRadius: "50%",
+  },
+  noteBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    minWidth: 20,
+    maxWidth: 30,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: getColor(colors.waffle),
+  },
+  noteBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#fff",
   },
 });

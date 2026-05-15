@@ -94,7 +94,7 @@ export function DrawerPin({ id }: DrawerPinProps) {
               label: pin.name,
               isActive: id === pin.id,
               onPress: () => {
-                router.navigate(`/pin/${pin.id}`);
+                router.replace(`/pin/${pin.id}`);
               },
               icon: (color) => (
                 <MapPinIcon

@@ -3,6 +3,9 @@ import { type PinCategory } from "@/types/pin";
 
 import {
   BedDouble,
+  Bus,
+  CalendarDays,
+  CircleHelp,
   Landmark,
   Mountain,
   ShoppingBag,
@@ -23,10 +26,10 @@ export const IconPinCategory = ({
     .with("attraction", () => (
       <Landmark size={size} color={getColor(colors[category.color])} />
     ))
-    .with("restaurant", () => (
+    .with("food", () => (
       <Utensils size={size} color={getColor(colors[category.color])} />
     ))
-    .with("hotel", () => (
+    .with("accommodation", () => (
       <BedDouble size={size} color={getColor(colors[category.color])} />
     ))
     .with("shopping", () => (
@@ -34,6 +37,15 @@ export const IconPinCategory = ({
     ))
     .with("nature", () => (
       <Mountain size={size} color={getColor(colors[category.color])} />
+    ))
+    .with("transport", () => (
+      <Bus size={size} color={getColor(colors[category.color])} />
+    ))
+    .with("event", () => (
+      <CalendarDays size={size} color={getColor(colors[category.color])} />
+    ))
+    .with("other", () => (
+      <CircleHelp size={size} color={getColor(colors[category.color])} />
     ))
     .exhaustive();
 };

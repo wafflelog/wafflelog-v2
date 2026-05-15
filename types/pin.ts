@@ -82,7 +82,15 @@ export type Pin = {
 };
 
 export type PinCategory = {
-  id: string;
-  name: "attraction" | "restaurant" | "hotel" | "shopping" | "nature";
+  id:
+    | "attraction"
+    | "food"
+    | "accommodation"
+    | "shopping"
+    | "nature"
+    | "transport"
+    | "event"
+    | "other";
+  name: PinCategory["id"];
   color: keyof typeof colors;
 };

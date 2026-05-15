@@ -4,7 +4,7 @@ import { UIInputSelect } from "@/components/ui/input/select";
 import { UIInputText } from "@/components/ui/input/text";
 import { UIInputTime } from "@/components/ui/input/time";
 import { gaps } from "@/constants/theme";
-import { CATEGORIES } from "@/data/pins";
+import { CATEGORIES } from "@/constants/pin-categories";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import {

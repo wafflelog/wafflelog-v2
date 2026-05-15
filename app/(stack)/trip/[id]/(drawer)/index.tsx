@@ -5,7 +5,7 @@ import { TripCategoryFilter } from "@/components/trip/category-filter";
 import { TripDaysTab } from "@/components/trip/days-tab";
 import { TripPinsList } from "@/components/trip/pins-list";
 import { colors, getColor } from "@/constants/theme";
-import { CATEGORIES } from "@/data";
+import { CATEGORIES } from "@/constants/pin-categories";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionGetRemoteTripById } from "@/lib/supabase/actions";
 import { actionListLocalPinsByTripAndDate } from "@/lib/sqlite/model/pin";

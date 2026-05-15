@@ -1,7 +1,7 @@
-import { CATEGORIES } from "@/data/pins";
+import { CATEGORIES } from "@/constants/pin-categories";
 import { iso, z } from "zod";
 
-const categoryIds = CATEGORIES.map((category) => category.id);
+const categoryIds: string[] = CATEGORIES.map((category) => category.id);
 
 export const newPinFormSchema = z.object({
   pinName: z.string().trim().min(1, "Enter a pin name").max(200, "Pin name is too long"),
