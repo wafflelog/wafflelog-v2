@@ -1,4 +1,3 @@
-import { HeaderPin } from "@/components/header/pin";
 import { PinDocuments } from "@/components/pin/documents";
 import { PinExpenses } from "@/components/pin/expenses";
 import { PinImages } from "@/components/pin/images";
@@ -6,13 +5,12 @@ import { PinLinks } from "@/components/pin/links";
 import { UIText } from "@/components/ui/text";
 import { CATEGORIES } from "@/data/pins";
 import { useAuthSession } from "@/hook/use-auth-session";
-import { actionGetRemotePinById } from "@/lib/supabase/actions";
 import {
   actionGetLocalPin,
   actionUpsertLocalPinFromRemote,
 } from "@/lib/sqlite/model/pin";
+import { actionGetRemotePinById } from "@/lib/supabase/actions";
 import { type Pin } from "@/types/pin";
-import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -34,7 +32,6 @@ export default function PinIndexScreen() {
   const router = useRouter();
   const { session } = useAuthSession();
   const color = getColor(colors.purple);
-  const navigation = useNavigation();
   const queryClient = useQueryClient();
   const { showMessage, SystemMessageModal } = useSystemMessage();
 
@@ -101,7 +98,9 @@ export default function PinIndexScreen() {
   }) => {
     try {
       if (!document.localUri) {
-        throw new Error("This document is not available offline on this device");
+        throw new Error(
+          "This document is not available offline on this device",
+        );
       }
 
       router.push({
@@ -145,13 +144,7 @@ export default function PinIndexScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-      <HeaderPin
-        pin={pin}
-        onBackPress={() => router.back()}
-        onMorePress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-      />
-
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.map}></View>
         <View style={styles.content}>

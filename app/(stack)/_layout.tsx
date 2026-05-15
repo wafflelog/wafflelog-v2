@@ -11,9 +11,9 @@ export default function Layout() {
         <Stack.Screen name="user" options={{ headerShown: false }} />
         <Stack.Screen
           name="trip/[id]/(drawer)"
-          options={{ headerShown: true }}
+          options={{ headerShown: false }}
         />
-        <Stack.Screen name="pin/[id]/(stack)" options={{ headerShown: true }} />
+        <Stack.Screen name="pin/[id]/(stack)" options={{ headerShown: false }} />
         <Stack.Screen
           name="notification-center"
           options={{ headerShown: false }}

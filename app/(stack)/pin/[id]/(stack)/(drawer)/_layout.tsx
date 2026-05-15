@@ -1,10 +1,28 @@
 import { DrawerPin } from "@/components/drawer/pin";
+import { HeaderPinBackButton, HeaderPinTitle } from "@/components/header/pin";
+import { useAuthSession } from "@/hook/use-auth-session";
+import { actionGetLocalPin } from "@/lib/sqlite/model/pin";
 import { DrawerToggleButton } from "@react-navigation/drawer";
-import { useLocalSearchParams } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
+import { useGlobalSearchParams, useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
+import { useEffect } from "react";
 
 export default function Layout() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useGlobalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const { session } = useAuthSession();
+
+  useEffect(() => {
+    console.log("PinIndexScreen params:", { id });
+  }, [id]);
+
+  const { data: localPin } = useQuery({
+    queryKey: ["local-pin", String(id), session?.user.id],
+    queryFn: () => actionGetLocalPin(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
+
   return (
     <Drawer
       drawerContent={(props) => {
@@ -12,7 +30,15 @@ export default function Layout() {
       }}
       screenOptions={{
         drawerPosition: "right",
-        headerLeft: () => <DrawerToggleButton />,
+        headerTitle: () => <HeaderPinTitle pin={localPin} />,
+        headerLeft: () => (
+          <HeaderPinBackButton
+            onPress={() => {
+              router.back();
+            }}
+          />
+        ),
+        headerRight: () => <DrawerToggleButton />,
       }}
     >
       <Drawer.Screen name="index" options={{ headerShown: true }} />

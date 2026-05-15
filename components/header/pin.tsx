@@ -13,6 +13,14 @@ type HeaderDefaultProps = {
   onMorePress: () => void;
 };
 
+type HeaderPinTitleProps = {
+  pin?: Pick<Pin, "name" | "time"> | null;
+};
+
+type HeaderPinButtonProps = {
+  onPress: () => void;
+};
+
 export const HeaderPin = ({
   pin,
   onBackPress,
@@ -34,6 +42,31 @@ export const HeaderPin = ({
   );
 };
 
+export const HeaderPinTitle = ({ pin }: HeaderPinTitleProps) => {
+  if (!pin) {
+    return null;
+  }
+
+  return (
+    <View style={styles.nativeTitle}>
+      <Text style={styles.headerTitle} numberOfLines={1}>
+        {pin.name}
+      </Text>
+      <Text style={styles.headerSubtitle} numberOfLines={1}>
+        {pin.time}
+      </Text>
+    </View>
+  );
+};
+
+export const HeaderPinBackButton = ({ onPress }: HeaderPinButtonProps) => {
+  return (
+    <TouchableOpacity style={styles.nativeButton} onPress={onPress}>
+      <ChevronLeftIcon size={24} color={getColor(colors.textDarkGrey)} />
+    </TouchableOpacity>
+  );
+};
+
 const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
@@ -52,6 +85,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
   },
+  nativeTitle: {
+    alignItems: "center",
+  },
   headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
@@ -63,6 +99,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   moreButton: {
+    padding: 4,
+  },
+  nativeButton: {
     padding: 4,
   },
 });
