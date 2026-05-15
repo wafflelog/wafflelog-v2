@@ -1,3 +1,4 @@
+import { IconPinCategory } from "@/components/icon/pin-category";
 import { Dialog } from "@/components/ui/dialog";
 import { UIInputDate } from "@/components/ui/input/date";
 import { UIInputSelect } from "@/components/ui/input/select";
@@ -132,6 +133,9 @@ export const DialogNewPin = ({
             options={CATEGORIES.map((category) => ({
               label: category.name,
               value: category.id,
+              icon: (color) => (
+                <IconPinCategory category={category} color={color} size={20} />
+              ),
             }))}
             onValueChange={setPinCategoryId}
             placeholder="Select pin category"

@@ -29,6 +29,7 @@ export default function TripIndexScreen() {
   const carouselRef = useRef<FlatList>(null);
 
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [isDialogNewPinOpen, setIsDialogNewPinOpen] = useState(false);
 
   const { data: localTrip } = useQuery({
@@ -126,11 +127,17 @@ export default function TripIndexScreen() {
       images: [],
       notes: [],
     }));
+    const filteredSelectedDayPins =
+      selectedCategoryIds.length > 0
+        ? mappedSelectedDayPins.filter((pin) =>
+            selectedCategoryIds.includes(pin.category.id),
+          )
+        : mappedSelectedDayPins;
 
     return Array.from({ length: numOfDays }, (_, index) => ({
       date: dayjs(trip.startDate).add(index, "day").toISOString(),
       isActive: selectedDayIndex === index,
-      pins: selectedDayIndex === index ? mappedSelectedDayPins : [],
+      pins: selectedDayIndex === index ? filteredSelectedDayPins : [],
       onPress: () => {
         setSelectedDayIndex(index);
         carouselRef.current?.scrollToIndex({
@@ -139,7 +146,13 @@ export default function TripIndexScreen() {
         });
       },
     }));
-  }, [trip, numOfDays, selectedDayIndex, selectedDayPins]);
+  }, [
+    trip,
+    numOfDays,
+    selectedDayIndex,
+    selectedDayPins,
+    selectedCategoryIds,
+  ]);
 
   if (!trip) {
     return <View style={styles.container} />;
@@ -152,7 +165,11 @@ export default function TripIndexScreen() {
         contentContainerStyle={styles.content}
       >
         <View style={styles.top}>
-          <TripCategoryFilter categories={CATEGORIES} />
+          <TripCategoryFilter
+            categories={CATEGORIES}
+            selectedCategoryIds={selectedCategoryIds}
+            onSelectedCategoryIdsChange={setSelectedCategoryIds}
+          />
         </View>
 
         <View style={styles.itinerary}>

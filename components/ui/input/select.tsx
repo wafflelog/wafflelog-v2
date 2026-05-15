@@ -8,11 +8,12 @@ import {
   getColor,
 } from "@/constants/theme";
 import { useState } from "react";
-import { FlatList, StyleSheet, TouchableOpacity } from "react-native";
+import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
 
 type SelectOption = {
   label: string;
   value: string;
+  icon?: (color: string) => React.ReactNode;
 };
 
 type UIInputSelectProps = {
@@ -58,9 +59,12 @@ export const UIInputSelect = ({
         activeOpacity={0.7}
       >
         {displayValue ? (
-          <TitleRegular size="md" color={colors.textDarkGrey}>
-            {displayValue}
-          </TitleRegular>
+          <View style={styles.value}>
+            {selectedOption?.icon?.(getColor(colors.textDarkGrey))}
+            <TitleRegular size="md" color={colors.textDarkGrey}>
+              {displayValue}
+            </TitleRegular>
+          </View>
         ) : (
           <TitleRegular size="md" color={colors.textLightGrey}>
             {placeholder}
@@ -86,6 +90,11 @@ export const UIInputSelect = ({
               onPress={() => handleSelect(item.value)}
               activeOpacity={0.7}
             >
+              {item.icon?.(
+                selectedValue === item.value
+                  ? getColor(colors.blue)
+                  : getColor(colors.textDarkGrey)
+              )}
               <TitleRegular
                 size="md"
                 color={
@@ -115,6 +124,11 @@ const styles = StyleSheet.create({
     minHeight: fontSizes.md + gaps.sm * 2,
     justifyContent: "center",
   },
+  value: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: gaps.sm,
+  },
   optionsList: {
     padding: gaps.sm,
   },
@@ -122,6 +136,9 @@ const styles = StyleSheet.create({
     padding: gaps.md,
     borderRadius: borderRadiuses.sm,
     marginBottom: gaps.xs,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: gaps.sm,
   },
   optionSelected: {
     backgroundColor: getColor(colors.blue, 0.1),

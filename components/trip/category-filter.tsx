@@ -2,18 +2,28 @@ import { IconPinCategory } from "@/components/icon/pin-category";
 import { UIText } from "@/components/ui/text";
 import { colors, getColor } from "@/constants/theme";
 import { type PinCategory } from "@/types/pin";
-import { useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { TitleRegular } from "../title/regular";
 
 export const TripCategoryFilter = ({
   categories,
+  selectedCategoryIds,
+  onSelectedCategoryIdsChange,
 }: {
   categories: PinCategory[];
+  selectedCategoryIds: string[];
+  onSelectedCategoryIdsChange: (categoryIds: string[]) => void;
 }) => {
-  const [selectedCategories, setSelectedCategories] = useState<PinCategory[]>(
-    [],
-  );
+  const handleToggleCategory = (categoryId: string) => {
+    if (selectedCategoryIds.includes(categoryId)) {
+      onSelectedCategoryIdsChange(
+        selectedCategoryIds.filter((selectedId) => selectedId !== categoryId),
+      );
+      return;
+    }
+
+    onSelectedCategoryIdsChange([...selectedCategoryIds, categoryId]);
+  };
 
   return (
     <View style={styles.container}>
@@ -21,8 +31,8 @@ export const TripCategoryFilter = ({
         <TitleRegular size="md" weight="600">
           Filter by category
         </TitleRegular>
-        {selectedCategories.length > 0 && (
-          <TouchableOpacity onPress={() => setSelectedCategories([])}>
+        {selectedCategoryIds.length > 0 && (
+          <TouchableOpacity onPress={() => onSelectedCategoryIdsChange([])}>
             <UIText style={styles.clear} weight="600">
               Clear
             </UIText>
@@ -35,16 +45,16 @@ export const TripCategoryFilter = ({
         contentContainerStyle={styles.content}
       >
         {categories.map((category) => {
+          const isSelected = selectedCategoryIds.includes(category.id);
+
           return (
             <TouchableOpacity
               key={category.id}
               style={[
                 styles.item,
-                selectedCategories.includes(category) && styles.itemActive,
+                isSelected && styles.itemActive,
               ]}
-              onPress={() =>
-                setSelectedCategories([...selectedCategories, category])
-              }
+              onPress={() => handleToggleCategory(category.id)}
             >
               <IconPinCategory category={category} size={18} />
               <UIText style={styles.itemText} weight="500">
