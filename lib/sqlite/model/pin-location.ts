@@ -16,6 +16,21 @@ export type LocalPinLocation = {
   updatedAt: string;
 };
 
+export type LocalPinWithLocation = {
+  id: string;
+  tripId: string;
+  userId: string;
+  name: string;
+  date: string;
+  time: string;
+  categoryId: string;
+  placeId: string;
+  displayName: string;
+  formattedAddress: string;
+  latitude: number;
+  longitude: number;
+};
+
 export type UpsertLocalPinLocationInput = {
   pinId: string;
   userId: string;
@@ -174,4 +189,68 @@ export async function actionGetLocalPinLocation(pinId: string, userId: string) {
   );
 
   return row ? mapLocalPinLocationRow(row) : null;
+}
+
+export async function actionListLocalPinLocationsByTripAndDate(
+  tripId: string,
+  userId: string,
+  date: string,
+) {
+  const rows = await sqlite.getAllAsync<{
+    id: string;
+    trip_id: string;
+    user_id: string;
+    name: string;
+    date: string;
+    time: string;
+    category_id: string;
+    place_id: string;
+    display_name: string;
+    formatted_address: string;
+    latitude: number;
+    longitude: number;
+  }>(
+    `
+      select
+        pin.id,
+        pin.trip_id,
+        pin.user_id,
+        pin.name,
+        pin.date,
+        pin.time,
+        pin.category_id,
+        pin_location.place_id,
+        pin_location.display_name,
+        pin_location.formatted_address,
+        pin_location.latitude,
+        pin_location.longitude
+      from pin
+      inner join pin_location
+        on pin_location.pin_id = pin.id
+        and pin_location.user_id = pin.user_id
+      where pin.trip_id = ?
+        and pin.user_id = ?
+        and pin.date = ?
+        and pin.deleted_at is null
+      order by pin.time asc, pin.created_at asc
+    `,
+    [tripId, userId, date],
+  );
+
+  return rows.map(
+    (row): LocalPinWithLocation => ({
+      id: row.id,
+      tripId: row.trip_id,
+      userId: row.user_id,
+      name: row.name,
+      date: row.date,
+      time: row.time,
+      categoryId: row.category_id,
+      placeId: row.place_id,
+      displayName: row.display_name,
+      formattedAddress: row.formatted_address,
+      latitude: row.latitude,
+      longitude: row.longitude,
+    }),
+  );
 }

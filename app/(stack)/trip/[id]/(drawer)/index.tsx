@@ -20,7 +20,11 @@ import { type Trip } from "@/types/trip";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Plus as PlusIcon, Trash2 as Trash2Icon } from "lucide-react-native";
+import {
+  Map as MapIcon,
+  Plus as PlusIcon,
+  Trash2 as Trash2Icon,
+} from "lucide-react-native";
 import { useMemo, useRef, useState } from "react";
 import {
   FlatList,
@@ -201,9 +205,29 @@ export default function TripIndexScreen() {
         </View>
 
         <View style={styles.itinerary}>
-          <TitleRegular size="md" weight="600">
-            Itinerary
-          </TitleRegular>
+          <View style={styles.itineraryHeader}>
+            <TitleRegular size="md" weight="600">
+              Itinerary
+            </TitleRegular>
+            <TouchableOpacity
+              style={styles.mapButton}
+              onPress={() => {
+                router.push({
+                  pathname: "/trip/[id]/map",
+                  params: {
+                    id: String(id),
+                    date: selectedDate ?? undefined,
+                  },
+                });
+              }}
+              activeOpacity={0.8}
+            >
+              <MapIcon size={16} color={getColor(colors.pineGreen)} />
+              <TitleRegular size="xs" weight="600" color={colors.pineGreen}>
+                Map
+              </TitleRegular>
+            </TouchableOpacity>
+          </View>
           <TripDaysTab tripDays={tripDays} />
         </View>
         <TripPinsList
@@ -276,6 +300,22 @@ const styles = StyleSheet.create({
   itinerary: {
     gap: 16,
     paddingHorizontal: 20,
+  },
+  itineraryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: gaps.sm,
+  },
+  mapButton: {
+    minHeight: 36,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: gaps.xxs,
+    paddingHorizontal: gaps.sm,
+    paddingVertical: gaps.xxs,
+    borderRadius: 8,
+    backgroundColor: getColor(colors.pineGreen, 0.12),
   },
   deleteTripFab: {
     position: "absolute",

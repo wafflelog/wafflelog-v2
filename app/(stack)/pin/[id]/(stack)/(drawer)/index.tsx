@@ -18,6 +18,7 @@ import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -213,21 +214,35 @@ export default function PinIndexScreen() {
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {mapPreview ? (
-          <MapView
-            style={styles.map}
-            initialRegion={mapPreview.region}
-            scrollEnabled={false}
-            zoomEnabled={false}
-            rotateEnabled={false}
-            pitchEnabled={false}
-            toolbarEnabled={false}
+          <Pressable
+            onPress={() => {
+              router.push({
+                pathname: "/trip/[id]/map",
+                params: {
+                  id: localPin.tripId,
+                  date: localPin.date,
+                  pinId: localPin.id,
+                },
+              });
+            }}
           >
-            <Marker
-              coordinate={mapPreview.coordinate}
-              title={mapPreview.title}
-              description={mapPreview.description}
-            />
-          </MapView>
+            <MapView
+              pointerEvents="none"
+              style={styles.map}
+              initialRegion={mapPreview.region}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              rotateEnabled={false}
+              pitchEnabled={false}
+              toolbarEnabled={false}
+            >
+              <Marker
+                coordinate={mapPreview.coordinate}
+                title={mapPreview.title}
+                description={mapPreview.description}
+              />
+            </MapView>
+          </Pressable>
         ) : (
           <View style={[styles.map, styles.mapPlaceholder]}>
             <MapPinIcon size={28} color={getColor(colors.textLightGrey)} />
