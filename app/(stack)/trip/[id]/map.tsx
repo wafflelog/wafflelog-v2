@@ -240,8 +240,7 @@ export default function TripMapScreen() {
           <TouchableOpacity
             style={styles.iconButton}
             onPress={() => {
-              console.log("Map Back pressed");
-              router.canGoBack() ? router.back() : router.dismissAll();
+              router.back();
             }}
             activeOpacity={0.8}
           >
@@ -352,7 +351,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: gaps.md,
     paddingTop: gaps.xs,
-    backgroundColor: "red",
     position: "absolute",
     left: 0,
     right: 0,
