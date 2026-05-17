@@ -99,6 +99,7 @@ const mapTripRow = (trip: TripRow) => ({
   endDate: trip.end_date,
   createdAt: trip.created_at,
   updatedAt: trip.updated_at,
+  deletedAt: trip.deleted_at,
 });
 
 const mapPinRow = (pin: {
@@ -355,6 +356,33 @@ export async function actionUpsertRemoteTripFromLocal(input: CreateTripInput) {
   }
 
   return mapTripRow(data);
+}
+
+export async function actionSoftDeleteRemoteTrip(tripId: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to delete a trip");
+  }
+
+  const deletedAt = new Date().toISOString();
+
+  const { error } = await supabase
+    .from("trip")
+    .update({ deleted_at: deletedAt, updated_at: deletedAt })
+    .eq("id", tripId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function actionUpsertRemotePinFromLocal(input: CreatePinInput) {
@@ -1014,7 +1042,8 @@ export async function actionListAcceptedCompanionTrips() {
   const { data: trips, error: tripsError } = await supabase
     .from("trip")
     .select("id, title, start_date, end_date, created_at, updated_at")
-    .in("id", tripIds);
+    .in("id", tripIds)
+    .is("deleted_at", null);
 
   if (tripsError) {
     throw tripsError;
@@ -1054,8 +1083,11 @@ export async function actionGetRemoteTripById(tripId: string) {
 
   const { data, error } = await supabase
     .from("trip")
-    .select("id, user_id, title, start_date, end_date, created_at, updated_at")
+    .select(
+      "id, user_id, title, start_date, end_date, created_at, updated_at, deleted_at",
+    )
     .eq("id", tripId)
+    .is("deleted_at", null)
     .single();
 
   if (error) {
@@ -1070,6 +1102,7 @@ export async function actionGetRemoteTripById(tripId: string) {
     endDate: data.end_date,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
+    deletedAt: data.deleted_at,
   };
 }
 

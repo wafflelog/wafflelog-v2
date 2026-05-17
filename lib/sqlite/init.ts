@@ -173,6 +173,10 @@ export async function initializeDatabase() {
     `pragma table_info(document);`,
   );
 
+  const tripTableColumns = await sqlite.getAllAsync<{ name: string }>(
+    `pragma table_info(trip);`,
+  );
+
   const checklistItemTableColumns = await sqlite.getAllAsync<{ name: string }>(
     `pragma table_info(checklist_item);`,
   );
@@ -192,6 +196,17 @@ export async function initializeDatabase() {
   const pinTableColumns = await sqlite.getAllAsync<{ name: string }>(
     `pragma table_info(pin);`,
   );
+
+  const hasTripDeletedAtColumn = tripTableColumns.some(
+    (column) => column.name === "deleted_at",
+  );
+
+  if (!hasTripDeletedAtColumn) {
+    await sqlite.execAsync(`
+      alter table trip
+      add column deleted_at text;
+    `);
+  }
 
   const hasPinSyncStatusColumn = pinTableColumns.some(
     (column) => column.name === "sync_status",

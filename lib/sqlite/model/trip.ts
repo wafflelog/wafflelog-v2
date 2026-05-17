@@ -1,6 +1,9 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
-import { actionUpsertRemoteTripFromLocal } from "@/lib/supabase/actions";
+import {
+  actionSoftDeleteRemoteTrip,
+  actionUpsertRemoteTripFromLocal,
+} from "@/lib/supabase/actions";
 
 export type CreateLocalTripInput = {
   userId: string;
@@ -20,6 +23,7 @@ export type LocalTrip = {
   syncStatus: string;
   lastSyncedAt: string | null;
   syncError: string | null;
+  deletedAt: string | null;
 };
 
 const DEFAULT_SYNC_BATCH_SIZE = 25;
@@ -35,6 +39,7 @@ function mapLocalTripRow(row: {
   sync_status: string;
   last_synced_at: string | null;
   sync_error: string | null;
+  deleted_at: string | null;
 }): LocalTrip {
   return {
     id: row.id,
@@ -47,6 +52,7 @@ function mapLocalTripRow(row: {
     syncStatus: row.sync_status,
     lastSyncedAt: row.last_synced_at,
     syncError: row.sync_error,
+    deletedAt: row.deleted_at,
   };
 }
 
@@ -63,6 +69,7 @@ export async function actionCreateLocalTrip(input: CreateLocalTripInput) {
     sync_status: "pending",
     last_synced_at: null,
     sync_error: null,
+    deleted_at: null,
   };
 
   await sqlite.runAsync(
@@ -77,8 +84,9 @@ export async function actionCreateLocalTrip(input: CreateLocalTripInput) {
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        sync_error,
+        deleted_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       localTrip.id,
@@ -91,6 +99,7 @@ export async function actionCreateLocalTrip(input: CreateLocalTripInput) {
       localTrip.sync_status,
       localTrip.last_synced_at,
       localTrip.sync_error,
+      localTrip.deleted_at,
     ],
   );
 
@@ -109,6 +118,7 @@ export async function actionListLocalTrips(userId: string) {
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -121,9 +131,10 @@ export async function actionListLocalTrips(userId: string) {
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from trip
-      where user_id = ?
+      where user_id = ? and deleted_at is null
       order by start_date asc, created_at desc
     `,
     [userId],
@@ -144,6 +155,7 @@ export async function actionGetLocalTrip(id: string, userId: string) {
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -156,9 +168,10 @@ export async function actionGetLocalTrip(id: string, userId: string) {
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from trip
-      where id = ? and user_id = ?
+      where id = ? and user_id = ? and deleted_at is null
       limit 1
     `,
     [id, userId],
@@ -190,8 +203,9 @@ export async function actionUpsertLocalTripFromRemote(remoteTrip: {
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        sync_error,
+        deleted_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       on conflict(id) do update set
         user_id = excluded.user_id,
         title = excluded.title,
@@ -201,7 +215,8 @@ export async function actionUpsertLocalTripFromRemote(remoteTrip: {
         updated_at = excluded.updated_at,
         sync_status = excluded.sync_status,
         last_synced_at = excluded.last_synced_at,
-        sync_error = excluded.sync_error
+        sync_error = excluded.sync_error,
+        deleted_at = excluded.deleted_at
     `,
     [
       remoteTrip.id,
@@ -213,6 +228,7 @@ export async function actionUpsertLocalTripFromRemote(remoteTrip: {
       remoteTrip.updatedAt,
       "synced",
       now,
+      null,
       null,
     ],
   );
@@ -233,6 +249,7 @@ export async function actionListPendingLocalTrips(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -245,7 +262,8 @@ export async function actionListPendingLocalTrips(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from trip
       where user_id = ? and sync_status != 'synced'
       order by created_at asc
@@ -255,6 +273,101 @@ export async function actionListPendingLocalTrips(
   );
 
   return rows.map(mapLocalTripRow);
+}
+
+export async function actionSoftDeleteLocalTrip(id: string, userId: string) {
+  const now = new Date().toISOString();
+
+  await sqlite.withTransactionAsync(async () => {
+    const softDeleteByTripId = ["checklist_item", "expense", "image", "document"];
+
+    for (const tableName of softDeleteByTripId) {
+      await sqlite.runAsync(
+        `
+          update ${tableName}
+          set
+            deleted_at = ?,
+            sync_status = ?,
+            sync_error = ?,
+            updated_at = ?
+          where trip_id = ? and user_id = ? and deleted_at is null
+        `,
+        [now, "pending", null, now, id, userId],
+      );
+    }
+
+    const softDeleteByTripPinId = ["note", "reference_link"];
+
+    for (const tableName of softDeleteByTripPinId) {
+      await sqlite.runAsync(
+        `
+          update ${tableName}
+          set
+            deleted_at = ?,
+            sync_status = ?,
+            sync_error = ?,
+            updated_at = ?
+          where pin_id in (
+            select id
+            from pin
+            where trip_id = ? and user_id = ?
+          )
+            and user_id = ?
+            and deleted_at is null
+        `,
+        [now, "pending", null, now, id, userId, userId],
+      );
+    }
+
+    await sqlite.runAsync(
+      `
+        delete from pin_location
+        where pin_id in (
+          select id
+          from pin
+          where trip_id = ? and user_id = ?
+        )
+          and user_id = ?
+      `,
+      [id, userId, userId],
+    );
+
+    await sqlite.runAsync(
+      `
+        update pin
+        set
+          deleted_at = ?,
+          sync_status = ?,
+          sync_error = ?,
+          updated_at = ?
+        where trip_id = ? and user_id = ? and deleted_at is null
+      `,
+      [now, "pending", null, now, id, userId],
+    );
+
+    await sqlite.runAsync(
+      `
+        update trip
+        set
+          deleted_at = ?,
+          sync_status = ?,
+          sync_error = ?,
+          updated_at = ?
+        where id = ? and user_id = ?
+      `,
+      [now, "pending", null, now, id, userId],
+    );
+  });
+}
+
+export async function actionHardDeleteLocalTrip(id: string, userId: string) {
+  await sqlite.runAsync(
+    `
+      delete from trip
+      where id = ? and user_id = ?
+    `,
+    [id, userId],
+  );
 }
 
 export async function actionMarkLocalTripSyncing(id: string, userId: string) {
@@ -307,6 +420,26 @@ export async function actionMarkLocalTripSyncFailed(
 }
 
 export async function actionSyncLocalTrip(localTrip: LocalTrip) {
+  if (localTrip.deletedAt) {
+    if (!localTrip.lastSyncedAt) {
+      await actionHardDeleteLocalTrip(localTrip.id, localTrip.userId);
+      return;
+    }
+
+    await actionMarkLocalTripSyncing(localTrip.id, localTrip.userId);
+
+    try {
+      await actionSoftDeleteRemoteTrip(localTrip.id);
+      await actionHardDeleteLocalTrip(localTrip.id, localTrip.userId);
+      return;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete trip";
+      await actionMarkLocalTripSyncFailed(localTrip.id, localTrip.userId, message);
+      throw error;
+    }
+  }
+
   await actionMarkLocalTripSyncing(localTrip.id, localTrip.userId);
 
   try {
