@@ -1,3 +1,7 @@
+import type {
+  HeaderBackButtonProps,
+  HeaderTitleProps,
+} from "@react-navigation/elements";
 import { colors, getColor } from "@/constants/theme";
 import { formatTime } from "@/lib/utils";
 import { type Pin } from "@/types/pin";
@@ -15,11 +19,11 @@ type HeaderDefaultProps = {
 
 type HeaderPinTitleProps = {
   pin?: Pick<Pin, "name" | "time"> | null;
-};
+} & Partial<HeaderTitleProps>;
 
 type HeaderPinButtonProps = {
   onPress: () => void;
-};
+} & HeaderBackButtonProps;
 
 export const HeaderPin = ({
   pin,
@@ -42,27 +46,64 @@ export const HeaderPin = ({
   );
 };
 
-export const HeaderPinTitle = ({ pin }: HeaderPinTitleProps) => {
+export const HeaderPinTitle = ({
+  allowFontScaling,
+  onLayout,
+  pin,
+  tintColor,
+}: HeaderPinTitleProps) => {
   if (!pin) {
     return null;
   }
 
   return (
     <View style={styles.nativeTitle}>
-      <Text style={styles.headerTitle} numberOfLines={1}>
+      <Text
+        style={[
+          styles.headerTitle,
+          tintColor ? { color: tintColor } : null,
+        ]}
+        numberOfLines={1}
+        allowFontScaling={allowFontScaling}
+        onLayout={onLayout}
+      >
         {pin.name}
       </Text>
-      <Text style={styles.headerSubtitle} numberOfLines={1}>
-        {pin.time}
+      <Text
+        style={styles.headerSubtitle}
+        numberOfLines={1}
+        allowFontScaling={allowFontScaling}
+      >
+        {formatTime(pin.time)}
       </Text>
     </View>
   );
 };
 
-export const HeaderPinBackButton = ({ onPress }: HeaderPinButtonProps) => {
+export const HeaderPinBackButton = ({
+  accessibilityLabel,
+  disabled,
+  onPress,
+  pressOpacity,
+  style,
+  testID,
+  tintColor,
+}: HeaderPinButtonProps) => {
   return (
-    <TouchableOpacity style={styles.nativeButton} onPress={onPress}>
-      <ChevronLeftIcon size={24} color={getColor(colors.textDarkGrey)} />
+    <TouchableOpacity
+      style={[styles.nativeButton, style]}
+      onPress={onPress}
+      disabled={disabled}
+      activeOpacity={pressOpacity}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      testID={testID}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+    >
+      <ChevronLeftIcon
+        size={24}
+        color={tintColor ?? getColor(colors.textDarkGrey)}
+      />
     </TouchableOpacity>
   );
 };
@@ -102,6 +143,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   nativeButton: {
-    padding: 4,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

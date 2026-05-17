@@ -24,6 +24,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import MapView, { Marker } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
@@ -88,6 +89,22 @@ export default function PinIndexScreen() {
 
   const noteCount = localNotes.length;
   const noteBadgeText = noteCount > 99 ? "99+" : String(noteCount);
+  const mapPreview = localPinLocation
+    ? {
+        coordinate: {
+          latitude: localPinLocation.latitude,
+          longitude: localPinLocation.longitude,
+        },
+        region: {
+          latitude: localPinLocation.latitude,
+          longitude: localPinLocation.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        },
+        title: localPinLocation.displayName,
+        description: localPinLocation.formattedAddress,
+      }
+    : null;
 
   const softDeletePinMutation = useMutation({
     mutationFn: () => actionSoftDeleteLocalPin(localPin!.id, session!.user.id),
@@ -195,7 +212,33 @@ export default function PinIndexScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.map}></View>
+        {mapPreview ? (
+          <MapView
+            style={styles.map}
+            initialRegion={mapPreview.region}
+            scrollEnabled={false}
+            zoomEnabled={false}
+            rotateEnabled={false}
+            pitchEnabled={false}
+            toolbarEnabled={false}
+          >
+            <Marker
+              coordinate={mapPreview.coordinate}
+              title={mapPreview.title}
+              description={mapPreview.description}
+            />
+          </MapView>
+        ) : (
+          <View style={[styles.map, styles.mapPlaceholder]}>
+            <MapPinIcon size={28} color={getColor(colors.textLightGrey)} />
+            <TitleRegular size="sm" weight="600" color={colors.textDarkGrey}>
+              No location selected
+            </TitleRegular>
+            <TitleRegular size="xs" color={colors.textLightGrey}>
+              Add a place to preview it on the map
+            </TitleRegular>
+          </View>
+        )}
         <View style={styles.content}>
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -308,7 +351,12 @@ const styles = StyleSheet.create({
   map: {
     width: "100%",
     aspectRatio: 1.5,
-    backgroundColor: "red",
+  },
+  mapPlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: getColor(colors.whiteGrey, 0.35),
+    gap: 6,
   },
   section: {
     gap: 6,

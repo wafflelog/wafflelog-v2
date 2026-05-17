@@ -65,7 +65,11 @@ export const HeaderTripTitle = ({ trip }: HeaderTripTitleProps) => {
 
 export const HeaderTripBackButton = ({ onPress }: HeaderTripButtonProps) => {
   return (
-    <TouchableOpacity style={styles.nativeButton} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.nativeButton}
+      onPress={onPress}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+    >
       <ChevronLeftIcon size={24} color={getColor(colors.textDarkGrey)} />
     </TouchableOpacity>
   );
@@ -73,7 +77,11 @@ export const HeaderTripBackButton = ({ onPress }: HeaderTripButtonProps) => {
 
 export const HeaderTripMenuButton = ({ onPress }: HeaderTripButtonProps) => {
   return (
-    <TouchableOpacity style={styles.nativeButton} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.nativeButton}
+      onPress={onPress}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+    >
       <MenuIcon size={24} color={getColor(colors.textDarkGrey)} />
     </TouchableOpacity>
   );
@@ -114,6 +122,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   nativeButton: {
-    padding: 4,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

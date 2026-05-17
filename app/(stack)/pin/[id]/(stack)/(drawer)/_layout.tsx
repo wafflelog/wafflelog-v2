@@ -6,16 +6,11 @@ import { DrawerToggleButton } from "@react-navigation/drawer";
 import { useQuery } from "@tanstack/react-query";
 import { useGlobalSearchParams, useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
-import { useEffect } from "react";
 
 export default function Layout() {
   const { id } = useGlobalSearchParams<{ id: string }>();
   const router = useRouter();
   const { session } = useAuthSession();
-
-  useEffect(() => {
-    console.log("PinIndexScreen params:", { id });
-  }, [id]);
 
   const { data: localPin } = useQuery({
     queryKey: ["local-pin", String(id), session?.user.id],
@@ -30,15 +25,17 @@ export default function Layout() {
       }}
       screenOptions={{
         drawerPosition: "right",
-        headerTitle: () => <HeaderPinTitle pin={localPin} />,
-        headerLeft: () => (
+        headerTitle: (props) => <HeaderPinTitle {...props} pin={localPin} />,
+        headerLeft: (props) => (
           <HeaderPinBackButton
+            {...props}
             onPress={() => {
+              console.log("Back button pressed", router.canGoBack());
               router.back();
             }}
           />
         ),
-        headerRight: () => <DrawerToggleButton />,
+        headerRight: (props) => <DrawerToggleButton {...props} />,
       }}
     >
       <Drawer.Screen name="index" options={{ headerShown: true }} />
