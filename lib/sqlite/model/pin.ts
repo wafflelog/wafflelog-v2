@@ -1,6 +1,9 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
-import { actionUpsertRemotePinFromLocal } from "@/lib/supabase/actions";
+import {
+  actionSoftDeleteRemotePin,
+  actionUpsertRemotePinFromLocal,
+} from "@/lib/supabase/actions";
 
 export type LocalPin = {
   id: string;
@@ -15,6 +18,7 @@ export type LocalPin = {
   syncStatus: string;
   lastSyncedAt: string | null;
   syncError: string | null;
+  deletedAt: string | null;
 };
 
 export type CreateLocalPinInput = {
@@ -41,6 +45,7 @@ function mapLocalPinRow(row: {
   sync_status: string;
   last_synced_at: string | null;
   sync_error: string | null;
+  deleted_at: string | null;
 }): LocalPin {
   return {
     id: row.id,
@@ -55,6 +60,7 @@ function mapLocalPinRow(row: {
     syncStatus: row.sync_status,
     lastSyncedAt: row.last_synced_at,
     syncError: row.sync_error,
+    deletedAt: row.deleted_at,
   };
 }
 
@@ -73,6 +79,7 @@ export async function actionCreateLocalPin(input: CreateLocalPinInput) {
     sync_status: "pending",
     last_synced_at: null,
     sync_error: null,
+    deleted_at: null,
   };
 
   await sqlite.runAsync(
@@ -89,8 +96,9 @@ export async function actionCreateLocalPin(input: CreateLocalPinInput) {
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        sync_error,
+        deleted_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       localPin.id,
@@ -105,6 +113,7 @@ export async function actionCreateLocalPin(input: CreateLocalPinInput) {
       localPin.sync_status,
       localPin.last_synced_at,
       localPin.sync_error,
+      localPin.deleted_at,
     ],
   );
 
@@ -125,6 +134,7 @@ export async function actionListLocalPins(tripId: string, userId: string) {
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -139,9 +149,10 @@ export async function actionListLocalPins(tripId: string, userId: string) {
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from pin
-      where trip_id = ? and user_id = ?
+      where trip_id = ? and user_id = ? and deleted_at is null
       order by date asc, time asc, created_at asc
     `,
     [tripId, userId],
@@ -168,6 +179,7 @@ export async function actionListLocalPinsByTripAndDate(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -182,9 +194,10 @@ export async function actionListLocalPinsByTripAndDate(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from pin
-      where trip_id = ? and user_id = ? and date = ?
+      where trip_id = ? and user_id = ? and date = ? and deleted_at is null
       order by time asc, created_at asc
     `,
     [tripId, userId, date],
@@ -207,6 +220,7 @@ export async function actionGetLocalPin(id: string, userId: string) {
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -221,9 +235,10 @@ export async function actionGetLocalPin(id: string, userId: string) {
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from pin
-      where id = ? and user_id = ?
+      where id = ? and user_id = ? and deleted_at is null
       limit 1
     `,
     [id, userId],
@@ -259,8 +274,9 @@ export async function actionUpsertLocalPinFromRemote(remotePin: {
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        sync_error,
+        deleted_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       on conflict(id) do update set
         trip_id = excluded.trip_id,
         user_id = excluded.user_id,
@@ -272,7 +288,8 @@ export async function actionUpsertLocalPinFromRemote(remotePin: {
         updated_at = excluded.updated_at,
         sync_status = excluded.sync_status,
         last_synced_at = excluded.last_synced_at,
-        sync_error = excluded.sync_error
+        sync_error = excluded.sync_error,
+        deleted_at = excluded.deleted_at
     `,
     [
       remotePin.id,
@@ -286,6 +303,7 @@ export async function actionUpsertLocalPinFromRemote(remotePin: {
       remotePin.updatedAt,
       "synced",
       now,
+      null,
       null,
     ],
   );
@@ -308,6 +326,7 @@ export async function actionListPendingLocalPins(
     sync_status: string;
     last_synced_at: string | null;
     sync_error: string | null;
+    deleted_at: string | null;
   }>(
     `
       select
@@ -322,7 +341,8 @@ export async function actionListPendingLocalPins(
         updated_at,
         sync_status,
         last_synced_at,
-        sync_error
+        sync_error,
+        deleted_at
       from pin
       where user_id = ? and sync_status != 'synced'
       order by created_at asc
@@ -332,6 +352,66 @@ export async function actionListPendingLocalPins(
   );
 
   return rows.map(mapLocalPinRow);
+}
+
+export async function actionSoftDeleteLocalPin(id: string, userId: string) {
+  const now = new Date().toISOString();
+
+  await sqlite.withTransactionAsync(async () => {
+    const softDeleteByPinId = [
+      "note",
+      "reference_link",
+      "expense",
+      "image",
+      "document",
+    ];
+
+    for (const tableName of softDeleteByPinId) {
+      await sqlite.runAsync(
+        `
+          update ${tableName}
+          set
+            deleted_at = ?,
+            sync_status = ?,
+            sync_error = ?,
+            updated_at = ?
+          where pin_id = ? and user_id = ? and deleted_at is null
+        `,
+        [now, "pending", null, now, id, userId],
+      );
+    }
+
+    await sqlite.runAsync(
+      `
+        delete from pin_location
+        where pin_id = ? and user_id = ?
+      `,
+      [id, userId],
+    );
+
+    await sqlite.runAsync(
+      `
+        update pin
+        set
+          deleted_at = ?,
+          sync_status = ?,
+          sync_error = ?,
+          updated_at = ?
+        where id = ? and user_id = ?
+      `,
+      [now, "pending", null, now, id, userId],
+    );
+  });
+}
+
+export async function actionHardDeleteLocalPin(id: string, userId: string) {
+  await sqlite.runAsync(
+    `
+      delete from pin
+      where id = ? and user_id = ?
+    `,
+    [id, userId],
+  );
 }
 
 export async function actionMarkLocalPinSyncing(id: string, userId: string) {
@@ -384,6 +464,26 @@ export async function actionMarkLocalPinSyncFailed(
 }
 
 export async function actionSyncLocalPin(localPin: LocalPin) {
+  if (localPin.deletedAt) {
+    if (!localPin.lastSyncedAt) {
+      await actionHardDeleteLocalPin(localPin.id, localPin.userId);
+      return;
+    }
+
+    await actionMarkLocalPinSyncing(localPin.id, localPin.userId);
+
+    try {
+      await actionSoftDeleteRemotePin(localPin.id);
+      await actionHardDeleteLocalPin(localPin.id, localPin.userId);
+      return;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete pin";
+      await actionMarkLocalPinSyncFailed(localPin.id, localPin.userId, message);
+      throw error;
+    }
+  }
+
   await actionMarkLocalPinSyncing(localPin.id, localPin.userId);
 
   try {

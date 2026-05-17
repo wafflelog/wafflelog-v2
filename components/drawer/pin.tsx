@@ -5,6 +5,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useRouter } from "expo-router";
+import { MapPinIcon } from "lucide-react-native";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { DrawerItemRegular } from "@/components/drawer/item/regular";
@@ -17,7 +18,6 @@ import {
 } from "@/lib/sqlite/model/pin";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { formatDate } from "@/lib/utils";
-import { MapPinIcon } from "lucide-react-native";
 
 interface DrawerPinProps extends DrawerContentComponentProps {
   id?: string;

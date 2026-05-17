@@ -111,6 +111,7 @@ const mapPinRow = (pin: {
   category_id: string;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }) => ({
   id: pin.id,
   tripId: pin.trip_id,
@@ -121,6 +122,7 @@ const mapPinRow = (pin: {
   categoryId: pin.category_id,
   createdAt: pin.created_at,
   updatedAt: pin.updated_at,
+  deletedAt: pin.deleted_at,
 });
 
 const mapChecklistItemRow = (checklistItem: {
@@ -383,7 +385,7 @@ export async function actionUpsertRemotePinFromLocal(input: CreatePinInput) {
     .from("pin")
     .upsert(payload)
     .select(
-      "id, trip_id, user_id, name, date, time, category_id, created_at, updated_at",
+      "id, trip_id, user_id, name, date, time, category_id, created_at, updated_at, deleted_at",
     )
     .single();
 
@@ -392,6 +394,33 @@ export async function actionUpsertRemotePinFromLocal(input: CreatePinInput) {
   }
 
   return mapPinRow(data);
+}
+
+export async function actionSoftDeleteRemotePin(pinId: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to delete a pin");
+  }
+
+  const deletedAt = new Date().toISOString();
+
+  const { error } = await supabase
+    .from("pin")
+    .update({ deleted_at: deletedAt, updated_at: deletedAt })
+    .eq("id", pinId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function actionUpsertRemoteChecklistItemFromLocal(
@@ -1061,9 +1090,10 @@ export async function actionGetRemotePinById(pinId: string) {
   const { data, error } = await supabase
     .from("pin")
     .select(
-      "id, trip_id, user_id, name, date, time, category_id, created_at, updated_at",
+      "id, trip_id, user_id, name, date, time, category_id, created_at, updated_at, deleted_at",
     )
     .eq("id", pinId)
+    .is("deleted_at", null)
     .single();
 
   if (error) {

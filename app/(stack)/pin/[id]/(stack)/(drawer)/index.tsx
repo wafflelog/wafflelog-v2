@@ -7,14 +7,16 @@ import { CATEGORIES } from "@/constants/pin-categories";
 import { useAuthSession } from "@/hook/use-auth-session";
 import {
   actionGetLocalPin,
+  actionSoftDeleteLocalPin,
   actionUpsertLocalPinFromRemote,
 } from "@/lib/sqlite/model/pin";
 import { actionListLocalNotesByPin } from "@/lib/sqlite/model/note";
 import { actionGetRemotePinById } from "@/lib/supabase/actions";
 import { type Pin } from "@/types/pin";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -25,6 +27,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
+import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
 import { useSystemMessage } from "@/hook/use-system-message";
@@ -32,6 +35,7 @@ import { actionGetLocalPinLocation } from "@/lib/sqlite/model/pin-location";
 import {
   MapPin as MapPinIcon,
   SquarePen as SquarePenIcon,
+  Trash2 as Trash2Icon,
 } from "lucide-react-native";
 
 export default function PinIndexScreen() {
@@ -41,6 +45,7 @@ export default function PinIndexScreen() {
   const color = getColor(colors.purple);
   const queryClient = useQueryClient();
   const { showMessage, SystemMessageModal } = useSystemMessage();
+  const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
 
   const { data: localPin } = useQuery({
     queryKey: ["local-pin", String(id), session?.user.id],
@@ -83,6 +88,35 @@ export default function PinIndexScreen() {
 
   const noteCount = localNotes.length;
   const noteBadgeText = noteCount > 99 ? "99+" : String(noteCount);
+
+  const softDeletePinMutation = useMutation({
+    mutationFn: () => actionSoftDeleteLocalPin(localPin!.id, session!.user.id),
+    onSuccess: async () => {
+      const tripId = localPin?.tripId;
+      const pinDate = localPin?.date;
+      const userId = session?.user.id;
+
+      setIsDeleteDialogVisible(false);
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["local-pin", String(id), userId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["local-pins", tripId, pinDate, userId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["local-pins", tripId, userId],
+        }),
+      ]);
+
+      if (tripId) {
+        router.replace(`/trip/${tripId}`);
+      } else {
+        router.back();
+      }
+    },
+  });
 
   const pin: Pin | null = localPin
     ? {
@@ -208,6 +242,17 @@ export default function PinIndexScreen() {
             tripId={localPin.tripId}
             userId={session.user.id}
           />
+
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => setIsDeleteDialogVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Trash2Icon size={18} color={getColor(colors.red)} />
+            <TitleRegular size="sm" weight="600" color={colors.red}>
+              Delete Pin
+            </TitleRegular>
+          </TouchableOpacity>
         </View>
       </ScrollView>
       <TouchableOpacity
@@ -222,6 +267,22 @@ export default function PinIndexScreen() {
           </View>
         )}
       </TouchableOpacity>
+      <ConfirmActionDialog
+        visible={isDeleteDialogVisible}
+        title="Delete Pin"
+        message="Are you sure you want to delete this pin?"
+        confirmText="Delete"
+        onDismiss={() => setIsDeleteDialogVisible(false)}
+        onConfirm={() => {
+          if (!localPin || !session?.user.id) {
+            return;
+          }
+
+          softDeletePinMutation.mutate();
+        }}
+        isPending={softDeletePinMutation.isPending}
+        confirmVariant="danger"
+      />
       <SystemMessageModal />
     </SafeAreaView>
   );
@@ -235,6 +296,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingVertical: 12,
+    paddingBottom: 96,
     gap: 20,
   },
   sectionHeader: {
@@ -250,6 +312,18 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: 6,
+  },
+  deleteButton: {
+    alignSelf: "stretch",
+    minHeight: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: getColor(colors.red, 0.25),
+    backgroundColor: getColor(colors.red, 0.08),
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
   fab: {
     position: "absolute",
