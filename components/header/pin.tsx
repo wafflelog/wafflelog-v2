@@ -1,10 +1,11 @@
-import type {
-  HeaderBackButtonProps,
-  HeaderTitleProps,
-} from "@react-navigation/elements";
 import { colors, getColor } from "@/constants/theme";
 import { formatTime } from "@/lib/utils";
 import { type Pin } from "@/types/pin";
+import {
+  HeaderBackButton,
+  type HeaderBackButtonProps,
+  type HeaderTitleProps,
+} from "@react-navigation/elements";
 import {
   ChevronLeft as ChevronLeftIcon,
   Menu as MenuIcon,
@@ -59,10 +60,7 @@ export const HeaderPinTitle = ({
   return (
     <View style={styles.nativeTitle}>
       <Text
-        style={[
-          styles.headerTitle,
-          tintColor ? { color: tintColor } : null,
-        ]}
+        style={[styles.headerTitle, tintColor ? { color: tintColor } : null]}
         numberOfLines={1}
         allowFontScaling={allowFontScaling}
         onLayout={onLayout}
@@ -81,31 +79,10 @@ export const HeaderPinTitle = ({
 };
 
 export const HeaderPinBackButton = ({
-  accessibilityLabel,
-  disabled,
   onPress,
-  pressOpacity,
-  style,
-  testID,
-  tintColor,
+  ...props
 }: HeaderPinButtonProps) => {
-  return (
-    <TouchableOpacity
-      style={[styles.nativeButton, style]}
-      onPress={onPress}
-      disabled={disabled}
-      activeOpacity={pressOpacity}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityRole="button"
-      testID={testID}
-      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-    >
-      <ChevronLeftIcon
-        size={24}
-        color={tintColor ?? getColor(colors.textDarkGrey)}
-      />
-    </TouchableOpacity>
-  );
+  return <HeaderBackButton {...props} onPress={onPress} />;
 };
 
 const styles = StyleSheet.create({
@@ -141,11 +118,5 @@ const styles = StyleSheet.create({
   },
   moreButton: {
     padding: 4,
-  },
-  nativeButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
   },
 });

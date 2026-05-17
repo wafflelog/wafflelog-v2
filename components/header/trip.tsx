@@ -2,6 +2,10 @@ import { colors, getColor } from "@/constants/theme";
 import { formatDate } from "@/lib/utils";
 import { type Trip } from "@/types/trip";
 import {
+  HeaderBackButton,
+  type HeaderBackButtonProps,
+} from "@react-navigation/elements";
+import {
   ChevronLeft as ChevronLeftIcon,
   Menu as MenuIcon,
 } from "lucide-react-native";
@@ -19,7 +23,7 @@ type HeaderTripTitleProps = {
 
 type HeaderTripButtonProps = {
   onPress: () => void;
-};
+} & HeaderBackButtonProps;
 
 export const HeaderTrip = ({
   trip,
@@ -63,16 +67,11 @@ export const HeaderTripTitle = ({ trip }: HeaderTripTitleProps) => {
   );
 };
 
-export const HeaderTripBackButton = ({ onPress }: HeaderTripButtonProps) => {
-  return (
-    <TouchableOpacity
-      style={styles.nativeButton}
-      onPress={onPress}
-      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-    >
-      <ChevronLeftIcon size={24} color={getColor(colors.textDarkGrey)} />
-    </TouchableOpacity>
-  );
+export const HeaderTripBackButton = ({
+  onPress,
+  ...props
+}: HeaderTripButtonProps) => {
+  return <HeaderBackButton {...props} onPress={onPress} />;
 };
 
 export const HeaderTripMenuButton = ({ onPress }: HeaderTripButtonProps) => {

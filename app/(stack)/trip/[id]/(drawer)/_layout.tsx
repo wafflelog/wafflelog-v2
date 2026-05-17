@@ -29,8 +29,9 @@ export default function Layout() {
       screenOptions={{
         drawerPosition: "right",
         headerTitle: () => <HeaderTripTitle trip={localTrip} />,
-        headerLeft: () => (
+        headerLeft: (props) => (
           <HeaderTripBackButton
+            {...props}
             onPress={() => {
               router.back();
             }}
