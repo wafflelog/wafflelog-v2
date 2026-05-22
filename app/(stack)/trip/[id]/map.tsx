@@ -1,7 +1,10 @@
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
-import { actionListLocalPinLocationsByTripAndDate } from "@/lib/sqlite/model/pin-location";
+import {
+  actionListLocalPinLocationsByTripAndDate,
+  type LocalPinWithLocation,
+} from "@/lib/sqlite/model/pin-location";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { formatDate } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -12,13 +15,17 @@ import {
   LocateFixed as LocateFixedIcon,
   MapPin as MapPinIcon,
 } from "lucide-react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  FlatList,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import MapView, { Marker, type LatLng, type Region } from "react-native-maps";
 import {
@@ -32,6 +39,7 @@ const DEFAULT_REGION = {
   latitudeDelta: 0.08,
   longitudeDelta: 0.08,
 };
+const PIN_CAROUSEL_GAP = gaps.xs;
 
 export default function TripMapScreen() {
   const { id, date, pinId } = useLocalSearchParams<{
@@ -42,7 +50,9 @@ export default function TripMapScreen() {
   const router = useRouter();
   const { session } = useAuthSession();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
   const mapRef = useRef<MapView>(null);
+  const pinCarouselRef = useRef<FlatList<LocalPinWithLocation>>(null);
   const tripId = String(id);
 
   const { data: localTrip } = useQuery({
@@ -127,6 +137,17 @@ export default function TripMapScreen() {
     return pins[0] ?? null;
   }, [pins, selectedPinId]);
 
+  const selectedPinIndex = useMemo(() => {
+    if (!selectedPin) {
+      return -1;
+    }
+
+    return pins.findIndex((pin) => pin.id === selectedPin.id);
+  }, [pins, selectedPin]);
+
+  const carouselItemWidth = windowWidth - gaps.md * 3;
+  const carouselSnapInterval = carouselItemWidth + PIN_CAROUSEL_GAP;
+
   const visibleCoordinates = useMemo<LatLng[]>(
     () =>
       pins.map((pin) => ({
@@ -147,9 +168,9 @@ export default function TripMapScreen() {
     }
 
     return DEFAULT_REGION;
-  }, [selectedPin?.id, selectedPin?.latitude, selectedPin?.longitude]);
+  }, [selectedPin]);
 
-  const focusPin = (pin: NonNullable<typeof selectedPin>) => {
+  const focusPin = useCallback((pin: LocalPinWithLocation) => {
     mapRef.current?.animateToRegion(
       {
         latitude: pin.latitude,
@@ -159,6 +180,41 @@ export default function TripMapScreen() {
       },
       300,
     );
+  }, []);
+
+  const selectPinAtIndex = (index: number) => {
+    const pin = pins[index];
+
+    if (!pin) {
+      return;
+    }
+
+    setSelectedPinId(pin.id);
+    focusPin(pin);
+    pinCarouselRef.current?.scrollToIndex({
+      index,
+      animated: true,
+    });
+  };
+
+  const handlePinCarouselScrollEnd = (
+    event: NativeSyntheticEvent<NativeScrollEvent>,
+  ) => {
+    if (carouselItemWidth === 0) {
+      return;
+    }
+
+    const nextIndex = Math.round(
+      event.nativeEvent.contentOffset.x / carouselSnapInterval,
+    );
+    const pin = pins[nextIndex];
+
+    if (!pin) {
+      return;
+    }
+
+    setSelectedPinId(pin.id);
+    focusPin(pin);
   };
 
   const fitVisiblePins = () => {
@@ -193,7 +249,18 @@ export default function TripMapScreen() {
     }, 250);
 
     return () => clearTimeout(timeout);
-  }, [selectedPin]);
+  }, [focusPin, selectedPin]);
+
+  useEffect(() => {
+    if (selectedPinIndex < 0) {
+      return;
+    }
+
+    pinCarouselRef.current?.scrollToIndex({
+      index: selectedPinIndex,
+      animated: true,
+    });
+  }, [selectedPinIndex]);
 
   useEffect(() => {
     if (selectedPinId && pins.some((pin) => pin.id === selectedPinId)) {
@@ -213,9 +280,7 @@ export default function TripMapScreen() {
         showsMyLocationButton={false}
         toolbarEnabled={false}
       >
-        {pins.map((pin) => {
-          const isSelected = pin.id === selectedPin?.id;
-
+        {pins.map((pin, index) => {
           return (
             <Marker
               key={pin.id}
@@ -226,7 +291,7 @@ export default function TripMapScreen() {
               title={pin.name}
               description={pin.displayName}
               onPress={() => {
-                setSelectedPinId(pin.id);
+                selectPinAtIndex(index);
               }}
             ></Marker>
           );
@@ -308,30 +373,67 @@ export default function TripMapScreen() {
             })}
           </ScrollView>
 
-          {selectedPin ? (
-            <Pressable
-              style={styles.pinCard}
-              onPress={() => router.push(`/pin/${selectedPin.id}`)}
-            >
-              <View style={styles.pinCardHeader}>
-                <TitleRegular
-                  size="md"
-                  weight="600"
-                  color={colors.textDarkGrey}
-                >
-                  {selectedPin.name}
-                </TitleRegular>
-                <TitleRegular size="xs" weight="600" color={colors.purple}>
-                  {selectedPin.time}
-                </TitleRegular>
-              </View>
-              <TitleRegular size="sm" color={colors.textDarkGrey}>
-                {selectedPin.displayName}
-              </TitleRegular>
-              <TitleRegular size="xs" color={colors.textLightGrey}>
-                {selectedPin.formattedAddress}
-              </TitleRegular>
-            </Pressable>
+          {pins.length > 0 ? (
+            <View style={styles.carouselContainer}>
+              <FlatList
+                ref={pinCarouselRef}
+                data={pins}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                snapToInterval={carouselSnapInterval}
+                snapToAlignment="start"
+                decelerationRate="fast"
+                contentContainerStyle={styles.carouselList}
+                keyExtractor={(pin) => pin.id}
+                getItemLayout={(_, index) => ({
+                  length: carouselSnapInterval,
+                  offset: carouselSnapInterval * index,
+                  index,
+                })}
+                onMomentumScrollEnd={handlePinCarouselScrollEnd}
+                onScrollToIndexFailed={({ index }) => {
+                  requestAnimationFrame(() => {
+                    pinCarouselRef.current?.scrollToIndex({
+                      index,
+                      animated: false,
+                    });
+                  });
+                }}
+                renderItem={({ item }) => (
+                  <View
+                    style={[
+                      styles.carouselItem,
+                      { width: carouselItemWidth },
+                    ]}
+                  >
+                    <View style={styles.pinCard}>
+                      <View style={styles.pinCardHeader}>
+                        <TitleRegular
+                          size="md"
+                          weight="600"
+                          color={colors.textDarkGrey}
+                        >
+                          {item.name}
+                        </TitleRegular>
+                        <TitleRegular
+                          size="xs"
+                          weight="600"
+                          color={colors.purple}
+                        >
+                          {item.time}
+                        </TitleRegular>
+                      </View>
+                      <TitleRegular size="sm" color={colors.textDarkGrey}>
+                        {item.displayName}
+                      </TitleRegular>
+                      <TitleRegular size="xs" color={colors.textLightGrey}>
+                        {item.formattedAddress}
+                      </TitleRegular>
+                    </View>
+                  </View>
+                )}
+              />
+            </View>
           ) : null}
         </View>
       </SafeAreaView>
@@ -420,9 +522,18 @@ const styles = StyleSheet.create({
   dayChipActive: {
     backgroundColor: getColor(colors.waffle),
   },
+  carouselContainer: {
+    position: "relative",
+  },
+  carouselList: {
+    gap: PIN_CAROUSEL_GAP,
+    paddingHorizontal: gaps.md,
+  },
+  carouselItem: {
+    flexShrink: 0,
+  },
   pinCard: {
     ...getCardBasicStyle("md"),
-    marginHorizontal: gaps.md,
     gap: gaps.xxs,
     borderRadius: 8,
   },
