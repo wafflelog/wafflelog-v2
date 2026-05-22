@@ -57,6 +57,8 @@ export const HeaderPinTitle = ({
     return null;
   }
 
+  console.log("Rendering HeaderPinTitle with pin:", pin.time);
+
   return (
     <View style={styles.nativeTitle}>
       <Text
@@ -72,7 +74,7 @@ export const HeaderPinTitle = ({
         numberOfLines={1}
         allowFontScaling={allowFontScaling}
       >
-        {formatTime(pin.time)}
+        {pin.time}
       </Text>
     </View>
   );

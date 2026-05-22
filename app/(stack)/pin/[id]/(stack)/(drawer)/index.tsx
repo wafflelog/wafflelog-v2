@@ -5,12 +5,12 @@ import { PinLinks } from "@/components/pin/links";
 import { UIText } from "@/components/ui/text";
 import { CATEGORIES } from "@/constants/pin-categories";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { actionListLocalNotesByPin } from "@/lib/sqlite/model/note";
 import {
   actionGetLocalPin,
   actionSoftDeleteLocalPin,
   actionUpsertLocalPinFromRemote,
 } from "@/lib/sqlite/model/pin";
-import { actionListLocalNotesByPin } from "@/lib/sqlite/model/note";
 import { actionGetRemotePinById } from "@/lib/supabase/actions";
 import { type Pin } from "@/types/pin";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -90,6 +90,9 @@ export default function PinIndexScreen() {
 
   const noteCount = localNotes.length;
   const noteBadgeText = noteCount > 99 ? "99+" : String(noteCount);
+
+  console.log("localPinLocation", localPinLocation);
+
   const mapPreview = localPinLocation
     ? {
         coordinate: {
@@ -229,7 +232,7 @@ export default function PinIndexScreen() {
             <MapView
               pointerEvents="none"
               style={styles.map}
-              initialRegion={mapPreview.region}
+              region={mapPreview.region}
               scrollEnabled={false}
               zoomEnabled={false}
               rotateEnabled={false}

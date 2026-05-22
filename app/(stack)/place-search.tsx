@@ -195,9 +195,14 @@ export default function PlaceSearchScreen() {
         longitude: place.location.longitude,
       });
 
-      queryClient.invalidateQueries({
-        queryKey: ["local-pin-location", pinId, session.user.id],
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["local-pin-location", pinId, session.user.id],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["local-pin-locations"],
+        }),
+      ]);
       showMessage("Location saved locally", "info");
       router.back();
     } catch (saveError) {

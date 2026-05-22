@@ -117,6 +117,8 @@ export default function TripMapScreen() {
     enabled: Boolean(tripId && selectedDate && session?.user.id),
   });
 
+  console.log("Pins for selected date:", pins);
+
   const selectedPin = useMemo(() => {
     if (selectedPinId) {
       return pins.find((pin) => pin.id === selectedPinId) ?? pins[0] ?? null;
@@ -145,7 +147,7 @@ export default function TripMapScreen() {
     }
 
     return DEFAULT_REGION;
-  }, [selectedPin]);
+  }, [selectedPin?.id, selectedPin?.latitude, selectedPin?.longitude]);
 
   const focusPin = (pin: NonNullable<typeof selectedPin>) => {
     mapRef.current?.animateToRegion(

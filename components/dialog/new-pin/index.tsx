@@ -4,8 +4,8 @@ import { UIInputDate } from "@/components/ui/input/date";
 import { UIInputSelect } from "@/components/ui/input/select";
 import { UIInputText } from "@/components/ui/input/text";
 import { UIInputTime } from "@/components/ui/input/time";
-import { gaps } from "@/constants/theme";
 import { CATEGORIES } from "@/constants/pin-categories";
+import { gaps } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import {
@@ -40,9 +40,14 @@ export const DialogNewPin = ({
     mutationFn: actionCreateLocalPin,
     onSuccess: async (localPin) => {
       if (session?.user.id) {
-        queryClient.invalidateQueries({
-          queryKey: ["local-pins", tripId, session.user.id],
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: ["local-pins", tripId, pinDate, session.user.id],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ["local-pins", tripId, session.user.id],
+          }),
+        ]);
       }
       setPinName("");
       setPinDate("");
