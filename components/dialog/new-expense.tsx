@@ -36,11 +36,16 @@ export const DialogNewExpense = ({
 
   const createExpenseMutation = useMutation({
     mutationFn: actionCreateLocalExpense,
-    onSuccess: () => {
+    onSuccess: async () => {
       if (session?.user.id) {
-        queryClient.invalidateQueries({
-          queryKey: ["local-pin-expenses", pinId, session.user.id],
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: ["local-pin-expenses", pinId, session.user.id],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ["local-trip-expenses", tripId, session.user.id],
+          }),
+        ]);
       }
 
       setExpenseCurrency("EUR");

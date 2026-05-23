@@ -47,10 +47,6 @@ export default function TripExpensesScreen() {
       }
     : null;
 
-  if (!trip) {
-    return <UIText>Trip not found</UIText>;
-  }
-
   const availableCurrencies = useMemo(() => {
     return Array.from(
       new Set(localExpenses.map((expense) => expense.currency as Currency)),
@@ -78,6 +74,10 @@ export default function TripExpensesScreen() {
     label: currency,
     isActive: activeCurrency === currency,
   }));
+
+  if (!trip) {
+    return <UIText>Trip not found</UIText>;
+  }
 
   return (
     <View style={styles.container}>
@@ -109,6 +109,11 @@ export default function TripExpensesScreen() {
           contentContainerStyle={styles.checklist}
           data={filteredExpenses}
           keyExtractor={(item) => item.id}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <UIText>No expenses yet</UIText>
+            </View>
+          }
           renderItem={({ item }) => (
             <View style={styles.expense}>
               <CardExpenseRegular
@@ -153,5 +158,9 @@ const styles = StyleSheet.create({
   summary: {},
   checklist: {
     gap: gaps.md,
+  },
+  emptyState: {
+    ...getCardBasicStyle("sm"),
+    alignItems: "center",
   },
 });

@@ -15,12 +15,14 @@ import { PinSectionTemplate, pinSectionStyles } from "./section-template";
 
 type PinExpensesProps = {
   pinId: string;
+  tripId: string;
   userId: string;
   onAddExpense: () => void;
 };
 
 export const PinExpenses = ({
   pinId,
+  tripId,
   userId,
   onAddExpense,
 }: PinExpensesProps) => {
@@ -48,9 +50,14 @@ export const PinExpenses = ({
   const softDeleteExpenseMutation = useMutation({
     mutationFn: (expenseId: string) => actionSoftDeleteLocalExpense(expenseId, userId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["local-pin-expenses", pinId, userId],
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["local-pin-expenses", pinId, userId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["local-trip-expenses", tripId, userId],
+        }),
+      ]);
       setIsDeleteDialogOpen(false);
       setSelectedExpenseId(null);
     },

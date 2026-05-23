@@ -286,6 +286,7 @@ export default function PinIndexScreen() {
 
           <PinExpenses
             pinId={pin.id}
+            tripId={localPin.tripId}
             userId={session.user.id}
             onAddExpense={() => setActiveNewObjectDialog("expense")}
           />
