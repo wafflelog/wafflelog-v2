@@ -30,6 +30,15 @@ export type CreateLocalPinInput = {
   categoryId: string;
 };
 
+export type UpdateLocalPinInput = {
+  id: string;
+  userId: string;
+  name: string;
+  date: string;
+  time: string;
+  categoryId: string;
+};
+
 const DEFAULT_SYNC_BATCH_SIZE = 25;
 
 function mapLocalPinRow(row: {
@@ -245,6 +254,44 @@ export async function actionGetLocalPin(id: string, userId: string) {
   );
 
   return row ? mapLocalPinRow(row) : null;
+}
+
+export async function actionUpdateLocalPin(input: UpdateLocalPinInput) {
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      update pin
+      set
+        name = ?,
+        date = ?,
+        time = ?,
+        category_id = ?,
+        updated_at = ?,
+        sync_status = ?,
+        sync_error = ?
+      where id = ? and user_id = ? and deleted_at is null
+    `,
+    [
+      input.name.trim(),
+      input.date,
+      input.time.trim(),
+      input.categoryId,
+      now,
+      "pending",
+      null,
+      input.id,
+      input.userId,
+    ],
+  );
+
+  const updatedPin = await actionGetLocalPin(input.id, input.userId);
+
+  if (!updatedPin) {
+    throw new Error("Pin not found");
+  }
+
+  return updatedPin;
 }
 
 export async function actionUpsertLocalPinFromRemote(remotePin: {

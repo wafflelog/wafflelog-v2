@@ -33,11 +33,13 @@ import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { DialogNewDocument } from "@/components/dialog/new-document";
 import { DialogNewExpense } from "@/components/dialog/new-expense";
 import { DialogNewImage } from "@/components/dialog/new-image";
+import { DialogNewPin } from "@/components/dialog/new-pin";
 import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionGetLocalPinLocation } from "@/lib/sqlite/model/pin-location";
+import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import {
   MapPin as MapPinIcon,
   SquarePen as SquarePenIcon,
@@ -54,6 +56,7 @@ export default function PinIndexScreen() {
   const queryClient = useQueryClient();
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
+  const [isEditPinDialogVisible, setIsEditPinDialogVisible] = useState(false);
   const [activeNewObjectDialog, setActiveNewObjectDialog] =
     useState<NewObjectDialog | null>(null);
 
@@ -61,6 +64,12 @@ export default function PinIndexScreen() {
     queryKey: ["local-pin", String(id), session?.user.id],
     queryFn: () => actionGetLocalPin(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
+  });
+
+  const { data: localTrip } = useQuery({
+    queryKey: ["local-trip", localPin?.tripId, session?.user.id],
+    queryFn: () => actionGetLocalTrip(localPin!.tripId, session!.user.id),
+    enabled: Boolean(localPin?.tripId && session?.user.id),
   });
 
   useQuery({
@@ -314,6 +323,24 @@ export default function PinIndexScreen() {
           />
 
           <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => {
+              if (!localTrip) {
+                showMessage("Trip details are still loading", "error");
+                return;
+              }
+
+              setIsEditPinDialogVisible(true);
+            }}
+            activeOpacity={0.8}
+          >
+            <SquarePenIcon size={18} color={getColor(colors.purple)} />
+            <TitleRegular size="sm" weight="600" color={colors.purple}>
+              Edit Pin
+            </TitleRegular>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={styles.deleteButton}
             onPress={() => setIsDeleteDialogVisible(true)}
             activeOpacity={0.8}
@@ -353,6 +380,23 @@ export default function PinIndexScreen() {
         isPending={softDeletePinMutation.isPending}
         confirmVariant="danger"
       />
+      {localTrip ? (
+        <DialogNewPin
+          tripId={localPin.tripId}
+          tripStartDate={localTrip.startDate}
+          tripEndDate={localTrip.endDate}
+          visible={isEditPinDialogVisible}
+          onDismiss={() => setIsEditPinDialogVisible(false)}
+          mode="edit"
+          initialPin={{
+            id: localPin.id,
+            name: localPin.name,
+            date: localPin.date,
+            time: localPin.time,
+            categoryId: localPin.categoryId,
+          }}
+        />
+      ) : null}
       <DialogNewExpense
         pinId={pin.id}
         tripId={localPin.tripId}
@@ -419,6 +463,18 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: 6,
+  },
+  editButton: {
+    alignSelf: "stretch",
+    minHeight: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: getColor(colors.purple, 0.25),
+    backgroundColor: getColor(colors.purple, 0.08),
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
   deleteButton: {
     alignSelf: "stretch",

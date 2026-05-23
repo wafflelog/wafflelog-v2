@@ -11,11 +11,12 @@ import { useSystemMessage } from "@/hook/use-system-message";
 import {
   actionCreateLocalPin,
   actionSyncLocalPin,
+  actionUpdateLocalPin,
 } from "@/lib/sqlite/model/pin";
 import { formatDate } from "@/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { newPinFormSchema } from "./schema";
 
@@ -25,6 +26,14 @@ type DialogNewPinProps = {
   tripEndDate: string;
   visible: boolean;
   onDismiss: () => void;
+  mode?: "create" | "edit";
+  initialPin?: {
+    id: string;
+    name: string;
+    date: string;
+    time: string;
+    categoryId: string;
+  };
 };
 
 export const DialogNewPin = ({
@@ -33,6 +42,8 @@ export const DialogNewPin = ({
   tripEndDate,
   visible,
   onDismiss,
+  mode = "create",
+  initialPin,
 }: DialogNewPinProps) => {
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
@@ -41,6 +52,26 @@ export const DialogNewPin = ({
   const [pinDate, setPinDate] = useState("");
   const [pinTime, setPinTime] = useState("");
   const [pinCategoryId, setPinCategoryId] = useState("");
+  const isEditMode = mode === "edit";
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    if (isEditMode && initialPin) {
+      setPinName(initialPin.name);
+      setPinDate(initialPin.date);
+      setPinTime(initialPin.time);
+      setPinCategoryId(initialPin.categoryId);
+      return;
+    }
+
+    setPinName("");
+    setPinDate("");
+    setPinTime("");
+    setPinCategoryId("");
+  }, [visible, isEditMode, initialPin]);
 
   const createPinMutation = useMutation({
     mutationFn: actionCreateLocalPin,
@@ -82,6 +113,57 @@ export const DialogNewPin = ({
     },
   });
 
+  const updatePinMutation = useMutation({
+    mutationFn: actionUpdateLocalPin,
+    onSuccess: async (localPin) => {
+      if (session?.user.id && initialPin) {
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: ["local-pin", localPin.id, session.user.id],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ["local-pins", tripId, initialPin.date, session.user.id],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ["local-pins", tripId, localPin.date, session.user.id],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ["local-pins", tripId, session.user.id],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: ["local-pin-locations"],
+          }),
+        ]);
+      }
+
+      onDismiss();
+      showMessage("Pin updated locally", "info");
+
+      try {
+        await actionSyncLocalPin(localPin);
+
+        if (session?.user.id) {
+          await Promise.all([
+            queryClient.invalidateQueries({
+              queryKey: ["local-pin", localPin.id, session.user.id],
+            }),
+            queryClient.invalidateQueries({
+              queryKey: ["local-pins", tripId, session.user.id],
+            }),
+          ]);
+        }
+      } catch (error) {
+        console.error("Error syncing updated pin:", error);
+      }
+    },
+    onError: (error) => {
+      console.error("Error updating pin:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to update pin";
+      showMessage(message, "error");
+    },
+  });
+
   const handleConfirm = () => {
     if (!session?.user.id) {
       showMessage("You must be signed in to create a pin", "error");
@@ -118,6 +200,23 @@ export const DialogNewPin = ({
       return;
     }
 
+    if (isEditMode) {
+      if (!initialPin) {
+        showMessage("Pin not found", "error");
+        return;
+      }
+
+      updatePinMutation.mutate({
+        id: initialPin.id,
+        userId: session.user.id,
+        name: result.data.pinName,
+        date: result.data.pinDate,
+        time: result.data.pinTime,
+        categoryId: result.data.pinCategoryId,
+      });
+      return;
+    }
+
     createPinMutation.mutate({
       tripId,
       userId: session.user.id,
@@ -133,8 +232,9 @@ export const DialogNewPin = ({
       <Dialog
         visible={visible}
         onDismiss={onDismiss}
-        title="New Pin"
+        title={isEditMode ? "Edit Pin" : "New Pin"}
         size="md"
+        confirmText={isEditMode ? "Save" : "Create"}
         onConfirm={handleConfirm}
       >
         <View style={styles.content}>

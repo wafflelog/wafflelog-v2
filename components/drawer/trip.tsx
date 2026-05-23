@@ -17,6 +17,7 @@ import {
   ImageIcon,
   Link2Icon,
   ListCheckIcon,
+  SettingsIcon,
   UsersIcon,
   WalletIcon,
 } from "lucide-react-native";
@@ -74,6 +75,12 @@ export function DrawerTrip({ id, navigation }: DrawerTripProps) {
       label: "Companions",
       icon: (color) => <UsersIcon size={20} color={color} />,
       onPress: () => router.push(`/trip/${id}/companions`),
+    },
+    {
+      id: "8",
+      label: "Settings",
+      icon: (color) => <SettingsIcon size={20} color={color} />,
+      onPress: () => router.push(`/trip/${id}/settings`),
     },
   ];
 

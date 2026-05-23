@@ -12,6 +12,14 @@ export type CreateLocalTripInput = {
   endDate: string;
 };
 
+export type UpdateLocalTripInput = {
+  id: string;
+  userId: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+};
+
 export type LocalTrip = {
   id: string;
   userId: string;
@@ -178,6 +186,82 @@ export async function actionGetLocalTrip(id: string, userId: string) {
   );
 
   return row ? mapLocalTripRow(row) : null;
+}
+
+export async function actionListLocalPinsOutsideTripDateRange(
+  tripId: string,
+  userId: string,
+  startDate: string,
+  endDate: string,
+) {
+  return sqlite.getAllAsync<{
+    id: string;
+    name: string;
+    date: string;
+  }>(
+    `
+      select
+        id,
+        name,
+        date
+      from pin
+      where trip_id = ?
+        and user_id = ?
+        and deleted_at is null
+        and (date < ? or date > ?)
+      order by date asc, time asc, created_at asc
+    `,
+    [tripId, userId, startDate, endDate],
+  );
+}
+
+export async function actionUpdateLocalTrip(input: UpdateLocalTripInput) {
+  const outsidePins = await actionListLocalPinsOutsideTripDateRange(
+    input.id,
+    input.userId,
+    input.startDate,
+    input.endDate,
+  );
+
+  if (outsidePins.length > 0) {
+    throw new Error(
+      "Move or delete pins outside the new trip dates before changing this trip period.",
+    );
+  }
+
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      update trip
+      set
+        title = ?,
+        start_date = ?,
+        end_date = ?,
+        updated_at = ?,
+        sync_status = ?,
+        sync_error = ?
+      where id = ? and user_id = ? and deleted_at is null
+    `,
+    [
+      input.title.trim(),
+      input.startDate,
+      input.endDate,
+      now,
+      "pending",
+      null,
+      input.id,
+      input.userId,
+    ],
+  );
+
+  const updatedTrip = await actionGetLocalTrip(input.id, input.userId);
+
+  if (!updatedTrip) {
+    throw new Error("Trip not found");
+  }
+
+  return updatedTrip;
 }
 
 export async function actionUpsertLocalTripFromRemote(remoteTrip: {

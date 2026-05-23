@@ -82,6 +82,12 @@ export default function Layout() {
           title: "Companions",
         }}
       />
+      <Drawer.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+        }}
+      />
     </Drawer>
   );
 }
