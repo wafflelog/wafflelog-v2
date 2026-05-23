@@ -11,6 +11,10 @@ export const newExpenseFormSchema = z.object({
     .string()
     .trim()
     .min(1, "Enter an amount")
+    .refine(
+      (value) => /^\d+(\.\d{1,2})?$/.test(value.trim()),
+      "Enter an amount with up to 2 decimal places",
+    )
     .refine((value) => {
       const amount = Number(value);
       return Number.isFinite(amount) && amount > 0;

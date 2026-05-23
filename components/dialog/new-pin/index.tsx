@@ -12,19 +12,25 @@ import {
   actionCreateLocalPin,
   actionSyncLocalPin,
 } from "@/lib/sqlite/model/pin";
+import { formatDate } from "@/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import dayjs from "dayjs";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { newPinFormSchema } from "./schema";
 
 type DialogNewPinProps = {
   tripId: string;
+  tripStartDate: string;
+  tripEndDate: string;
   visible: boolean;
   onDismiss: () => void;
 };
 
 export const DialogNewPin = ({
   tripId,
+  tripStartDate,
+  tripEndDate,
   visible,
   onDismiss,
 }: DialogNewPinProps) => {
@@ -97,6 +103,21 @@ export const DialogNewPin = ({
       return;
     }
 
+    const pinDateValue = dayjs(result.data.pinDate);
+    const tripStartDateValue = dayjs(tripStartDate);
+    const tripEndDateValue = dayjs(tripEndDate);
+
+    if (
+      pinDateValue.isBefore(tripStartDateValue, "day") ||
+      pinDateValue.isAfter(tripEndDateValue, "day")
+    ) {
+      showMessage(
+        `Choose a date between ${formatDate(tripStartDate)} and ${formatDate(tripEndDate)}`,
+        "error",
+      );
+      return;
+    }
+
     createPinMutation.mutate({
       tripId,
       userId: session.user.id,
@@ -127,6 +148,8 @@ export const DialogNewPin = ({
             placeholder="Enter pin date"
             value={pinDate}
             onChange={setPinDate}
+            minimumDate={dayjs(tripStartDate).toDate()}
+            maximumDate={dayjs(tripEndDate).toDate()}
           />
           <UIInputTime
             placeholder="Enter pin time"

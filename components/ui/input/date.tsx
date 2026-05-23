@@ -17,6 +17,8 @@ type UIInputDateProps = {
   value?: string; // YYYY-MM-DD date string
   onChange?: (date: string) => void; // Returns YYYY-MM-DD date string
   autoFocus?: boolean;
+  minimumDate?: Date;
+  maximumDate?: Date;
 };
 
 const toDateString = (input: Date) => dayjs(input).format("YYYY-MM-DD");
@@ -35,6 +37,8 @@ export const UIInputDate = ({
   value,
   onChange,
   autoFocus = false,
+  minimumDate,
+  maximumDate,
 }: UIInputDateProps) => {
   const [showPicker, setShowPicker] = useState(false);
   const [date, setDate] = useState<Date>(() => toPickerDate(value));
@@ -115,8 +119,8 @@ export const UIInputDate = ({
             mode="date"
             display={Platform.OS === "ios" ? "spinner" : "default"}
             onChange={handleDateChange}
-            minimumDate={new Date(1900, 0, 1)}
-            maximumDate={new Date(2100, 11, 31)}
+            minimumDate={minimumDate ?? new Date(1900, 0, 1)}
+            maximumDate={maximumDate ?? new Date(2100, 11, 31)}
             themeVariant="light"
           />
         </Dialog>

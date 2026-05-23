@@ -5,7 +5,6 @@ import { FileText as FileTextIcon } from "lucide-react-native";
 
 import { CardDocument } from "@/components/card/document";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
-import { DialogNewDocument } from "@/components/dialog/new-document";
 import { colors, getColor } from "@/constants/theme";
 import {
   actionListLocalDocumentsByPin,
@@ -15,21 +14,20 @@ import { PinSectionTemplate, pinSectionStyles } from "./section-template";
 
 type PinDocumentsProps = {
   pinId: string;
-  tripId: string;
   userId: string;
   onOpenDocument: (document: {
     fileName: string;
     localUri: string | null;
   }) => void;
+  onAddDocument: () => void;
 };
 
 export const PinDocuments = ({
   pinId,
-  tripId,
   userId,
   onOpenDocument,
+  onAddDocument,
 }: PinDocumentsProps) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
     null,
@@ -59,7 +57,7 @@ export const PinDocuments = ({
       <PinSectionTemplate
         title="Documents"
         icon={<FileTextIcon size={24} color={getColor(colors.purple)} />}
-        onAdd={() => setIsDialogOpen(true)}
+        onAdd={onAddDocument}
         addText="Add Document"
       >
         {localDocuments.map((document, index) => (
@@ -90,13 +88,6 @@ export const PinDocuments = ({
           </View>
         ))}
       </PinSectionTemplate>
-
-      <DialogNewDocument
-        tripId={tripId}
-        pinId={pinId}
-        visible={isDialogOpen}
-        onDismiss={() => setIsDialogOpen(false)}
-      />
 
       <ConfirmActionDialog
         visible={isDeleteDialogOpen}

@@ -5,7 +5,6 @@ import { Link2 as Link2Icon } from "lucide-react-native";
 
 import { CardPinReferenceLinkRegular } from "@/components/card/reference-link/regular";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
-import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
 import { colors, getColor } from "@/constants/theme";
 import {
   actionListLocalReferenceLinksByPin,
@@ -15,12 +14,15 @@ import { PinSectionTemplate, pinSectionStyles } from "./section-template";
 
 type PinLinksProps = {
   pinId: string;
-  tripId: string;
   userId: string;
+  onAddReferenceLink: () => void;
 };
 
-export const PinLinks = ({ pinId, tripId, userId }: PinLinksProps) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+export const PinLinks = ({
+  pinId,
+  userId,
+  onAddReferenceLink,
+}: PinLinksProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedReferenceLinkId, setSelectedReferenceLinkId] = useState<
     string | null
@@ -50,7 +52,7 @@ export const PinLinks = ({ pinId, tripId, userId }: PinLinksProps) => {
       <PinSectionTemplate
         title="Reference Links"
         icon={<Link2Icon size={24} color={getColor(colors.purple)} />}
-        onAdd={() => setIsDialogOpen(true)}
+        onAdd={onAddReferenceLink}
         addText="Add Reference Link"
       >
         {localReferenceLinks.map((referenceLink, index) => (
@@ -73,13 +75,6 @@ export const PinLinks = ({ pinId, tripId, userId }: PinLinksProps) => {
           </View>
         ))}
       </PinSectionTemplate>
-
-      <DialogNewReferenceLink
-        pinId={pinId}
-        tripId={tripId}
-        visible={isDialogOpen}
-        onDismiss={() => setIsDialogOpen(false)}
-      />
 
       <ConfirmActionDialog
         visible={isDeleteDialogOpen}

@@ -1,11 +1,11 @@
 import { Dialog } from "@/components/ui/dialog";
 import { UIInputText } from "@/components/ui/input/text";
 import { gaps } from "@/constants/theme";
-import { useSystemMessage } from "@/hook/use-system-message";
+import { type SystemMessageType } from "@/hook/use-system-message";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionCreateLocalReferenceLink } from "@/lib/sqlite/model/reference-link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { newReferenceLinkFormSchema } from "./schema";
 
@@ -14,6 +14,8 @@ type DialogNewReferenceLinkProps = {
   tripId?: string;
   visible: boolean;
   onDismiss: () => void;
+  onShowMessage: (message: string, type?: SystemMessageType) => void;
+  systemMessageOverlay?: ReactNode;
 };
 
 export const DialogNewReferenceLink = ({
@@ -21,12 +23,13 @@ export const DialogNewReferenceLink = ({
   tripId,
   visible,
   onDismiss,
+  onShowMessage,
+  systemMessageOverlay,
 }: DialogNewReferenceLinkProps) => {
   const [referenceLinkUrl, setReferenceLinkUrl] = useState("");
   const [referenceLinkCaption, setReferenceLinkCaption] = useState("");
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
-  const { showMessage, SystemMessageModal } = useSystemMessage();
 
   const createReferenceLinkMutation = useMutation({
     mutationFn: actionCreateLocalReferenceLink,
@@ -48,7 +51,7 @@ export const DialogNewReferenceLink = ({
       setReferenceLinkUrl("");
       setReferenceLinkCaption("");
       onDismiss();
-      showMessage("Reference link saved locally", "info");
+      onShowMessage("Reference link saved locally", "info");
     },
     onError: (error) => {
       console.error("Error creating reference link:", error);
@@ -56,18 +59,21 @@ export const DialogNewReferenceLink = ({
         error instanceof Error
           ? error.message
           : "Failed to create reference link";
-      showMessage(message, "error");
+      onShowMessage(message, "error");
     },
   });
 
   const handleConfirm = () => {
     if (!session?.user.id) {
-      showMessage("You must be signed in to create a reference link", "error");
+      onShowMessage(
+        "You must be signed in to create a reference link",
+        "error",
+      );
       return;
     }
 
     if (!pinId) {
-      showMessage(
+      onShowMessage(
         "Reference links need to be created from a pin so they can be attached to a place.",
         "error",
       );
@@ -83,7 +89,7 @@ export const DialogNewReferenceLink = ({
       const message =
         result.error.issues[0]?.message ??
         "Check your reference link details and try again.";
-      showMessage(message, "error");
+      onShowMessage(message, "error");
       return;
     }
 
@@ -96,30 +102,28 @@ export const DialogNewReferenceLink = ({
   };
 
   return (
-    <>
-      <Dialog
-        visible={visible}
-        onDismiss={onDismiss}
-        title="New Reference Link"
-        size="md"
-        onConfirm={handleConfirm}
-      >
-        <View style={styles.content}>
-          <UIInputText
-            placeholder="Enter URL"
-            value={referenceLinkUrl}
-            onChange={setReferenceLinkUrl}
-            autoFocus
-          />
-          <UIInputText
-            placeholder="Add caption (optional)"
-            value={referenceLinkCaption}
-            onChange={setReferenceLinkCaption}
-          />
-        </View>
-      </Dialog>
-      <SystemMessageModal />
-    </>
+    <Dialog
+      visible={visible}
+      onDismiss={onDismiss}
+      title="New Reference Link"
+      size="md"
+      onConfirm={handleConfirm}
+      overlay={systemMessageOverlay}
+    >
+      <View style={styles.content}>
+        <UIInputText
+          placeholder="Enter URL"
+          value={referenceLinkUrl}
+          onChange={setReferenceLinkUrl}
+          autoFocus
+        />
+        <UIInputText
+          placeholder="Add caption (optional)"
+          value={referenceLinkCaption}
+          onChange={setReferenceLinkCaption}
+        />
+      </View>
+    </Dialog>
   );
 };
 

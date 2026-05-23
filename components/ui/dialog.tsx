@@ -26,6 +26,7 @@ type DialogProps = {
   cancelText?: string;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   confirmVariant?: "primary" | "danger";
+  overlay?: React.ReactNode;
 };
 
 const sizes = {
@@ -48,6 +49,7 @@ export function Dialog({
   cancelText = "Cancel",
   size = "md",
   confirmVariant = "primary",
+  overlay,
 }: DialogProps) {
   const handleBackdropPress = () => {
     if (dismissible && onDismiss) {
@@ -66,6 +68,7 @@ export function Dialog({
         onRequestClose={onDismiss}
       >
         <SafeAreaView style={styles.container} edges={["bottom"]}>
+          {overlay}
           <Pressable style={[styles.backdrop]} onPress={handleBackdropPress} />
           <View style={[styles.dialog, { height: sizes[size] }]}>
             {onDismiss && (

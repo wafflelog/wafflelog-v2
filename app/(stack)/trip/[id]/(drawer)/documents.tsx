@@ -143,6 +143,7 @@ export default function TripDocumentsScreen() {
         tripId={String(id)}
         visible={isDialogNewDocumentVisible}
         onDismiss={() => setIsDialogNewDocumentVisible(false)}
+        onShowMessage={showMessage}
       />
       <ConfirmActionDialog
         visible={isDeleteDialogOpen}

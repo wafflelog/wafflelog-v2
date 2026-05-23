@@ -5,7 +5,6 @@ import { Wallet as WalletIcon } from "lucide-react-native";
 
 import { CardExpenseRegular } from "@/components/card/expense/regular";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
-import { DialogNewExpense } from "@/components/dialog/new-expense";
 import { colors, getColor } from "@/constants/theme";
 import {
   actionListLocalExpensesByPin,
@@ -16,16 +15,15 @@ import { PinSectionTemplate, pinSectionStyles } from "./section-template";
 
 type PinExpensesProps = {
   pinId: string;
-  tripId: string;
   userId: string;
+  onAddExpense: () => void;
 };
 
 export const PinExpenses = ({
   pinId,
-  tripId,
   userId,
+  onAddExpense,
 }: PinExpensesProps) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -63,7 +61,7 @@ export const PinExpenses = ({
       <PinSectionTemplate
         title="Expenses"
         icon={<WalletIcon size={24} color={getColor(colors.purple)} />}
-        onAdd={() => setIsDialogOpen(true)}
+        onAdd={onAddExpense}
         addText="Add Expense"
       >
         {expenses.map((expense, index) => (
@@ -82,13 +80,6 @@ export const PinExpenses = ({
           </View>
         ))}
       </PinSectionTemplate>
-
-      <DialogNewExpense
-        pinId={pinId}
-        tripId={tripId}
-        visible={isDialogOpen}
-        onDismiss={() => setIsDialogOpen(false)}
-      />
 
       <ConfirmActionDialog
         visible={isDeleteDialogOpen}

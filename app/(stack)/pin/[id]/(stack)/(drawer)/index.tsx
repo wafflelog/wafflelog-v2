@@ -30,6 +30,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
+import { DialogNewDocument } from "@/components/dialog/new-document";
+import { DialogNewExpense } from "@/components/dialog/new-expense";
+import { DialogNewImage } from "@/components/dialog/new-image";
+import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
 import { useSystemMessage } from "@/hook/use-system-message";
@@ -40,6 +44,8 @@ import {
   Trash2 as Trash2Icon,
 } from "lucide-react-native";
 
+type NewObjectDialog = "expense" | "image" | "document" | "reference-link";
+
 export default function PinIndexScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -48,6 +54,8 @@ export default function PinIndexScreen() {
   const queryClient = useQueryClient();
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
+  const [activeNewObjectDialog, setActiveNewObjectDialog] =
+    useState<NewObjectDialog | null>(null);
 
   const { data: localPin } = useQuery({
     queryKey: ["local-pin", String(id), session?.user.id],
@@ -90,8 +98,6 @@ export default function PinIndexScreen() {
 
   const noteCount = localNotes.length;
   const noteBadgeText = noteCount > 99 ? "99+" : String(noteCount);
-
-  console.log("localPinLocation", localPinLocation);
 
   const mapPreview = localPinLocation
     ? {
@@ -280,28 +286,30 @@ export default function PinIndexScreen() {
 
           <PinExpenses
             pinId={pin.id}
-            tripId={localPin.tripId}
             userId={session.user.id}
+            onAddExpense={() => setActiveNewObjectDialog("expense")}
           />
 
           <PinImages
             pinId={pin.id}
-            tripId={localPin.tripId}
             userId={session.user.id}
             onOpenImage={handleOpenImage}
+            onAddImage={() => setActiveNewObjectDialog("image")}
           />
 
           <PinDocuments
             pinId={pin.id}
-            tripId={localPin.tripId}
             userId={session.user.id}
             onOpenDocument={handleOpenDocument}
+            onAddDocument={() => setActiveNewObjectDialog("document")}
           />
 
           <PinLinks
             pinId={pin.id}
-            tripId={localPin.tripId}
             userId={session.user.id}
+            onAddReferenceLink={() =>
+              setActiveNewObjectDialog("reference-link")
+            }
           />
 
           <TouchableOpacity
@@ -344,7 +352,39 @@ export default function PinIndexScreen() {
         isPending={softDeletePinMutation.isPending}
         confirmVariant="danger"
       />
-      <SystemMessageModal />
+      <DialogNewExpense
+        pinId={pin.id}
+        tripId={localPin.tripId}
+        visible={activeNewObjectDialog === "expense"}
+        onDismiss={() => setActiveNewObjectDialog(null)}
+        onShowMessage={showMessage}
+        systemMessageOverlay={<SystemMessageModal />}
+      />
+      <DialogNewImage
+        pinId={pin.id}
+        tripId={localPin.tripId}
+        visible={activeNewObjectDialog === "image"}
+        onDismiss={() => setActiveNewObjectDialog(null)}
+        onShowMessage={showMessage}
+        systemMessageOverlay={<SystemMessageModal />}
+      />
+      <DialogNewDocument
+        tripId={localPin.tripId}
+        pinId={pin.id}
+        visible={activeNewObjectDialog === "document"}
+        onDismiss={() => setActiveNewObjectDialog(null)}
+        onShowMessage={showMessage}
+        systemMessageOverlay={<SystemMessageModal />}
+      />
+      <DialogNewReferenceLink
+        pinId={pin.id}
+        tripId={localPin.tripId}
+        visible={activeNewObjectDialog === "reference-link"}
+        onDismiss={() => setActiveNewObjectDialog(null)}
+        onShowMessage={showMessage}
+        systemMessageOverlay={<SystemMessageModal />}
+      />
+      {activeNewObjectDialog ? null : <SystemMessageModal />}
     </SafeAreaView>
   );
 }

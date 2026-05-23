@@ -4,6 +4,7 @@ import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
 import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { useSystemMessage } from "@/hook/use-system-message";
 import { actionListLocalReferenceLinksByTrip } from "@/lib/sqlite/model/reference-link";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +18,7 @@ export default function TripLinksScreen() {
     useState(false);
   const { id } = useLocalSearchParams();
   const { session } = useAuthSession();
+  const { showMessage, SystemMessageModal } = useSystemMessage();
 
   const { data: localTrip } = useQuery({
     queryKey: ["local-trip", String(id), session?.user.id],
@@ -75,9 +77,12 @@ export default function TripLinksScreen() {
         icon={(color) => <PlusIcon size={20} color={color} />}
       />
       <DialogNewReferenceLink
+        tripId={String(id)}
         visible={isDialogNewReferenceLinkVisible}
         onDismiss={() => setIsDialogNewReferenceLinkVisible(false)}
+        onShowMessage={showMessage}
       />
+      <SystemMessageModal />
     </View>
   );
 }

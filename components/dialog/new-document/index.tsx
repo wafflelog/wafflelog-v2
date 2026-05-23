@@ -8,7 +8,7 @@ import {
   getColor,
 } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
-import { useSystemMessage } from "@/hook/use-system-message";
+import { type SystemMessageType } from "@/hook/use-system-message";
 import { actionCreateLocalDocument } from "@/lib/sqlite/model/document";
 import { buildUUID } from "@/lib/sqlite/utils";
 import {
@@ -18,7 +18,7 @@ import {
 } from "@/lib/supabase/storage";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as DocumentPicker from "expo-document-picker";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import {
   MAX_TRAVEL_DOCUMENT_SIZE_BYTES,
@@ -36,6 +36,8 @@ type DialogNewDocumentProps = {
   pinId?: string;
   visible: boolean;
   onDismiss: () => void;
+  onShowMessage: (message: string, type?: SystemMessageType) => void;
+  systemMessageOverlay?: ReactNode;
 };
 
 type SelectedDocumentAsset = {
@@ -50,10 +52,11 @@ export const DialogNewDocument = ({
   pinId,
   visible,
   onDismiss,
+  onShowMessage,
+  systemMessageOverlay,
 }: DialogNewDocumentProps) => {
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
-  const { showMessage, SystemMessageModal } = useSystemMessage();
   const [documentCaption, setDocumentCaption] = useState("");
   const [selectedDocument, setSelectedDocument] =
     useState<SelectedDocumentAsset | null>(null);
@@ -103,13 +106,13 @@ export const DialogNewDocument = ({
       setDocumentCaption("");
       setSelectedDocument(null);
       onDismiss();
-      showMessage("Document saved locally", "info");
+      onShowMessage("Document saved locally", "info");
     },
     onError: (error) => {
       console.error("Error saving document locally:", error);
       const message =
         error instanceof Error ? error.message : "Failed to save document";
-      showMessage(message, "error");
+      onShowMessage(message, "error");
     },
   });
 
@@ -139,12 +142,12 @@ export const DialogNewDocument = ({
     const mimeType = asset.mimeType ?? inferredMimeType;
 
     if (!mimeType || !isAllowedTravelDocumentMimeType(mimeType)) {
-      showMessage("Choose a PDF, DOC, or DOCX file", "error");
+      onShowMessage("Choose a PDF, DOC, or DOCX file", "error");
       return;
     }
 
     if (!asset.size || asset.size > MAX_TRAVEL_DOCUMENT_SIZE_BYTES) {
-      showMessage("Choose a document smaller than 5 MB", "error");
+      onShowMessage("Choose a document smaller than 5 MB", "error");
       return;
     }
 
@@ -158,12 +161,12 @@ export const DialogNewDocument = ({
 
   const handleConfirm = () => {
     if (!session?.user.id) {
-      showMessage("You must be signed in to save a document", "error");
+      onShowMessage("You must be signed in to save a document", "error");
       return;
     }
 
     if (!selectedDocument) {
-      showMessage("Choose a document to save", "error");
+      onShowMessage("Choose a document to save", "error");
       return;
     }
 
@@ -175,7 +178,7 @@ export const DialogNewDocument = ({
       const message =
         result.error.issues[0]?.message ??
         "Check your document details and try again.";
-      showMessage(message, "error");
+      onShowMessage(message, "error");
       return;
     }
 
@@ -188,50 +191,48 @@ export const DialogNewDocument = ({
   };
 
   return (
-    <>
-      <Dialog
-        visible={visible}
-        onDismiss={handleDismiss}
-        title="New Document"
-        size="md"
-        confirmText={createDocumentMutation.isPending ? "Saving..." : "Save"}
-        onConfirm={handleConfirm}
-      >
-        <View style={styles.content}>
-          <TouchableOpacity
-            style={styles.pickerButton}
-            onPress={handlePickDocument}
-            activeOpacity={0.8}
-          >
-            <UIText style={styles.pickerButtonText}>
-              {selectedDocument ? "Choose another file" : "Choose document"}
-            </UIText>
-          </TouchableOpacity>
+    <Dialog
+      visible={visible}
+      onDismiss={handleDismiss}
+      title="New Document"
+      size="md"
+      confirmText={createDocumentMutation.isPending ? "Saving..." : "Save"}
+      onConfirm={handleConfirm}
+      overlay={systemMessageOverlay}
+    >
+      <View style={styles.content}>
+        <TouchableOpacity
+          style={styles.pickerButton}
+          onPress={handlePickDocument}
+          activeOpacity={0.8}
+        >
+          <UIText style={styles.pickerButtonText}>
+            {selectedDocument ? "Choose another file" : "Choose document"}
+          </UIText>
+        </TouchableOpacity>
 
-          <View style={styles.meta}>
-            <UIText style={styles.metaText}>
-              {selectedDocument?.fileName ?? "No file selected"}
+        <View style={styles.meta}>
+          <UIText style={styles.metaText}>
+            {selectedDocument?.fileName ?? "No file selected"}
+          </UIText>
+          {selectedDocument ? (
+            <UIText style={styles.metaSubtext}>
+              {selectedDocument.mimeType} · {Math.ceil(selectedDocument.fileSize / 1024)} KB
             </UIText>
-            {selectedDocument ? (
-              <UIText style={styles.metaSubtext}>
-                {selectedDocument.mimeType} · {Math.ceil(selectedDocument.fileSize / 1024)} KB
-              </UIText>
-            ) : (
-              <UIText style={styles.metaSubtext}>
-                PDF, DOC, or DOCX up to 5 MB
-              </UIText>
-            )}
-          </View>
-
-          <UIInputText
-            placeholder="Add caption (optional)"
-            value={documentCaption}
-            onChange={setDocumentCaption}
-          />
+          ) : (
+            <UIText style={styles.metaSubtext}>
+              PDF, DOC, or DOCX up to 5 MB
+            </UIText>
+          )}
         </View>
-      </Dialog>
-      <SystemMessageModal />
-    </>
+
+        <UIInputText
+          placeholder="Add caption (optional)"
+          value={documentCaption}
+          onChange={setDocumentCaption}
+        />
+      </View>
+    </Dialog>
   );
 };
 

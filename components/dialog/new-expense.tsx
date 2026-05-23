@@ -3,11 +3,11 @@ import { UIInputExpense } from "@/components/ui/input/expense";
 import { UIInputText } from "@/components/ui/input/text";
 import { gaps } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
-import { useSystemMessage } from "@/hook/use-system-message";
+import { type SystemMessageType } from "@/hook/use-system-message";
 import { actionCreateLocalExpense } from "@/lib/sqlite/model/expense";
 import { Currency } from "@/types/pin";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { newExpenseFormSchema } from "./new-expense/schema";
 
@@ -16,6 +16,8 @@ type DialogNewExpenseProps = {
   tripId?: string;
   visible: boolean;
   onDismiss: () => void;
+  onShowMessage: (message: string, type?: SystemMessageType) => void;
+  systemMessageOverlay?: ReactNode;
 };
 
 export const DialogNewExpense = ({
@@ -23,10 +25,11 @@ export const DialogNewExpense = ({
   tripId,
   visible,
   onDismiss,
+  onShowMessage,
+  systemMessageOverlay,
 }: DialogNewExpenseProps) => {
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
-  const { showMessage, SystemMessageModal } = useSystemMessage();
   const [expenseCurrency, setExpenseCurrency] = useState<Currency>("EUR");
   const [expenseAmount, setExpenseAmount] = useState("");
   const [expenseDescription, setExpenseDescription] = useState("");
@@ -44,24 +47,24 @@ export const DialogNewExpense = ({
       setExpenseAmount("");
       setExpenseDescription("");
       onDismiss();
-      showMessage("Expense saved locally", "info");
+      onShowMessage("Expense saved locally", "info");
     },
     onError: (error) => {
       console.error("Error creating expense:", error);
       const message =
         error instanceof Error ? error.message : "Failed to save expense";
-      showMessage(message, "error");
+      onShowMessage(message, "error");
     },
   });
 
   const handleConfirm = () => {
     if (!session?.user.id) {
-      showMessage("You must be signed in to create an expense", "error");
+      onShowMessage("You must be signed in to create an expense", "error");
       return;
     }
 
     if (!pinId || !tripId) {
-      showMessage("This expense needs to be attached to a pin", "error");
+      onShowMessage("This expense needs to be attached to a pin", "error");
       return;
     }
 
@@ -75,7 +78,7 @@ export const DialogNewExpense = ({
       const message =
         result.error.issues[0]?.message ??
         "Check your expense details and try again.";
-      showMessage(message, "error");
+      onShowMessage(message, "error");
       return;
     }
 
@@ -92,31 +95,29 @@ export const DialogNewExpense = ({
   };
 
   return (
-    <>
-      <Dialog
-        visible={visible}
-        onDismiss={onDismiss}
-        title="New Expense"
-        size="md"
-        onConfirm={handleConfirm}
-      >
-        <View style={styles.content}>
-          <UIInputExpense
-            currency={expenseCurrency}
-            amount={expenseAmount}
-            onCurrencyChange={setExpenseCurrency}
-            onAmountChange={setExpenseAmount}
-          />
-          <UIInputText
-            placeholder="Enter expense description"
-            value={expenseDescription}
-            onChange={setExpenseDescription}
-            autoFocus
-          />
-        </View>
-      </Dialog>
-      <SystemMessageModal />
-    </>
+    <Dialog
+      visible={visible}
+      onDismiss={onDismiss}
+      title="New Expense"
+      size="md"
+      onConfirm={handleConfirm}
+      overlay={systemMessageOverlay}
+    >
+      <View style={styles.content}>
+        <UIInputExpense
+          currency={expenseCurrency}
+          amount={expenseAmount}
+          onCurrencyChange={setExpenseCurrency}
+          onAmountChange={setExpenseAmount}
+        />
+        <UIInputText
+          placeholder="Enter expense description"
+          value={expenseDescription}
+          onChange={setExpenseDescription}
+          autoFocus
+        />
+      </View>
+    </Dialog>
   );
 };
 

@@ -5,7 +5,6 @@ import { Image as ImageIcon } from "lucide-react-native";
 
 import { CardImageRegular } from "@/components/card/image/regular";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
-import { DialogNewImage } from "@/components/dialog/new-image";
 import { colors, getColor } from "@/constants/theme";
 import {
   actionListLocalImagesByPin,
@@ -16,18 +15,17 @@ import { PinSectionTemplate } from "./section-template";
 
 type PinImagesProps = {
   pinId: string;
-  tripId: string;
   userId: string;
   onOpenImage: (selectedImageId: string, images: Pin["images"]) => void;
+  onAddImage: () => void;
 };
 
 export const PinImages = ({
   pinId,
-  tripId,
   userId,
   onOpenImage,
+  onAddImage,
 }: PinImagesProps) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -62,7 +60,7 @@ export const PinImages = ({
       <PinSectionTemplate
         title="Images"
         icon={<ImageIcon size={24} color={getColor(colors.purple)} />}
-        onAdd={() => setIsDialogOpen(true)}
+        onAdd={onAddImage}
         addText="Add Image"
         addButtonStyle={styles.addImageButton}
       >
@@ -85,13 +83,6 @@ export const PinImages = ({
           ))}
         </ScrollView>
       </PinSectionTemplate>
-
-      <DialogNewImage
-        pinId={pinId}
-        tripId={tripId}
-        visible={isDialogOpen}
-        onDismiss={() => setIsDialogOpen(false)}
-      />
 
       <ConfirmActionDialog
         visible={isDeleteDialogOpen}

@@ -7,7 +7,7 @@ import {
   getColor,
 } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
-import { useSystemMessage } from "@/hook/use-system-message";
+import { type SystemMessageType } from "@/hook/use-system-message";
 import {
   actionCountLocalImagesByPin,
   actionCreateLocalImage,
@@ -19,7 +19,7 @@ import {
 } from "@/lib/media/image";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 const MAX_IMAGES_PER_PIN = 5;
@@ -29,6 +29,8 @@ type DialogNewImageProps = {
   tripId: string;
   visible: boolean;
   onDismiss: () => void;
+  onShowMessage: (message: string, type?: SystemMessageType) => void;
+  systemMessageOverlay?: ReactNode;
 };
 
 type SelectedImageAsset = {
@@ -45,10 +47,11 @@ export const DialogNewImage = ({
   tripId,
   visible,
   onDismiss,
+  onShowMessage,
+  systemMessageOverlay,
 }: DialogNewImageProps) => {
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
-  const { showMessage, SystemMessageModal } = useSystemMessage();
   const [selectedImages, setSelectedImages] = useState<SelectedImageAsset[]>([]);
 
   const createImagesMutation = useMutation({
@@ -98,13 +101,13 @@ export const DialogNewImage = ({
 
       setSelectedImages([]);
       onDismiss();
-      showMessage("Images saved locally", "info");
+      onShowMessage("Images saved locally", "info");
     },
     onError: (error) => {
       console.error("Error saving images locally:", error);
       const message =
         error instanceof Error ? error.message : "Failed to save images";
-      showMessage(message, "error");
+      onShowMessage(message, "error");
     },
   });
 
@@ -119,7 +122,7 @@ export const DialogNewImage = ({
 
   const handlePickImages = async () => {
     if (!session?.user.id) {
-      showMessage("You must be signed in to save images", "error");
+      onShowMessage("You must be signed in to save images", "error");
       return;
     }
 
@@ -127,14 +130,17 @@ export const DialogNewImage = ({
     const remainingSlots = MAX_IMAGES_PER_PIN - currentCount;
 
     if (remainingSlots <= 0) {
-      showMessage(`You can save up to ${MAX_IMAGES_PER_PIN} images per pin`, "error");
+      onShowMessage(
+        `You can save up to ${MAX_IMAGES_PER_PIN} images per pin`,
+        "error",
+      );
       return;
     }
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
-      showMessage("Allow photo library access to pick images", "error");
+      onShowMessage("Allow photo library access to pick images", "error");
       return;
     }
 
@@ -169,7 +175,7 @@ export const DialogNewImage = ({
     });
 
     if (nextSelectedImages.length === 0) {
-      showMessage("Choose JPG, PNG, or WebP images", "error");
+      onShowMessage("Choose JPG, PNG, or WebP images", "error");
       return;
     }
 
@@ -178,7 +184,7 @@ export const DialogNewImage = ({
 
   const handleConfirm = () => {
     if (!selectedImages.length) {
-      showMessage("Choose at least one image to save", "error");
+      onShowMessage("Choose at least one image to save", "error");
       return;
     }
 
@@ -186,46 +192,44 @@ export const DialogNewImage = ({
   };
 
   return (
-    <>
-      <Dialog
-        visible={visible}
-        onDismiss={handleDismiss}
-        title="New Images"
-        size="md"
-        confirmText={createImagesMutation.isPending ? "Saving..." : "Save"}
-        onConfirm={handleConfirm}
-      >
-        <View style={styles.content}>
-          <TouchableOpacity
-            style={styles.pickerButton}
-            onPress={handlePickImages}
-            activeOpacity={0.8}
-          >
-            <UIText style={styles.pickerButtonText}>
-              {selectedImages.length ? "Choose different images" : "Choose images"}
-            </UIText>
-          </TouchableOpacity>
+    <Dialog
+      visible={visible}
+      onDismiss={handleDismiss}
+      title="New Images"
+      size="md"
+      confirmText={createImagesMutation.isPending ? "Saving..." : "Save"}
+      onConfirm={handleConfirm}
+      overlay={systemMessageOverlay}
+    >
+      <View style={styles.content}>
+        <TouchableOpacity
+          style={styles.pickerButton}
+          onPress={handlePickImages}
+          activeOpacity={0.8}
+        >
+          <UIText style={styles.pickerButtonText}>
+            {selectedImages.length ? "Choose different images" : "Choose images"}
+          </UIText>
+        </TouchableOpacity>
 
-          <View style={styles.meta}>
-            <UIText style={styles.metaText}>
-              {selectedImages.length
-                ? `${selectedImages.length} image${selectedImages.length > 1 ? "s" : ""} selected`
-                : "No images selected"}
-            </UIText>
-            <UIText style={styles.metaSubtext}>
-              Up to {MAX_IMAGES_PER_PIN} images per pin. JPG, PNG, or WebP only.
-            </UIText>
-          </View>
-
-          {selectedImages.map((image) => (
-            <UIText key={image.assetId ?? image.fileUri} style={styles.imageName}>
-              {image.fileName}
-            </UIText>
-          ))}
+        <View style={styles.meta}>
+          <UIText style={styles.metaText}>
+            {selectedImages.length
+              ? `${selectedImages.length} image${selectedImages.length > 1 ? "s" : ""} selected`
+              : "No images selected"}
+          </UIText>
+          <UIText style={styles.metaSubtext}>
+            Up to {MAX_IMAGES_PER_PIN} images per pin. JPG, PNG, or WebP only.
+          </UIText>
         </View>
-      </Dialog>
-      <SystemMessageModal />
-    </>
+
+        {selectedImages.map((image) => (
+          <UIText key={image.assetId ?? image.fileUri} style={styles.imageName}>
+            {image.fileName}
+          </UIText>
+        ))}
+      </View>
+    </Dialog>
   );
 };
 
