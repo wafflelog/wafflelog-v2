@@ -2,7 +2,7 @@ import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
 } from "@react-navigation/drawer";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
 import {
@@ -12,74 +12,76 @@ import {
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import {
-  ChevronRightIcon,
   FileTextIcon,
   ImageIcon,
+  LayoutDashboardIcon,
   Link2Icon,
   ListCheckIcon,
   SettingsIcon,
   UsersIcon,
   WalletIcon,
 } from "lucide-react-native";
-import { useState } from "react";
 
 interface DrawerTripProps extends DrawerContentComponentProps {
   id?: string;
 }
 
 export function DrawerTrip({ id, navigation }: DrawerTripProps) {
-  const [activeLink, setActiveLink] = useState<string>("1");
+  const pathname = usePathname();
+
   if (!id) {
     return null;
   }
 
-  const links: (DrawerItem & { id: string })[] = [
+  const tripBasePath = `/trip/${id}`;
+
+  const links: (DrawerItem & { href: string })[] = [
     {
-      id: "1",
-      label: "Back to Trip",
-      icon: (color) => <ChevronRightIcon size={20} color={color} />,
+      label: "Overview",
+      icon: (color) => <LayoutDashboardIcon size={20} color={color} />,
+      href: tripBasePath,
       onPress: () => router.push(`/trip/${id}`),
     },
     {
-      id: "2",
       label: "Checklist",
       icon: (color) => <ListCheckIcon size={20} color={color} />,
+      href: `${tripBasePath}/checklist`,
       onPress: () => router.push(`/trip/${id}/checklist`),
     },
     {
-      id: "3",
       label: "Links",
       icon: (color) => <Link2Icon size={20} color={color} />,
+      href: `${tripBasePath}/links`,
       onPress: () => router.push(`/trip/${id}/links`),
     },
     {
-      id: "4",
       label: "Documents",
       icon: (color) => <FileTextIcon size={20} color={color} />,
+      href: `${tripBasePath}/documents`,
       onPress: () => router.push(`/trip/${id}/documents`),
     },
     {
-      id: "5",
       label: "Images",
       icon: (color) => <ImageIcon size={20} color={color} />,
+      href: `${tripBasePath}/images`,
       onPress: () => router.push(`/trip/${id}/images`),
     },
     {
-      id: "6",
       label: "Expenses",
       icon: (color) => <WalletIcon size={20} color={color} />,
+      href: `${tripBasePath}/expenses`,
       onPress: () => router.push(`/trip/${id}/expenses`),
     },
     {
-      id: "7",
       label: "Companions",
       icon: (color) => <UsersIcon size={20} color={color} />,
+      href: `${tripBasePath}/companions`,
       onPress: () => router.push(`/trip/${id}/companions`),
     },
     {
-      id: "8",
       label: "Settings",
       icon: (color) => <SettingsIcon size={20} color={color} />,
+      href: `${tripBasePath}/settings`,
       onPress: () => router.push(`/trip/${id}/settings`),
     },
   ];
@@ -98,14 +100,10 @@ export function DrawerTrip({ id, navigation }: DrawerTripProps) {
       <View style={styles.links}>
         {links.map((link) => (
           <DrawerItemRegular
-            key={link.id}
+            key={link.href}
             item={{
               ...link,
-              isActive: activeLink === link.id,
-              onPress: () => {
-                setActiveLink(link.id);
-                link.onPress();
-              },
+              isActive: pathname === link.href,
             }}
           />
         ))}
