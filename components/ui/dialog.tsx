@@ -11,7 +11,7 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type DialogProps = {
@@ -70,63 +70,65 @@ export function Dialog({
         <SafeAreaView style={styles.container} edges={["bottom"]}>
           {overlay}
           <Pressable style={[styles.backdrop]} onPress={handleBackdropPress} />
-          <View style={[styles.dialog, { height: sizes[size] }]}>
-            {onDismiss && (
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={onDismiss}
-                activeOpacity={0.7}
-              >
-                <XIcon size={24} color={getColor(colors.textDarkGrey)} />
-              </TouchableOpacity>
-            )}
+          <View style={[styles.dialog]}>
+            <KeyboardAwareScrollView
+              contentContainerStyle={styles.keyboardContainer}
+            >
+              {onDismiss && (
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={onDismiss}
+                  activeOpacity={0.7}
+                >
+                  <XIcon size={24} color={getColor(colors.textDarkGrey)} />
+                </TouchableOpacity>
+              )}
 
-            {title && (
-              <>
-                <View style={styles.header}>
+              {title && (
+                <>
+                  <View style={styles.header}>
+                    <TitleRegular
+                      size="lg"
+                      weight="600"
+                      color={colors.textDarkGrey}
+                    >
+                      {title}
+                    </TitleRegular>
+                  </View>
+                  <View style={styles.divider} />
+                </>
+              )}
+
+              <View style={styles.content}>{children}</View>
+
+              <View style={styles.actions}>
+                <TouchableOpacity
+                  style={[styles.button, styles.cancelButton]}
+                  onPress={onDismiss}
+                >
                   <TitleRegular
-                    size="lg"
+                    size="sm"
                     weight="600"
                     color={colors.textDarkGrey}
                   >
-                    {title}
+                    {cancelText}
                   </TitleRegular>
-                </View>
-                <View style={styles.divider} />
-              </>
-            )}
-
-            <KeyboardAvoidingView style={styles.content}>
-              {children}
-            </KeyboardAvoidingView>
-
-            <View style={styles.actions}>
-              <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
-                onPress={onDismiss}
-              >
-                <TitleRegular
-                  size="sm"
-                  weight="600"
-                  color={colors.textDarkGrey}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.button,
+                    confirmVariant === "danger"
+                      ? styles.dangerButton
+                      : styles.createButton,
+                  ]}
+                  onPress={onConfirm}
                 >
-                  {cancelText}
-                </TitleRegular>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  confirmVariant === "danger"
-                    ? styles.dangerButton
-                    : styles.createButton,
-                ]}
-                onPress={onConfirm}
-              >
-                <TitleRegular size="sm" weight="600" color={colors.white}>
-                  {confirmText}
-                </TitleRegular>
-              </TouchableOpacity>
-            </View>
+                  <TitleRegular size="sm" weight="600" color={colors.white}>
+                    {confirmText}
+                  </TitleRegular>
+                </TouchableOpacity>
+              </View>
+            </KeyboardAwareScrollView>
           </View>
         </SafeAreaView>
       </Modal>
@@ -141,6 +143,9 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  keyboardContainer: {
+    // flex: 1,
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
