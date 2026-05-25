@@ -1,4 +1,5 @@
 import { CATEGORIES } from "@/constants/pin-categories";
+import { isRangePinCategory } from "@/lib/pin";
 import { iso, z } from "zod";
 
 const categoryIds: string[] = CATEGORIES.map((category) => category.id);
@@ -8,69 +9,43 @@ const timeSchema = z
 
 export const newPinFormSchema = z
   .object({
-    pinName: z
-      .string()
-      .trim()
-      .min(1, "Enter a pin name")
-      .max(200, "Pin name is too long"),
+    pinName: z.string().trim().max(200, "Pin name is too long"),
     pinCategoryId: z.string().refine((value) => categoryIds.includes(value), {
       message: "Select a pin category",
     }),
-    pinStartDate: z.string().min(1, "Select a start date").pipe(iso.date()),
-    pinStartTime: z.string(),
-    pinEndDate: z.string().min(1, "Select an end date").pipe(iso.date()),
-    pinEndTime: z.string(),
-    pinAllDay: z.boolean(),
+    pinStartDate: z.string().min(1, "Select a date").pipe(iso.date()),
+    pinEndDate: z.string(),
+    pinTime: z.string(),
     transportDeparture: z.string(),
     transportDestination: z.string(),
-    transportCarrier: z.string(),
-    transportReference: z.string(),
   })
   .superRefine((value, context) => {
-    if (value.pinEndDate < value.pinStartDate) {
-      context.addIssue({
-        code: "custom",
-        path: ["pinEndDate"],
-        message: "End date must be on or after the start date",
-      });
+    const isRangePin = isRangePinCategory(value.pinCategoryId);
+
+    if (isRangePin) {
+      const endDate = z.string().min(1).pipe(iso.date()).safeParse(value.pinEndDate);
+
+      if (!endDate.success) {
+        context.addIssue({
+          code: "custom",
+          path: ["pinEndDate"],
+          message: "Select an end date",
+        });
+      } else if (value.pinEndDate < value.pinStartDate) {
+        context.addIssue({
+          code: "custom",
+          path: ["pinEndDate"],
+          message: "End date must be on or after the start date",
+        });
+      }
     }
 
-    if (!value.pinAllDay) {
-      const hasStartTime = value.pinStartTime.trim().length > 0;
-      const hasEndTime = value.pinEndTime.trim().length > 0;
-      const startTime = timeSchema.safeParse(value.pinStartTime);
-      const endTime = timeSchema.safeParse(value.pinEndTime);
-
-      if (hasStartTime && !startTime.success) {
-        context.addIssue({
-          code: "custom",
-          path: ["pinStartTime"],
-          message: "Enter a valid start time",
-        });
-      }
-
-      if (hasEndTime && !endTime.success) {
-        context.addIssue({
-          code: "custom",
-          path: ["pinEndTime"],
-          message: "Enter a valid end time",
-        });
-      }
-
-      if (
-        hasStartTime &&
-        hasEndTime &&
-        startTime.success &&
-        endTime.success &&
-        value.pinStartDate === value.pinEndDate &&
-        value.pinEndTime < value.pinStartTime
-      ) {
-        context.addIssue({
-          code: "custom",
-          path: ["pinEndTime"],
-          message: "End time must be after the start time",
-        });
-      }
+    if (value.pinTime.trim() && !timeSchema.safeParse(value.pinTime).success) {
+      context.addIssue({
+        code: "custom",
+        path: ["pinTime"],
+        message: "Enter a valid time",
+      });
     }
 
     if (value.pinCategoryId === "transport") {

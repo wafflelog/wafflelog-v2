@@ -70,13 +70,11 @@ export type Note = {
 
 export type Pin = {
   id: string;
-  name: string;
+  name: string | null;
   category: PinCategory;
   startDate: string;
-  startTime: string | null;
-  endDate: string;
-  endTime: string | null;
-  allDay: boolean;
+  endDate: string | null;
+  time: string | null;
   metadata: PinMetadata;
   location: Location;
   referenceLinks: ReferenceLink[];
@@ -104,6 +102,4 @@ export type PinMetadata = {
   version: 1;
   departure?: string;
   destination?: string;
-  carrier?: string;
-  reference?: string;
 };

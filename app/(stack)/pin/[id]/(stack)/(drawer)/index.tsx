@@ -167,10 +167,8 @@ export default function PinIndexScreen() {
           longitude: localPinLocation?.longitude ?? 0,
         },
         startDate: localPin.startDate,
-        startTime: localPin.startTime,
         endDate: localPin.endDate,
-        endTime: localPin.endTime,
-        allDay: localPin.allDay,
+        time: localPin.time,
         metadata: localPin.metadataJson,
         referenceLinks: [],
         documents: [],
@@ -302,16 +300,6 @@ export default function PinIndexScreen() {
                 <TitleRegular size="sm" weight="600">
                   {pin.metadata.departure} - {pin.metadata.destination}
                 </TitleRegular>
-                {pin.metadata.carrier ? (
-                  <TitleRegular size="xs" color={colors.textLightGrey}>
-                    {pin.metadata.carrier}
-                  </TitleRegular>
-                ) : null}
-                {pin.metadata.reference ? (
-                  <TitleRegular size="xs" color={colors.textLightGrey}>
-                    {pin.metadata.reference}
-                  </TitleRegular>
-                ) : null}
               </View>
             </View>
           ) : null}
@@ -435,10 +423,8 @@ export default function PinIndexScreen() {
             id: localPin.id,
             name: localPin.name,
             startDate: localPin.startDate,
-            startTime: localPin.startTime,
             endDate: localPin.endDate,
-            endTime: localPin.endTime,
-            allDay: localPin.allDay,
+            time: localPin.time,
             categoryId: localPin.categoryId,
             metadataJson: localPin.metadataJson,
           }}

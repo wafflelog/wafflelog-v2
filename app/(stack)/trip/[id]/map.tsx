@@ -288,7 +288,7 @@ export default function TripMapScreen() {
                 latitude: pin.latitude,
                 longitude: pin.longitude,
               }}
-              title={pin.name}
+              title={pin.name ?? pin.categoryId}
               description={pin.displayName}
               onPress={() => {
                 selectPinAtIndex(index);
@@ -413,7 +413,7 @@ export default function TripMapScreen() {
                           weight="600"
                           color={colors.textDarkGrey}
                         >
-                          {item.name}
+                          {item.name ?? item.categoryId}
                         </TitleRegular>
                         <TitleRegular
                           size="xs"

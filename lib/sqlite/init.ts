@@ -6,7 +6,8 @@ export async function initializeDatabase() {
   );
   const hasOldPinSchema =
     existingPinColumns.length > 0 &&
-    !existingPinColumns.some((column) => column.name === "start_date");
+    (!existingPinColumns.some((column) => column.name === "start_date") ||
+      existingPinColumns.some((column) => column.name === "all_day"));
 
   if (hasOldPinSchema) {
     await sqlite.execAsync(`
@@ -53,12 +54,10 @@ export async function initializeDatabase() {
       id text primary key not null,
       trip_id text not null,
       user_id text not null,
-      name text not null,
+      name text,
       start_date text not null,
-      start_time text,
-      end_date text not null,
-      end_time text,
-      all_day integer not null default 0,
+      end_date text,
+      time text,
       category_id text not null,
       metadata_json text not null default '{"version":1}',
       created_at text not null,

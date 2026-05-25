@@ -91,7 +91,7 @@ export function DrawerPin({ id }: DrawerPinProps) {
           <DrawerItemRegular
             key={pin.id}
             item={{
-              label: pin.name,
+              label: pin.name ?? pin.categoryId,
               isActive: id === pin.id,
               onPress: () => {
                 router.replace(`/pin/${pin.id}`);

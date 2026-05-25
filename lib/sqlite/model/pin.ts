@@ -1,3 +1,4 @@
+import { isRangePinCategory } from "@/lib/pin";
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
 import {
@@ -10,12 +11,10 @@ export type LocalPin = {
   id: string;
   tripId: string;
   userId: string;
-  name: string;
+  name: string | null;
   startDate: string;
-  startTime: string | null;
-  endDate: string;
-  endTime: string | null;
-  allDay: boolean;
+  endDate: string | null;
+  time: string | null;
   categoryId: string;
   metadataJson: PinMetadata;
   createdAt: string;
@@ -29,12 +28,10 @@ export type LocalPin = {
 export type CreateLocalPinInput = {
   tripId: string;
   userId: string;
-  name: string;
+  name: string | null;
   startDate: string;
-  startTime: string | null;
-  endDate: string;
-  endTime: string | null;
-  allDay: boolean;
+  endDate: string | null;
+  time: string | null;
   categoryId: string;
   metadataJson: PinMetadata;
 };
@@ -42,18 +39,21 @@ export type CreateLocalPinInput = {
 export type UpdateLocalPinInput = {
   id: string;
   userId: string;
-  name: string;
+  name: string | null;
   startDate: string;
-  startTime: string | null;
-  endDate: string;
-  endTime: string | null;
-  allDay: boolean;
+  endDate: string | null;
+  time: string | null;
   categoryId: string;
   metadataJson: PinMetadata;
 };
 
 const DEFAULT_SYNC_BATCH_SIZE = 25;
 const DEFAULT_PIN_METADATA: PinMetadata = { version: 1 };
+
+const normalizeName = (name: string | null) => name?.trim() || null;
+const normalizeTime = (time: string | null) => time?.trim() || null;
+const normalizeEndDate = (categoryId: string, endDate: string | null) =>
+  isRangePinCategory(categoryId) ? endDate : null;
 
 const stringifyMetadata = (metadata: PinMetadata) => JSON.stringify(metadata);
 
@@ -68,8 +68,6 @@ const parseMetadata = (metadata: string | null): PinMetadata => {
       version: 1,
       departure: parsed.departure,
       destination: parsed.destination,
-      carrier: parsed.carrier,
-      reference: parsed.reference,
     };
   } catch {
     return DEFAULT_PIN_METADATA;
@@ -80,12 +78,10 @@ type LocalPinRow = {
   id: string;
   trip_id: string;
   user_id: string;
-  name: string;
+  name: string | null;
   start_date: string;
-  start_time: string | null;
-  end_date: string;
-  end_time: string | null;
-  all_day: number;
+  end_date: string | null;
+  time: string | null;
   category_id: string;
   metadata_json: string | null;
   created_at: string;
@@ -103,10 +99,8 @@ function mapLocalPinRow(row: LocalPinRow): LocalPin {
     userId: row.user_id,
     name: row.name,
     startDate: row.start_date,
-    startTime: row.start_time,
     endDate: row.end_date,
-    endTime: row.end_time,
-    allDay: Boolean(row.all_day),
+    time: row.time,
     categoryId: row.category_id,
     metadataJson: parseMetadata(row.metadata_json),
     createdAt: row.created_at,
@@ -124,10 +118,8 @@ const selectLocalPinColumns = `
   user_id,
   name,
   start_date,
-  start_time,
   end_date,
-  end_time,
-  all_day,
+  time,
   category_id,
   metadata_json,
   created_at,
@@ -144,12 +136,10 @@ export async function actionCreateLocalPin(input: CreateLocalPinInput) {
     id: buildUUID(),
     trip_id: input.tripId,
     user_id: input.userId,
-    name: input.name.trim(),
+    name: normalizeName(input.name),
     start_date: input.startDate,
-    start_time: input.allDay ? null : input.startTime?.trim() || null,
-    end_date: input.endDate,
-    end_time: input.allDay ? null : input.endTime?.trim() || null,
-    all_day: input.allDay ? 1 : 0,
+    end_date: normalizeEndDate(input.categoryId, input.endDate),
+    time: normalizeTime(input.time),
     category_id: input.categoryId,
     metadata_json: stringifyMetadata(input.metadataJson),
     created_at: now,
@@ -168,10 +158,8 @@ export async function actionCreateLocalPin(input: CreateLocalPinInput) {
         user_id,
         name,
         start_date,
-        start_time,
         end_date,
-        end_time,
-        all_day,
+        time,
         category_id,
         metadata_json,
         created_at,
@@ -180,7 +168,7 @@ export async function actionCreateLocalPin(input: CreateLocalPinInput) {
         last_synced_at,
         sync_error,
         deleted_at
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       localPin.id,
@@ -188,10 +176,8 @@ export async function actionCreateLocalPin(input: CreateLocalPinInput) {
       localPin.user_id,
       localPin.name,
       localPin.start_date,
-      localPin.start_time,
       localPin.end_date,
-      localPin.end_time,
-      localPin.all_day,
+      localPin.time,
       localPin.category_id,
       localPin.metadata_json,
       localPin.created_at,
@@ -212,7 +198,7 @@ export async function actionListLocalPins(tripId: string, userId: string) {
       select ${selectLocalPinColumns}
       from pin
       where trip_id = ? and user_id = ? and deleted_at is null
-      order by start_date asc, start_time asc, created_at asc
+      order by start_date asc, time asc, created_at asc
     `,
     [tripId, userId],
   );
@@ -232,9 +218,9 @@ export async function actionListLocalPinsByTripAndDate(
       where trip_id = ?
         and user_id = ?
         and start_date <= ?
-        and end_date >= ?
+        and coalesce(end_date, start_date) >= ?
         and deleted_at is null
-      order by start_date asc, start_time asc, created_at asc
+      order by start_date asc, time asc, created_at asc
     `,
     [tripId, userId, date, date],
   );
@@ -265,10 +251,8 @@ export async function actionUpdateLocalPin(input: UpdateLocalPinInput) {
       set
         name = ?,
         start_date = ?,
-        start_time = ?,
         end_date = ?,
-        end_time = ?,
-        all_day = ?,
+        time = ?,
         category_id = ?,
         metadata_json = ?,
         updated_at = ?,
@@ -277,12 +261,10 @@ export async function actionUpdateLocalPin(input: UpdateLocalPinInput) {
       where id = ? and user_id = ? and deleted_at is null
     `,
     [
-      input.name.trim(),
+      normalizeName(input.name),
       input.startDate,
-      input.allDay ? null : input.startTime?.trim() || null,
-      input.endDate,
-      input.allDay ? null : input.endTime?.trim() || null,
-      input.allDay ? 1 : 0,
+      normalizeEndDate(input.categoryId, input.endDate),
+      normalizeTime(input.time),
       input.categoryId,
       stringifyMetadata(input.metadataJson),
       now,
@@ -306,12 +288,10 @@ export async function actionUpsertLocalPinFromRemote(remotePin: {
   id: string;
   tripId: string;
   userId: string;
-  name: string;
+  name: string | null;
   startDate: string;
-  startTime: string | null;
-  endDate: string;
-  endTime: string | null;
-  allDay: boolean;
+  endDate: string | null;
+  time: string | null;
   categoryId: string;
   metadataJson: PinMetadata;
   createdAt: string;
@@ -327,10 +307,8 @@ export async function actionUpsertLocalPinFromRemote(remotePin: {
         user_id,
         name,
         start_date,
-        start_time,
         end_date,
-        end_time,
-        all_day,
+        time,
         category_id,
         metadata_json,
         created_at,
@@ -339,16 +317,14 @@ export async function actionUpsertLocalPinFromRemote(remotePin: {
         last_synced_at,
         sync_error,
         deleted_at
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       on conflict(id) do update set
         trip_id = excluded.trip_id,
         user_id = excluded.user_id,
         name = excluded.name,
         start_date = excluded.start_date,
-        start_time = excluded.start_time,
         end_date = excluded.end_date,
-        end_time = excluded.end_time,
-        all_day = excluded.all_day,
+        time = excluded.time,
         category_id = excluded.category_id,
         metadata_json = excluded.metadata_json,
         created_at = excluded.created_at,
@@ -362,12 +338,10 @@ export async function actionUpsertLocalPinFromRemote(remotePin: {
       remotePin.id,
       remotePin.tripId,
       remotePin.userId,
-      remotePin.name,
+      normalizeName(remotePin.name),
       remotePin.startDate,
-      remotePin.startTime,
-      remotePin.endDate,
-      remotePin.endTime,
-      remotePin.allDay ? 1 : 0,
+      normalizeEndDate(remotePin.categoryId, remotePin.endDate),
+      normalizeTime(remotePin.time),
       remotePin.categoryId,
       stringifyMetadata(remotePin.metadataJson),
       remotePin.createdAt,
@@ -536,10 +510,8 @@ export async function actionSyncLocalPin(localPin: LocalPin) {
       tripId: localPin.tripId,
       name: localPin.name,
       startDate: localPin.startDate,
-      startTime: localPin.startTime,
       endDate: localPin.endDate,
-      endTime: localPin.endTime,
-      allDay: localPin.allDay,
+      time: localPin.time,
       categoryId: localPin.categoryId,
       metadataJson: localPin.metadataJson,
     });

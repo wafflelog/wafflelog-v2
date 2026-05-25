@@ -1,59 +1,49 @@
 import dayjs from "dayjs";
 
-import { type Pin, type PinMetadata } from "@/types/pin";
+import { type Pin, type PinCategory, type PinMetadata } from "@/types/pin";
 
 export const EMPTY_PIN_METADATA: PinMetadata = { version: 1 };
+
+export const RANGE_PIN_CATEGORY_IDS = ["event", "stay"] as const;
+
+export const isRangePinCategory = (categoryId: string) =>
+  RANGE_PIN_CATEGORY_IDS.some((id) => id === categoryId);
 
 export const buildTransportMetadata = (input: {
   departure: string;
   destination: string;
-  carrier: string;
-  reference: string;
 }): PinMetadata => ({
   version: 1,
   departure: input.departure.trim() || undefined,
   destination: input.destination.trim() || undefined,
-  carrier: input.carrier.trim() || undefined,
-  reference: input.reference.trim() || undefined,
 });
 
+export const getPinTitle = (
+  pin: Pick<Pin, "name" | "category">,
+) => pin.name?.trim() || pin.category.name;
+
 export const getPinTimeLabelForDate = (
-  pin: Pick<Pin, "startDate" | "startTime" | "endDate" | "endTime" | "allDay">,
+  pin: Pick<Pin, "startDate" | "endDate" | "time">,
   date: string,
 ) => {
-  if (pin.allDay) {
-    return "Full day";
-  }
-
   const selectedDate = dayjs(date);
   const isStartDay = selectedDate.isSame(dayjs(pin.startDate), "day");
-  const isEndDay = selectedDate.isSame(dayjs(pin.endDate), "day");
 
   if (isStartDay) {
-    return pin.startTime ?? "Full day";
-  }
-
-  if (isEndDay) {
-    return pin.endTime ? `Ends ${pin.endTime}` : "Full day";
+    return pin.time ?? "Full day";
   }
 
   return "Full day";
 };
 
 export const getPinHeaderTimeLabel = (
-  pin: Pick<Pin, "startDate" | "startTime" | "endDate" | "endTime" | "allDay">,
+  pin: Pick<Pin, "startDate" | "endDate" | "time">,
 ) => {
-  if (pin.startDate === pin.endDate) {
-    return getPinTimeLabelForDate(pin, pin.startDate);
+  if (!pin.endDate || pin.startDate === pin.endDate) {
+    return pin.time ?? dayjs(pin.startDate).format("DD MMM");
   }
 
-  if (pin.allDay) {
-    return `${dayjs(pin.startDate).format("DD MMM")} - ${dayjs(pin.endDate).format("DD MMM")}`;
-  }
-
-  const start = pin.startTime ? `${pin.startDate} ${pin.startTime}` : pin.startDate;
-  const end = pin.endTime ? `${pin.endDate} ${pin.endTime}` : pin.endDate;
-  return `${start} - ${end}`;
+  return `${dayjs(pin.startDate).format("DD MMM")} - ${dayjs(pin.endDate).format("DD MMM")}`;
 };
 
 export const getPinSubtitle = (
@@ -69,3 +59,5 @@ export const getPinSubtitle = (
 
   return pin.location.name === "Unknown location" ? "" : pin.location.name;
 };
+
+export const getPinFallbackName = (category: PinCategory) => category.name;

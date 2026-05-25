@@ -1,7 +1,7 @@
 import { IconPinCategory } from "@/components/icon/pin-category";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
-import { getPinSubtitle, getPinTimeLabelForDate } from "@/lib/pin";
+import { getPinSubtitle, getPinTimeLabelForDate, getPinTitle } from "@/lib/pin";
 import { type Pin } from "@/types/pin";
 
 import { ChevronRight as ChevronRightIcon } from "lucide-react-native";
@@ -28,7 +28,7 @@ export const CardPinRegular = ({
 
       <View style={styles.content}>
         <TitleRegular size="sm" weight="500">
-          {pin.name}
+          {getPinTitle(pin)}
         </TitleRegular>
 
         <TitleRegular size="xs">

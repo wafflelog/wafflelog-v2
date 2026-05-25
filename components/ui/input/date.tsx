@@ -78,6 +78,11 @@ export const UIInputDate = ({
     setShowPicker(true);
   };
 
+  const handleConfirm = () => {
+    onChange?.(toDateString(date));
+    setShowPicker(false);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.inputContainer}>
@@ -109,7 +114,7 @@ export const UIInputDate = ({
         <Dialog
           visible={showPicker}
           onDismiss={() => setShowPicker(false)}
-          onConfirm={() => setShowPicker(false)}
+          onConfirm={handleConfirm}
           title="Select Date"
           confirmText="Select"
           cancelText="Cancel"

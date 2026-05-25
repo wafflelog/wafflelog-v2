@@ -388,49 +388,43 @@ export type Database = {
       }
       pin: {
         Row: {
-          all_day: boolean
           category_id: string
           created_at: string
           deleted_at: string | null
-          end_date: string
-          end_time: string | null
+          end_date: string | null
           id: string
           metadata_json: Json
-          name: string
+          name: string | null
           start_date: string
-          start_time: string | null
+          time: string | null
           trip_id: string
           updated_at: string
           user_id: string
         }
         Insert: {
-          all_day?: boolean
           category_id: string
           created_at?: string
           deleted_at?: string | null
-          end_date: string
-          end_time?: string | null
+          end_date?: string | null
           id?: string
           metadata_json?: Json
-          name: string
+          name?: string | null
           start_date: string
-          start_time?: string | null
+          time?: string | null
           trip_id: string
           updated_at?: string
           user_id: string
         }
         Update: {
-          all_day?: boolean
           category_id?: string
           created_at?: string
           deleted_at?: string | null
-          end_date?: string
-          end_time?: string | null
+          end_date?: string | null
           id?: string
           metadata_json?: Json
-          name?: string
+          name?: string | null
           start_date?: string
-          start_time?: string | null
+          time?: string | null
           trip_id?: string
           updated_at?: string
           user_id?: string

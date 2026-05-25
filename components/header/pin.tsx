@@ -21,7 +21,7 @@ type HeaderDefaultProps = {
 type HeaderPinTitleProps = {
   pin?: Pick<
     Pin,
-    "name" | "startDate" | "startTime" | "endDate" | "endTime" | "allDay"
+    "name" | "startDate" | "endDate" | "time"
   > | null;
 } & Partial<HeaderTitleProps>;
 
@@ -40,7 +40,7 @@ export const HeaderPin = ({
         <ChevronLeftIcon size={24} color={getColor(colors.textDarkGrey)} />
       </TouchableOpacity>
       <View style={styles.headerContent}>
-        <Text style={styles.headerTitle}>{pin.name}</Text>
+        <Text style={styles.headerTitle}>{pin.name ?? "Pin"}</Text>
         <Text style={styles.headerSubtitle}>{getPinHeaderTimeLabel(pin)}</Text>
       </View>
       <TouchableOpacity style={styles.moreButton} onPress={onMorePress}>
@@ -68,7 +68,7 @@ export const HeaderPinTitle = ({
         allowFontScaling={allowFontScaling}
         onLayout={onLayout}
       >
-        {pin.name}
+        {pin.name ?? "Pin"}
       </Text>
       <Text
         style={styles.headerSubtitle}

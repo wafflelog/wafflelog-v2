@@ -61,9 +61,10 @@ export const UIInputTime = ({
   const [time, setTime] = useState<Date>(() => toPickerTime(value));
 
   useEffect(() => {
-    console.log("time value changed:", value);
-    setTime(toPickerTime(value));
-  }, [value]);
+    if (!showPicker) {
+      setTime(toPickerTime(value));
+    }
+  }, [showPicker, value]);
 
   const displayValue = value || "";
 
@@ -74,8 +75,15 @@ export const UIInputTime = ({
 
     if (selectedTime) {
       setTime(selectedTime);
-      onChange?.(toTimeString(selectedTime));
+      if (Platform.OS === "android") {
+        onChange?.(toTimeString(selectedTime));
+      }
     }
+  };
+
+  const handleConfirm = () => {
+    onChange?.(toTimeString(time));
+    setShowPicker(false);
   };
 
   const handleNowPress = () => {
@@ -119,7 +127,7 @@ export const UIInputTime = ({
         <Dialog
           visible={showPicker}
           onDismiss={() => setShowPicker(false)}
-          onConfirm={() => setShowPicker(false)}
+          onConfirm={handleConfirm}
           title="Select Time"
           confirmText="Select"
           cancelText="Cancel"

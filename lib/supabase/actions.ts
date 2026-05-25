@@ -12,12 +12,10 @@ export type CreateTripInput = {
 export type CreatePinInput = {
   id?: string;
   tripId: string;
-  name: string;
+  name: string | null;
   startDate: string;
-  startTime: string | null;
-  endDate: string;
-  endTime: string | null;
-  allDay: boolean;
+  endDate: string | null;
+  time: string | null;
   categoryId: string;
   metadataJson: PinMetadata;
 };
@@ -120,9 +118,6 @@ const mapPinMetadata = (metadata: Json): PinMetadata => {
       typeof metadata.destination === "string"
         ? metadata.destination
         : undefined,
-    carrier: typeof metadata.carrier === "string" ? metadata.carrier : undefined,
-    reference:
-      typeof metadata.reference === "string" ? metadata.reference : undefined,
   };
 };
 
@@ -130,12 +125,10 @@ const mapPinRow = (pin: {
   id: string;
   trip_id: string;
   user_id: string;
-  name: string;
+  name: string | null;
   start_date: string;
-  start_time: string | null;
-  end_date: string;
-  end_time: string | null;
-  all_day: boolean;
+  end_date: string | null;
+  time: string | null;
   category_id: string;
   metadata_json: Json;
   created_at: string;
@@ -147,10 +140,8 @@ const mapPinRow = (pin: {
   userId: pin.user_id,
   name: pin.name,
   startDate: pin.start_date,
-  startTime: pin.start_time,
   endDate: pin.end_date,
-  endTime: pin.end_time,
-  allDay: pin.all_day,
+  time: pin.time,
   categoryId: pin.category_id,
   metadataJson: mapPinMetadata(pin.metadata_json),
   createdAt: pin.created_at,
@@ -435,12 +426,10 @@ export async function actionUpsertRemotePinFromLocal(input: CreatePinInput) {
     id: input.id,
     trip_id: input.tripId,
     user_id: user.id,
-    name: input.name.trim(),
+    name: input.name?.trim() || null,
     start_date: input.startDate,
-    start_time: input.allDay ? null : input.startTime?.trim() || null,
     end_date: input.endDate,
-    end_time: input.allDay ? null : input.endTime?.trim() || null,
-    all_day: input.allDay,
+    time: input.time?.trim() || null,
     category_id: input.categoryId,
     metadata_json: input.metadataJson,
   };
@@ -449,7 +438,7 @@ export async function actionUpsertRemotePinFromLocal(input: CreatePinInput) {
     .from("pin")
     .upsert(payload)
     .select(
-      "id, trip_id, user_id, name, start_date, start_time, end_date, end_time, all_day, category_id, metadata_json, created_at, updated_at, deleted_at",
+      "id, trip_id, user_id, name, start_date, end_date, time, category_id, metadata_json, created_at, updated_at, deleted_at",
     )
     .single();
 
@@ -1159,7 +1148,7 @@ export async function actionGetRemotePinById(pinId: string) {
   const { data, error } = await supabase
     .from("pin")
     .select(
-      "id, trip_id, user_id, name, start_date, start_time, end_date, end_time, all_day, category_id, metadata_json, created_at, updated_at, deleted_at",
+      "id, trip_id, user_id, name, start_date, end_date, time, category_id, metadata_json, created_at, updated_at, deleted_at",
     )
     .eq("id", pinId)
     .is("deleted_at", null)

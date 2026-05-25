@@ -8,7 +8,11 @@ import { CATEGORIES } from "@/constants/pin-categories";
 import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { buildTransportMetadata, EMPTY_PIN_METADATA } from "@/lib/pin";
+import {
+  buildTransportMetadata,
+  EMPTY_PIN_METADATA,
+  isRangePinCategory,
+} from "@/lib/pin";
 import {
   actionCreateLocalPin,
   actionSyncLocalPin,
@@ -32,19 +36,15 @@ type DialogNewPinProps = {
   mode?: "create" | "edit";
   initialPin?: {
     id: string;
-    name: string;
+    name: string | null;
     startDate: string;
-    startTime: string | null;
-    endDate: string;
-    endTime: string | null;
-    allDay: boolean;
+    endDate: string | null;
+    time: string | null;
     categoryId: string;
     metadataJson: {
       version: 1;
       departure?: string;
       destination?: string;
-      carrier?: string;
-      reference?: string;
     };
   };
 };
@@ -64,17 +64,14 @@ export const DialogNewPin = ({
   const [pinName, setPinName] = useState("");
   const [pinCategoryId, setPinCategoryId] = useState("");
   const [pinStartDate, setPinStartDate] = useState("");
-  const [pinStartTime, setPinStartTime] = useState("");
   const [pinEndDate, setPinEndDate] = useState("");
-  const [pinEndTime, setPinEndTime] = useState("");
-  const [pinAllDay, setPinAllDay] = useState(false);
+  const [pinTime, setPinTime] = useState("");
   const [transportDeparture, setTransportDeparture] = useState("");
   const [transportDestination, setTransportDestination] = useState("");
-  const [transportCarrier, setTransportCarrier] = useState("");
-  const [transportReference, setTransportReference] = useState("");
   const [step, setStep] = useState<DialogNewPinStep>("category");
   const isEditMode = mode === "edit";
   const isTransport = pinCategoryId === "transport";
+  const isRangePin = isRangePinCategory(pinCategoryId);
 
   useEffect(() => {
     if (!visible) {
@@ -82,17 +79,13 @@ export const DialogNewPin = ({
     }
 
     if (isEditMode && initialPin) {
-      setPinName(initialPin.name);
+      setPinName(initialPin.name ?? "");
       setPinCategoryId(initialPin.categoryId);
       setPinStartDate(initialPin.startDate);
-      setPinStartTime(initialPin.startTime ?? "");
-      setPinEndDate(initialPin.endDate);
-      setPinEndTime(initialPin.endTime ?? "");
-      setPinAllDay(initialPin.allDay);
+      setPinEndDate(initialPin.endDate ?? "");
+      setPinTime(initialPin.time ?? "");
       setTransportDeparture(initialPin.metadataJson.departure ?? "");
       setTransportDestination(initialPin.metadataJson.destination ?? "");
-      setTransportCarrier(initialPin.metadataJson.carrier ?? "");
-      setTransportReference(initialPin.metadataJson.reference ?? "");
       setStep("details");
       return;
     }
@@ -100,14 +93,10 @@ export const DialogNewPin = ({
     setPinName("");
     setPinCategoryId("");
     setPinStartDate("");
-    setPinStartTime("");
     setPinEndDate("");
-    setPinEndTime("");
-    setPinAllDay(false);
+    setPinTime("");
     setTransportDeparture("");
     setTransportDestination("");
-    setTransportCarrier("");
-    setTransportReference("");
     setStep("category");
   }, [visible, isEditMode, initialPin]);
 
@@ -124,14 +113,10 @@ export const DialogNewPin = ({
       setPinName("");
       setPinCategoryId("");
       setPinStartDate("");
-      setPinStartTime("");
       setPinEndDate("");
-      setPinEndTime("");
-      setPinAllDay(false);
+      setPinTime("");
       setTransportDeparture("");
       setTransportDestination("");
-      setTransportCarrier("");
-      setTransportReference("");
       setStep("category");
       onDismiss();
       showMessage("Pin saved locally", "info");
@@ -225,14 +210,10 @@ export const DialogNewPin = ({
       pinName,
       pinCategoryId,
       pinStartDate,
-      pinStartTime,
       pinEndDate,
-      pinEndTime,
-      pinAllDay,
+      pinTime,
       transportDeparture,
       transportDestination,
-      transportCarrier,
-      transportReference,
     });
 
     if (!result.success) {
@@ -244,7 +225,11 @@ export const DialogNewPin = ({
     }
 
     const pinStartDateValue = dayjs(result.data.pinStartDate);
-    const pinEndDateValue = dayjs(result.data.pinEndDate);
+    const pinEndDateValue = dayjs(
+      isRangePinCategory(result.data.pinCategoryId)
+        ? result.data.pinEndDate
+        : result.data.pinStartDate,
+    );
     const tripStartDateValue = dayjs(tripStartDate);
     const tripEndDateValue = dayjs(tripEndDate);
 
@@ -264,8 +249,6 @@ export const DialogNewPin = ({
         ? buildTransportMetadata({
             departure: result.data.transportDeparture,
             destination: result.data.transportDestination,
-            carrier: result.data.transportCarrier,
-            reference: result.data.transportReference,
           })
         : EMPTY_PIN_METADATA;
 
@@ -278,12 +261,12 @@ export const DialogNewPin = ({
       updatePinMutation.mutate({
         id: initialPin.id,
         userId: session.user.id,
-        name: result.data.pinName,
+        name: result.data.pinName || null,
         startDate: result.data.pinStartDate,
-        startTime: result.data.pinAllDay ? null : result.data.pinStartTime || null,
-        endDate: result.data.pinEndDate,
-        endTime: result.data.pinAllDay ? null : result.data.pinEndTime || null,
-        allDay: result.data.pinAllDay,
+        endDate: isRangePinCategory(result.data.pinCategoryId)
+          ? result.data.pinEndDate
+          : null,
+        time: result.data.pinTime || null,
         categoryId: result.data.pinCategoryId,
         metadataJson,
       });
@@ -293,12 +276,12 @@ export const DialogNewPin = ({
     createPinMutation.mutate({
       tripId,
       userId: session.user.id,
-      name: result.data.pinName,
+      name: result.data.pinName || null,
       startDate: result.data.pinStartDate,
-      startTime: result.data.pinAllDay ? null : result.data.pinStartTime || null,
-      endDate: result.data.pinEndDate,
-      endTime: result.data.pinAllDay ? null : result.data.pinEndTime || null,
-      allDay: result.data.pinAllDay,
+      endDate: isRangePinCategory(result.data.pinCategoryId)
+        ? result.data.pinEndDate
+        : null,
+      time: result.data.pinTime || null,
       categoryId: result.data.pinCategoryId,
       metadataJson,
     });
@@ -371,7 +354,7 @@ export const DialogNewPin = ({
                 autoFocus
               />
               <UIInputDate
-                placeholder="Start date"
+                placeholder={isRangePin ? "Start date" : "Date"}
                 value={pinStartDate}
                 onChange={(date) => {
                   setPinStartDate(date);
@@ -385,39 +368,20 @@ export const DialogNewPin = ({
                 minimumDate={dayjs(tripStartDate).toDate()}
                 maximumDate={dayjs(tripEndDate).toDate()}
               />
-              <UIInputDate
-                placeholder="End date"
-                value={pinEndDate}
-                onChange={setPinEndDate}
-                minimumDate={dayjs(pinStartDate || tripStartDate).toDate()}
-                maximumDate={dayjs(tripEndDate).toDate()}
-              />
-              <TouchableOpacity
-                style={[styles.toggle, pinAllDay && styles.toggleActive]}
-                onPress={() => setPinAllDay((value) => !value)}
-              >
-                <TitleRegular
-                  size="md"
-                  weight="600"
-                  color={pinAllDay ? colors.blue : colors.textDarkGrey}
-                >
-                  All day
-                </TitleRegular>
-              </TouchableOpacity>
-              {!pinAllDay && (
-                <>
-                  <UIInputTime
-                    placeholder="Start time (optional)"
-                    value={pinStartTime}
-                    onChange={setPinStartTime}
-                  />
-                  <UIInputTime
-                    placeholder="End time (optional)"
-                    value={pinEndTime}
-                    onChange={setPinEndTime}
-                  />
-                </>
+              {isRangePin && (
+                <UIInputDate
+                  placeholder="End date"
+                  value={pinEndDate}
+                  onChange={setPinEndDate}
+                  minimumDate={dayjs(pinStartDate || tripStartDate).toDate()}
+                  maximumDate={dayjs(tripEndDate).toDate()}
+                />
               )}
+              <UIInputTime
+                placeholder="Time (optional)"
+                value={pinTime}
+                onChange={setPinTime}
+              />
               {isTransport && (
                 <View style={styles.transportFields}>
                   <UIInputText
@@ -431,18 +395,6 @@ export const DialogNewPin = ({
                     value={transportDestination}
                     onChange={setTransportDestination}
                     autoCapitalize="words"
-                  />
-                  <UIInputText
-                    placeholder="Carrier"
-                    value={transportCarrier}
-                    onChange={setTransportCarrier}
-                    autoCapitalize="words"
-                  />
-                  <UIInputText
-                    placeholder="Reference"
-                    value={transportReference}
-                    onChange={setTransportReference}
-                    autoCapitalize="characters"
                   />
                 </View>
               )}
@@ -483,16 +435,6 @@ const styles = StyleSheet.create({
   backButton: {
     alignSelf: "flex-start",
     paddingVertical: gaps.xs,
-  },
-  toggle: {
-    borderWidth: 1,
-    borderColor: getColor(colors.whiteGrey),
-    borderRadius: borderRadiuses.sm,
-    padding: gaps.sm,
-  },
-  toggleActive: {
-    backgroundColor: getColor(colors.blue, 0.1),
-    borderColor: getColor(colors.blue),
   },
   transportFields: {
     gap: gaps.sm,
