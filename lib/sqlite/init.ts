@@ -1,6 +1,25 @@
 import { sqlite } from "./client";
 
 export async function initializeDatabase() {
+  const existingPinColumns = await sqlite.getAllAsync<{ name: string }>(
+    "pragma table_info(pin)",
+  );
+  const hasOldPinSchema =
+    existingPinColumns.length > 0 &&
+    !existingPinColumns.some((column) => column.name === "start_date");
+
+  if (hasOldPinSchema) {
+    await sqlite.execAsync(`
+      drop table if exists note;
+      drop table if exists reference_link;
+      drop table if exists expense;
+      drop table if exists image;
+      drop table if exists document;
+      drop table if exists pin_location;
+      drop table if exists pin;
+    `);
+  }
+
   await sqlite.execAsync(`
     create table if not exists trip (
       id text primary key not null,
@@ -35,9 +54,13 @@ export async function initializeDatabase() {
       trip_id text not null,
       user_id text not null,
       name text not null,
-      date text not null,
-      time text not null,
+      start_date text not null,
+      start_time text,
+      end_date text not null,
+      end_time text,
+      all_day integer not null default 0,
       category_id text not null,
+      metadata_json text not null default '{"version":1}',
       created_at text not null,
       updated_at text not null,
       sync_status text not null,

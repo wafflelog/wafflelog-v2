@@ -197,19 +197,21 @@ export async function actionListLocalPinsOutsideTripDateRange(
   return sqlite.getAllAsync<{
     id: string;
     name: string;
-    date: string;
+    startDate: string;
+    endDate: string;
   }>(
     `
       select
         id,
         name,
-        date
+        start_date as startDate,
+        end_date as endDate
       from pin
       where trip_id = ?
         and user_id = ?
         and deleted_at is null
-        and (date < ? or date > ?)
-      order by date asc, time asc, created_at asc
+        and (start_date < ? or end_date > ?)
+      order by start_date asc, start_time asc, created_at asc
     `,
     [tripId, userId, startDate, endDate],
   );

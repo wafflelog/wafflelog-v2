@@ -1,7 +1,7 @@
 import { IconPinCategory } from "@/components/icon/pin-category";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
-import { formatTime } from "@/lib/utils";
+import { getPinSubtitle, getPinTimeLabelForDate } from "@/lib/pin";
 import { type Pin } from "@/types/pin";
 
 import { ChevronRight as ChevronRightIcon } from "lucide-react-native";
@@ -9,10 +9,17 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 type CardPinRegularProps = {
   pin: Pin;
+  selectedDate: string;
   onPress: () => void;
 };
 
-export const CardPinRegular = ({ pin, onPress }: CardPinRegularProps) => {
+export const CardPinRegular = ({
+  pin,
+  selectedDate,
+  onPress,
+}: CardPinRegularProps) => {
+  const subtitle = getPinSubtitle(pin);
+
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.iconContainer}>
@@ -24,7 +31,10 @@ export const CardPinRegular = ({ pin, onPress }: CardPinRegularProps) => {
           {pin.name}
         </TitleRegular>
 
-        <TitleRegular size="xs">{formatTime(pin.time)}</TitleRegular>
+        <TitleRegular size="xs">
+          {getPinTimeLabelForDate(pin, selectedDate)}
+        </TitleRegular>
+        {subtitle ? <TitleRegular size="xs">{subtitle}</TitleRegular> : null}
       </View>
 
       <View style={styles.chevronContainer}>

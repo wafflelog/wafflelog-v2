@@ -5,6 +5,7 @@ import {
   actionListLocalPinLocationsByTripAndDate,
   type LocalPinWithLocation,
 } from "@/lib/sqlite/model/pin-location";
+import { getPinTimeLabelForDate } from "@/lib/pin";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { formatDate } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -419,7 +420,7 @@ export default function TripMapScreen() {
                           weight="600"
                           color={colors.purple}
                         >
-                          {item.time}
+                          {getPinTimeLabelForDate(item, selectedDate)}
                         </TitleRegular>
                       </View>
                       <TitleRegular size="sm" color={colors.textDarkGrey}>

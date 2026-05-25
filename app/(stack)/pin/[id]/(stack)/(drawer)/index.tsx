@@ -38,9 +38,11 @@ import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
 import { useSystemMessage } from "@/hook/use-system-message";
+import { getPinHeaderTimeLabel } from "@/lib/pin";
 import { actionGetLocalPinLocation } from "@/lib/sqlite/model/pin-location";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import {
+  CalendarDays as CalendarDaysIcon,
   MapPin as MapPinIcon,
   SquarePen as SquarePenIcon,
   Trash2 as Trash2Icon,
@@ -129,7 +131,6 @@ export default function PinIndexScreen() {
     mutationFn: () => actionSoftDeleteLocalPin(localPin!.id, session!.user.id),
     onSuccess: async () => {
       const tripId = localPin?.tripId;
-      const pinDate = localPin?.date;
       const userId = session?.user.id;
 
       setIsDeleteDialogVisible(false);
@@ -139,10 +140,7 @@ export default function PinIndexScreen() {
           queryKey: ["local-pin", String(id), userId],
         }),
         queryClient.invalidateQueries({
-          queryKey: ["local-pins", tripId, pinDate, userId],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["local-pins", tripId, userId],
+          queryKey: ["local-pins", tripId],
         }),
       ]);
 
@@ -168,7 +166,12 @@ export default function PinIndexScreen() {
           latitude: localPinLocation?.latitude ?? 0,
           longitude: localPinLocation?.longitude ?? 0,
         },
-        time: dayjs(`${localPin.date} ${localPin.time}`).toISOString(),
+        startDate: localPin.startDate,
+        startTime: localPin.startTime,
+        endDate: localPin.endDate,
+        endTime: localPin.endTime,
+        allDay: localPin.allDay,
+        metadata: localPin.metadataJson,
         referenceLinks: [],
         documents: [],
         expenses: [],
@@ -235,10 +238,10 @@ export default function PinIndexScreen() {
           <Pressable
             onPress={() => {
               router.push({
-                pathname: "/trip/[id]/map",
-                params: {
-                  id: localPin.tripId,
-                  date: localPin.date,
+                  pathname: "/trip/[id]/map",
+                  params: {
+                    id: localPin.tripId,
+                  date: localPin.startDate,
                   pinId: localPin.id,
                 },
               });
@@ -273,6 +276,46 @@ export default function PinIndexScreen() {
           </View>
         )}
         <View style={styles.content}>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <CalendarDaysIcon size={24} color={color} />
+              <TitleRegular size="md" weight="600">
+                Schedule
+              </TitleRegular>
+            </View>
+            <View style={styles.infoCard}>
+              <TitleRegular size="sm" color={colors.textDarkGrey}>
+                {getPinHeaderTimeLabel(pin)}
+              </TitleRegular>
+            </View>
+          </View>
+
+          {pin.category.id === "transport" ? (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <MapPinIcon size={24} color={color} />
+                <TitleRegular size="md" weight="600">
+                  Transport
+                </TitleRegular>
+              </View>
+              <View style={styles.infoCard}>
+                <TitleRegular size="sm" weight="600">
+                  {pin.metadata.departure} - {pin.metadata.destination}
+                </TitleRegular>
+                {pin.metadata.carrier ? (
+                  <TitleRegular size="xs" color={colors.textLightGrey}>
+                    {pin.metadata.carrier}
+                  </TitleRegular>
+                ) : null}
+                {pin.metadata.reference ? (
+                  <TitleRegular size="xs" color={colors.textLightGrey}>
+                    {pin.metadata.reference}
+                  </TitleRegular>
+                ) : null}
+              </View>
+            </View>
+          ) : null}
+
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <MapPinIcon size={24} color={color} />
@@ -391,9 +434,13 @@ export default function PinIndexScreen() {
           initialPin={{
             id: localPin.id,
             name: localPin.name,
-            date: localPin.date,
-            time: localPin.time,
+            startDate: localPin.startDate,
+            startTime: localPin.startTime,
+            endDate: localPin.endDate,
+            endTime: localPin.endTime,
+            allDay: localPin.allDay,
             categoryId: localPin.categoryId,
+            metadataJson: localPin.metadataJson,
           }}
         />
       ) : null}
@@ -462,6 +509,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   section: {
+    gap: 6,
+  },
+  infoCard: {
+    ...getCardBasicStyle("sm"),
     gap: 6,
   },
   editButton: {

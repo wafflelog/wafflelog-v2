@@ -33,7 +33,7 @@ export const IconPinCategory = ({
     .with("food", () => (
       <Utensils size={size} color={iconColor} />
     ))
-    .with("accommodation", () => (
+    .with("stay", () => (
       <BedDouble size={size} color={iconColor} />
     ))
     .with("shopping", () => (

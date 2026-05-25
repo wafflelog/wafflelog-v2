@@ -52,7 +52,12 @@ export const TripPinsList = ({
           <View style={styles.container}>
             {tripDay.pins.length > 0 ? (
               tripDay.pins.map((pin) => (
-                <CardPin key={pin.id} pin={pin} variant="regular" />
+                <CardPin
+                  key={pin.id}
+                  pin={pin}
+                  variant="regular"
+                  selectedDate={tripDay.date}
+                />
               ))
             ) : (
               <UIText>No pins found</UIText>

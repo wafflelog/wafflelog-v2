@@ -72,8 +72,13 @@ export type Pin = {
   id: string;
   name: string;
   category: PinCategory;
+  startDate: string;
+  startTime: string | null;
+  endDate: string;
+  endTime: string | null;
+  allDay: boolean;
+  metadata: PinMetadata;
   location: Location;
-  time: string;
   referenceLinks: ReferenceLink[];
   documents: Document[];
   expenses: Expense[];
@@ -85,7 +90,7 @@ export type PinCategory = {
   id:
     | "attraction"
     | "food"
-    | "accommodation"
+    | "stay"
     | "shopping"
     | "nature"
     | "transport"
@@ -93,4 +98,12 @@ export type PinCategory = {
     | "other";
   name: PinCategory["id"];
   color: keyof typeof colors;
+};
+
+export type PinMetadata = {
+  version: 1;
+  departure?: string;
+  destination?: string;
+  carrier?: string;
+  reference?: string;
 };

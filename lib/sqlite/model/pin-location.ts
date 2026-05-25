@@ -21,8 +21,11 @@ export type LocalPinWithLocation = {
   tripId: string;
   userId: string;
   name: string;
-  date: string;
-  time: string;
+  startDate: string;
+  startTime: string | null;
+  endDate: string;
+  endTime: string | null;
+  allDay: boolean;
   categoryId: string;
   placeId: string;
   displayName: string;
@@ -201,8 +204,11 @@ export async function actionListLocalPinLocationsByTripAndDate(
     trip_id: string;
     user_id: string;
     name: string;
-    date: string;
-    time: string;
+    start_date: string;
+    start_time: string | null;
+    end_date: string;
+    end_time: string | null;
+    all_day: number;
     category_id: string;
     place_id: string;
     display_name: string;
@@ -216,8 +222,11 @@ export async function actionListLocalPinLocationsByTripAndDate(
         pin.trip_id,
         pin.user_id,
         pin.name,
-        pin.date,
-        pin.time,
+        pin.start_date,
+        pin.start_time,
+        pin.end_date,
+        pin.end_time,
+        pin.all_day,
         pin.category_id,
         pin_location.place_id,
         pin_location.display_name,
@@ -230,11 +239,12 @@ export async function actionListLocalPinLocationsByTripAndDate(
         and pin_location.user_id = pin.user_id
       where pin.trip_id = ?
         and pin.user_id = ?
-        and pin.date = ?
+        and pin.start_date <= ?
+        and pin.end_date >= ?
         and pin.deleted_at is null
-      order by pin.time asc, pin.created_at asc
+      order by pin.start_date asc, pin.start_time asc, pin.created_at asc
     `,
-    [tripId, userId, date],
+    [tripId, userId, date, date],
   );
 
   return rows.map(
@@ -243,8 +253,11 @@ export async function actionListLocalPinLocationsByTripAndDate(
       tripId: row.trip_id,
       userId: row.user_id,
       name: row.name,
-      date: row.date,
-      time: row.time,
+      startDate: row.start_date,
+      startTime: row.start_time,
+      endDate: row.end_date,
+      endTime: row.end_time,
+      allDay: Boolean(row.all_day),
       categoryId: row.category_id,
       placeId: row.place_id,
       displayName: row.display_name,

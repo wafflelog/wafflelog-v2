@@ -43,17 +43,17 @@ export function DrawerPin({ id }: DrawerPinProps) {
     queryKey: [
       "local-pins",
       currentPin?.tripId,
-      currentPin?.date,
+      currentPin?.startDate,
       session?.user.id,
     ],
     queryFn: () =>
       actionListLocalPinsByTripAndDate(
         currentPin!.tripId,
         session!.user.id,
-        currentPin!.date,
+        currentPin!.startDate,
       ),
     enabled: Boolean(
-      currentPin?.tripId && currentPin?.date && session?.user.id,
+      currentPin?.tripId && currentPin?.startDate && session?.user.id,
     ),
   });
 
@@ -63,7 +63,7 @@ export function DrawerPin({ id }: DrawerPinProps) {
 
   const dayNumber =
     trip && currentPin
-      ? dayjs(currentPin.date).diff(dayjs(trip.startDate), "day") + 1
+      ? dayjs(currentPin.startDate).diff(dayjs(trip.startDate), "day") + 1
       : null;
 
   return (
@@ -81,7 +81,7 @@ export function DrawerPin({ id }: DrawerPinProps) {
         )}
         {currentPin && dayNumber !== null && (
           <TitleRegular size="md" weight="600" color={colors.blue}>
-            Day {dayNumber} - {formatDate(currentPin.date, "long")}
+            Day {dayNumber} - {formatDate(currentPin.startDate, "long")}
           </TitleRegular>
         )}
       </View>

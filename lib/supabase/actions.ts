@@ -1,5 +1,6 @@
+import { type PinMetadata } from "@/types/pin";
 import { supabase } from "./client";
-import { type Tables, type TablesInsert } from "./types";
+import { type Json, type Tables, type TablesInsert } from "./types";
 
 export type CreateTripInput = {
   id?: string;
@@ -12,9 +13,13 @@ export type CreatePinInput = {
   id?: string;
   tripId: string;
   name: string;
-  date: string;
-  time: string;
+  startDate: string;
+  startTime: string | null;
+  endDate: string;
+  endTime: string | null;
+  allDay: boolean;
   categoryId: string;
+  metadataJson: PinMetadata;
 };
 
 export type CreateChecklistItemInput = {
@@ -102,14 +107,37 @@ const mapTripRow = (trip: TripRow) => ({
   deletedAt: trip.deleted_at,
 });
 
+const mapPinMetadata = (metadata: Json): PinMetadata => {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return { version: 1 };
+  }
+
+  return {
+    version: 1,
+    departure:
+      typeof metadata.departure === "string" ? metadata.departure : undefined,
+    destination:
+      typeof metadata.destination === "string"
+        ? metadata.destination
+        : undefined,
+    carrier: typeof metadata.carrier === "string" ? metadata.carrier : undefined,
+    reference:
+      typeof metadata.reference === "string" ? metadata.reference : undefined,
+  };
+};
+
 const mapPinRow = (pin: {
   id: string;
   trip_id: string;
   user_id: string;
   name: string;
-  date: string;
-  time: string;
+  start_date: string;
+  start_time: string | null;
+  end_date: string;
+  end_time: string | null;
+  all_day: boolean;
   category_id: string;
+  metadata_json: Json;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -118,9 +146,13 @@ const mapPinRow = (pin: {
   tripId: pin.trip_id,
   userId: pin.user_id,
   name: pin.name,
-  date: pin.date,
-  time: pin.time,
+  startDate: pin.start_date,
+  startTime: pin.start_time,
+  endDate: pin.end_date,
+  endTime: pin.end_time,
+  allDay: pin.all_day,
   categoryId: pin.category_id,
+  metadataJson: mapPinMetadata(pin.metadata_json),
   createdAt: pin.created_at,
   updatedAt: pin.updated_at,
   deletedAt: pin.deleted_at,
@@ -404,16 +436,20 @@ export async function actionUpsertRemotePinFromLocal(input: CreatePinInput) {
     trip_id: input.tripId,
     user_id: user.id,
     name: input.name.trim(),
-    date: input.date,
-    time: input.time.trim(),
+    start_date: input.startDate,
+    start_time: input.allDay ? null : input.startTime?.trim() || null,
+    end_date: input.endDate,
+    end_time: input.allDay ? null : input.endTime?.trim() || null,
+    all_day: input.allDay,
     category_id: input.categoryId,
+    metadata_json: input.metadataJson,
   };
 
   const { data, error } = await supabase
     .from("pin")
     .upsert(payload)
     .select(
-      "id, trip_id, user_id, name, date, time, category_id, created_at, updated_at, deleted_at",
+      "id, trip_id, user_id, name, start_date, start_time, end_date, end_time, all_day, category_id, metadata_json, created_at, updated_at, deleted_at",
     )
     .single();
 
@@ -1123,7 +1159,7 @@ export async function actionGetRemotePinById(pinId: string) {
   const { data, error } = await supabase
     .from("pin")
     .select(
-      "id, trip_id, user_id, name, date, time, category_id, created_at, updated_at, deleted_at",
+      "id, trip_id, user_id, name, start_date, start_time, end_date, end_time, all_day, category_id, metadata_json, created_at, updated_at, deleted_at",
     )
     .eq("id", pinId)
     .is("deleted_at", null)

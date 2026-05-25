@@ -7,15 +7,22 @@ import { CardPinRegular } from "./regular";
 type CardPinProps = {
   pin: Pin;
   variant: "regular";
+  selectedDate: string;
 };
 
-export const CardPin = ({ pin, variant }: CardPinProps) => {
+export const CardPin = ({ pin, variant, selectedDate }: CardPinProps) => {
   const router = useRouter();
   const onPress = () => {
     router.push(`/pin/${pin.id}`);
   };
 
   return match(variant)
-    .with("regular", () => <CardPinRegular pin={pin} onPress={onPress} />)
+    .with("regular", () => (
+      <CardPinRegular
+        pin={pin}
+        selectedDate={selectedDate}
+        onPress={onPress}
+      />
+    ))
     .exhaustive();
 };

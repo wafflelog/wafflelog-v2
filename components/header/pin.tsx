@@ -1,5 +1,5 @@
 import { colors, getColor } from "@/constants/theme";
-import { formatTime } from "@/lib/utils";
+import { getPinHeaderTimeLabel } from "@/lib/pin";
 import { type Pin } from "@/types/pin";
 import {
   HeaderBackButton,
@@ -19,7 +19,10 @@ type HeaderDefaultProps = {
 };
 
 type HeaderPinTitleProps = {
-  pin?: Pick<Pin, "name" | "time"> | null;
+  pin?: Pick<
+    Pin,
+    "name" | "startDate" | "startTime" | "endDate" | "endTime" | "allDay"
+  > | null;
 } & Partial<HeaderTitleProps>;
 
 type HeaderPinButtonProps = {
@@ -38,7 +41,7 @@ export const HeaderPin = ({
       </TouchableOpacity>
       <View style={styles.headerContent}>
         <Text style={styles.headerTitle}>{pin.name}</Text>
-        <Text style={styles.headerSubtitle}>{formatTime(pin.time)}</Text>
+        <Text style={styles.headerSubtitle}>{getPinHeaderTimeLabel(pin)}</Text>
       </View>
       <TouchableOpacity style={styles.moreButton} onPress={onMorePress}>
         <MenuIcon size={24} color={getColor(colors.textDarkGrey)} />
@@ -57,8 +60,6 @@ export const HeaderPinTitle = ({
     return null;
   }
 
-  console.log("Rendering HeaderPinTitle with pin:", pin.time);
-
   return (
     <View style={styles.nativeTitle}>
       <Text
@@ -74,7 +75,7 @@ export const HeaderPinTitle = ({
         numberOfLines={1}
         allowFontScaling={allowFontScaling}
       >
-        {pin.time}
+        {getPinHeaderTimeLabel(pin)}
       </Text>
     </View>
   );

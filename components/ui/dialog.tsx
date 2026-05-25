@@ -159,6 +159,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: borderRadiuses.lg,
     borderTopRightRadius: borderRadiuses.lg,
     flexDirection: "column",
+    maxHeight: "80%",
   },
   closeButton: {
     position: "absolute",

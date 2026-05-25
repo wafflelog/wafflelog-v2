@@ -12,8 +12,8 @@ export const CATEGORIES: PinCategory[] = [
     color: "orange",
   },
   {
-    id: "accommodation",
-    name: "accommodation",
+    id: "stay",
+    name: "stay",
     color: "purple",
   },
   {
