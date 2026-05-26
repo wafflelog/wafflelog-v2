@@ -4,6 +4,17 @@ import {
   actionSoftDeleteRemoteExpense,
   actionUpsertRemoteExpenseFromLocal,
 } from "@/lib/supabase/actions";
+import { type PinMetadata } from "@/types/pin";
+
+type LocalExpensePinSummary = {
+  id: string;
+  name: string | null;
+  categoryId: string;
+  metadataJson: PinMetadata;
+  location: {
+    displayName: string | null;
+  } | null;
+};
 
 export type LocalExpense = {
   id: string;
@@ -21,6 +32,7 @@ export type LocalExpense = {
   lastSyncedAt: string | null;
   syncError: string | null;
   deletedAt: string | null;
+  pin: LocalExpensePinSummary | null;
 };
 
 export type CreateLocalExpenseInput = {
@@ -35,6 +47,23 @@ export type CreateLocalExpenseInput = {
 };
 
 const DEFAULT_SYNC_BATCH_SIZE = 25;
+
+function parsePinMetadata(metadata: string | null): PinMetadata {
+  if (!metadata) {
+    return { version: 1 };
+  }
+
+  try {
+    const parsed = JSON.parse(metadata) as Partial<PinMetadata>;
+    return {
+      version: 1,
+      departure: parsed.departure,
+      destination: parsed.destination,
+    };
+  } catch {
+    return { version: 1 };
+  }
+}
 
 function mapLocalExpenseRow(row: {
   id: string;
@@ -52,6 +81,10 @@ function mapLocalExpenseRow(row: {
   last_synced_at: string | null;
   sync_error: string | null;
   deleted_at: string | null;
+  pin_name?: string | null;
+  pin_category_id?: string | null;
+  pin_metadata_json?: string | null;
+  pin_display_name?: string | null;
 }): LocalExpense {
   return {
     id: row.id,
@@ -69,6 +102,18 @@ function mapLocalExpenseRow(row: {
     lastSyncedAt: row.last_synced_at,
     syncError: row.sync_error,
     deletedAt: row.deleted_at,
+    pin:
+      row.pin_id && row.pin_category_id
+        ? {
+            id: row.pin_id,
+            name: row.pin_name ?? null,
+            categoryId: row.pin_category_id,
+            metadataJson: parsePinMetadata(row.pin_metadata_json ?? null),
+            location: {
+              displayName: row.pin_display_name ?? null,
+            },
+          }
+        : null,
   };
 }
 
@@ -202,27 +247,41 @@ export async function actionListLocalExpensesByTrip(
     last_synced_at: string | null;
     sync_error: string | null;
     deleted_at: string | null;
+    pin_name: string | null;
+    pin_category_id: string | null;
+    pin_metadata_json: string | null;
+    pin_display_name: string | null;
   }>(
     `
       select
-        id,
-        pin_id,
-        trip_id,
-        user_id,
-        description,
-        amount,
-        currency,
-        paid_by_user_id,
-        paid_by_name,
-        created_at,
-        updated_at,
-        sync_status,
-        last_synced_at,
-        sync_error,
-        deleted_at
+        expense.id,
+        expense.pin_id,
+        expense.trip_id,
+        expense.user_id,
+        expense.description,
+        expense.amount,
+        expense.currency,
+        expense.paid_by_user_id,
+        expense.paid_by_name,
+        expense.created_at,
+        expense.updated_at,
+        expense.sync_status,
+        expense.last_synced_at,
+        expense.sync_error,
+        expense.deleted_at,
+        pin.name as pin_name,
+        pin.category_id as pin_category_id,
+        pin.metadata_json as pin_metadata_json,
+        pin_location.display_name as pin_display_name
       from expense
-      where trip_id = ? and user_id = ? and deleted_at is null
-      order by created_at desc
+      left join pin
+        on pin.id = expense.pin_id
+        and pin.user_id = expense.user_id
+      left join pin_location
+        on pin_location.pin_id = pin.id
+        and pin_location.user_id = expense.user_id
+      where expense.trip_id = ? and expense.user_id = ? and expense.deleted_at is null
+      order by expense.created_at desc
     `,
     [tripId, userId],
   );

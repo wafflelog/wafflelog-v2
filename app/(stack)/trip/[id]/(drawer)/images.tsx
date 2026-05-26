@@ -5,6 +5,7 @@ import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
+import { getPinTitle } from "@/lib/pin";
 import { actionListLocalImagesByTrip } from "@/lib/sqlite/model/image";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { useQuery } from "@tanstack/react-query";
@@ -53,11 +54,21 @@ export default function TripImagesScreen() {
     return <UIText>Trip not found</UIText>;
   }
 
+  const images = localImages.map((image) => {
+    const linkedPinLabel = image.pin ? `For ${getPinTitle(image.pin)}` : null;
+    const captionParts = [linkedPinLabel, image.caption].filter(Boolean);
+
+    return {
+      ...image,
+      caption: captionParts.length ? captionParts.join(" · ") : null,
+    };
+  });
+
   return (
     <View style={styles.container}>
       <FlatList
         contentContainerStyle={styles.images}
-        data={localImages}
+        data={images}
         numColumns={2}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -76,7 +87,7 @@ export default function TripImagesScreen() {
                   pathname: "/image-viewer",
                   params: {
                     url: item.localUri,
-                    urls: JSON.stringify(localImages.map((image) => image.localUri)),
+                    urls: JSON.stringify(images.map((image) => image.localUri)),
                   },
                 });
               }}

@@ -6,6 +6,7 @@ import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
+import { getPinTitle } from "@/lib/pin";
 import {
   actionListLocalDocumentsByTrip,
   actionSoftDeleteLocalDocument,
@@ -99,11 +100,23 @@ export default function TripDocumentsScreen() {
     return <UIText>Trip not found</UIText>;
   }
 
+  const documents = localDocuments.map((document) => {
+    const linkedPinLabel = document.pin
+      ? `For ${getPinTitle(document.pin)}`
+      : null;
+    const captionParts = [linkedPinLabel, document.caption].filter(Boolean);
+
+    return {
+      ...document,
+      caption: captionParts.length ? captionParts.join(" · ") : null,
+    };
+  });
+
   return (
     <View style={styles.container}>
       <FlatList
         contentContainerStyle={styles.documents}
-        data={localDocuments}
+        data={documents}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View key={item.id} style={styles.item}>

@@ -5,6 +5,17 @@ import {
   actionUpsertRemoteDocumentFromLocal,
 } from "@/lib/supabase/actions";
 import { uploadTravelDocumentToStorage } from "@/lib/supabase/storage";
+import { type PinMetadata } from "@/types/pin";
+
+type LocalDocumentPinSummary = {
+  id: string;
+  name: string | null;
+  categoryId: string;
+  metadataJson: PinMetadata;
+  location: {
+    displayName: string | null;
+  } | null;
+};
 
 export type LocalDocument = {
   id: string;
@@ -23,6 +34,7 @@ export type LocalDocument = {
   lastSyncedAt: string | null;
   syncError: string | null;
   deletedAt: string | null;
+  pin: LocalDocumentPinSummary | null;
 };
 
 export type CreateLocalDocumentInput = {
@@ -39,6 +51,23 @@ export type CreateLocalDocumentInput = {
 };
 
 const DEFAULT_SYNC_BATCH_SIZE = 25;
+
+function parsePinMetadata(metadata: string | null): PinMetadata {
+  if (!metadata) {
+    return { version: 1 };
+  }
+
+  try {
+    const parsed = JSON.parse(metadata) as Partial<PinMetadata>;
+    return {
+      version: 1,
+      departure: parsed.departure,
+      destination: parsed.destination,
+    };
+  } catch {
+    return { version: 1 };
+  }
+}
 
 function mapLocalDocumentRow(row: {
   id: string;
@@ -57,6 +86,10 @@ function mapLocalDocumentRow(row: {
   last_synced_at: string | null;
   sync_error: string | null;
   deleted_at: string | null;
+  pin_name?: string | null;
+  pin_category_id?: string | null;
+  pin_metadata_json?: string | null;
+  pin_display_name?: string | null;
 }): LocalDocument {
   return {
     id: row.id,
@@ -75,6 +108,18 @@ function mapLocalDocumentRow(row: {
     lastSyncedAt: row.last_synced_at,
     syncError: row.sync_error,
     deletedAt: row.deleted_at,
+    pin:
+      row.pin_id && row.pin_category_id
+        ? {
+            id: row.pin_id,
+            name: row.pin_name ?? null,
+            categoryId: row.pin_category_id,
+            metadataJson: parsePinMetadata(row.pin_metadata_json ?? null),
+            location: {
+              displayName: row.pin_display_name ?? null,
+            },
+          }
+        : null,
   };
 }
 
@@ -166,28 +211,42 @@ export async function actionListLocalDocumentsByTrip(
     last_synced_at: string | null;
     sync_error: string | null;
     deleted_at: string | null;
+    pin_name: string | null;
+    pin_category_id: string | null;
+    pin_metadata_json: string | null;
+    pin_display_name: string | null;
   }>(
     `
       select
-        id,
-        trip_id,
-        pin_id,
-        user_id,
-        file_name,
-        mime_type,
-        local_uri,
-        storage_bucket,
-        storage_path,
-        caption,
-        created_at,
-        updated_at,
-        sync_status,
-        last_synced_at,
-        sync_error,
-        deleted_at
+        document.id,
+        document.trip_id,
+        document.pin_id,
+        document.user_id,
+        document.file_name,
+        document.mime_type,
+        document.local_uri,
+        document.storage_bucket,
+        document.storage_path,
+        document.caption,
+        document.created_at,
+        document.updated_at,
+        document.sync_status,
+        document.last_synced_at,
+        document.sync_error,
+        document.deleted_at,
+        pin.name as pin_name,
+        pin.category_id as pin_category_id,
+        pin.metadata_json as pin_metadata_json,
+        pin_location.display_name as pin_display_name
       from document
-      where trip_id = ? and user_id = ? and deleted_at is null
-      order by created_at desc
+      left join pin
+        on pin.id = document.pin_id
+        and pin.user_id = document.user_id
+      left join pin_location
+        on pin_location.pin_id = pin.id
+        and pin_location.user_id = document.user_id
+      where document.trip_id = ? and document.user_id = ? and document.deleted_at is null
+      order by document.created_at desc
     `,
     [tripId, userId],
   );

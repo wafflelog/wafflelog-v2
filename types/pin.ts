@@ -56,6 +56,7 @@ export type Document = {
 export type Expense = {
   id: string;
   description: string;
+  context?: string;
   amount: number;
   currency: Currency;
   paidBy: User;

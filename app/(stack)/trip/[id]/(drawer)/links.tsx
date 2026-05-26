@@ -5,6 +5,7 @@ import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
+import { getPinTitle } from "@/lib/pin";
 import { actionListLocalReferenceLinksByTrip } from "@/lib/sqlite/model/reference-link";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { useQuery } from "@tanstack/react-query";
@@ -53,16 +54,25 @@ export default function TripLinksScreen() {
     return <UIText>Trip not found</UIText>;
   }
 
+  const referenceLinks = localReferenceLinks.map((referenceLink) => {
+    const linkedPinLabel = referenceLink.pin
+      ? `For ${getPinTitle(referenceLink.pin)}`
+      : null;
+    const captionParts = [linkedPinLabel, referenceLink.caption].filter(Boolean);
+
+    return {
+      id: referenceLink.id,
+      title: referenceLink.title ?? referenceLink.url,
+      url: referenceLink.url,
+      caption: captionParts.length ? captionParts.join(" · ") : undefined,
+    };
+  });
+
   return (
     <View style={styles.container}>
       <FlatList
         contentContainerStyle={styles.links}
-        data={localReferenceLinks.map((referenceLink) => ({
-          id: referenceLink.id,
-          title: referenceLink.title ?? referenceLink.url,
-          url: referenceLink.url,
-          caption: referenceLink.caption ?? undefined,
-        }))}
+        data={referenceLinks}
         renderItem={({ item }) => (
           <View key={item.id} style={styles.link}>
             <CardPinReferenceLinkRegular referenceLink={item} />

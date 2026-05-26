@@ -29,7 +29,11 @@ export function CardExpenseRegular({
           {expense.description}
         </TitleRegular>
 
-        <TitleRegular size="xs">Paid by {expense.paidBy.fullname}</TitleRegular>
+        <TitleRegular size="xs">
+          {[expense.context, `Paid by ${expense.paidBy.fullname}`]
+            .filter(Boolean)
+            .join(" · ")}
+        </TitleRegular>
       </View>
 
       <View style={styles.right}>
