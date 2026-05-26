@@ -66,7 +66,7 @@ export type CreateDocumentInput = {
 
 export type CreateImageInput = {
   id: string;
-  pinId: string;
+  pinId: string | null;
   tripId: string;
   storageBucket: string;
   storagePath: string;
@@ -270,7 +270,7 @@ const mapDocumentRow = (document: {
 
 const mapImageRow = (image: {
   id: string;
-  pin_id: string;
+  pin_id: string | null;
   trip_id: string;
   user_id: string;
   storage_bucket: string;

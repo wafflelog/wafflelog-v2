@@ -4,11 +4,11 @@ import {
   actionSoftDeleteRemoteImage,
   actionUpsertRemoteImageFromLocal,
 } from "@/lib/supabase/actions";
-import { uploadPinImageToStorage } from "@/lib/media/image";
+import { uploadImageToStorage } from "@/lib/media/image";
 
 export type LocalImage = {
   id: string;
-  pinId: string;
+  pinId: string | null;
   tripId: string;
   userId: string;
   localUri: string;
@@ -28,7 +28,7 @@ export type LocalImage = {
 
 export type CreateLocalImageInput = {
   id?: string;
-  pinId: string;
+  pinId?: string | null;
   tripId: string;
   userId: string;
   localUri: string;
@@ -44,7 +44,7 @@ const DEFAULT_SYNC_BATCH_SIZE = 25;
 
 function mapLocalImageRow(row: {
   id: string;
-  pin_id: string;
+  pin_id: string | null;
   trip_id: string;
   user_id: string;
   local_uri: string;
@@ -86,7 +86,7 @@ export async function actionCreateLocalImage(input: CreateLocalImageInput) {
   const now = new Date().toISOString();
   const localImage = {
     id: input.id ?? buildUUID(),
-    pin_id: input.pinId,
+    pin_id: input.pinId ?? null,
     trip_id: input.tripId,
     user_id: input.userId,
     local_uri: input.localUri.trim(),
@@ -156,7 +156,7 @@ export async function actionListLocalImagesByPin(
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
-    pin_id: string;
+    pin_id: string | null;
     trip_id: string;
     user_id: string;
     local_uri: string;
@@ -224,7 +224,7 @@ export async function actionListLocalImagesByTrip(
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
-    pin_id: string;
+    pin_id: string | null;
     trip_id: string;
     user_id: string;
     local_uri: string;
@@ -276,7 +276,7 @@ export async function actionListPendingLocalImages(
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
-    pin_id: string;
+    pin_id: string | null;
     trip_id: string;
     user_id: string;
     local_uri: string;
@@ -450,7 +450,7 @@ export async function actionSyncLocalImage(localImage: LocalImage) {
     let storagePath = localImage.storagePath;
 
     if (!storageBucket || !storagePath) {
-      const uploadResult = await uploadPinImageToStorage({
+      const uploadResult = await uploadImageToStorage({
         tripId: localImage.tripId,
         pinId: localImage.pinId,
         imageId: localImage.id,

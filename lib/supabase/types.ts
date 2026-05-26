@@ -279,7 +279,7 @@ export type Database = {
           height: number
           id: string
           mime_type: string
-          pin_id: string
+          pin_id: string | null
           storage_bucket: string
           storage_path: string
           trip_id: string
@@ -294,7 +294,7 @@ export type Database = {
           height: number
           id: string
           mime_type: string
-          pin_id: string
+          pin_id?: string | null
           storage_bucket: string
           storage_path: string
           trip_id: string
@@ -309,7 +309,7 @@ export type Database = {
           height?: number
           id?: string
           mime_type?: string
-          pin_id?: string
+          pin_id?: string | null
           storage_bucket?: string
           storage_path?: string
           trip_id?: string

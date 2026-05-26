@@ -117,7 +117,7 @@ export async function initializeDatabase() {
 
     create table if not exists image (
       id text primary key not null,
-      pin_id text not null,
+      pin_id text,
       trip_id text not null,
       user_id text not null,
       local_uri text not null,
@@ -280,9 +280,45 @@ export async function initializeDatabase() {
     }>(`pragma table_info(expense);`);
   }
 
-  const imageTableColumns = await sqlite.getAllAsync<{ name: string }>(
-    `pragma table_info(image);`,
+  let imageTableColumns = await sqlite.getAllAsync<{
+    name: string;
+    notnull: number;
+  }>(`pragma table_info(image);`);
+
+  const hasCurrentImageSchema = imageTableColumns.some(
+    (column) => column.name === "pin_id" && column.notnull === 0,
   );
+
+  if (!hasCurrentImageSchema) {
+    await sqlite.execAsync(`
+      drop table if exists image;
+
+      create table image (
+        id text primary key not null,
+        pin_id text,
+        trip_id text not null,
+        user_id text not null,
+        local_uri text not null,
+        storage_bucket text not null,
+        storage_path text not null,
+        mime_type text not null,
+        width integer not null,
+        height integer not null,
+        caption text,
+        created_at text not null,
+        updated_at text not null,
+        sync_status text not null,
+        last_synced_at text,
+        sync_error text,
+        deleted_at text
+      );
+    `);
+
+    imageTableColumns = await sqlite.getAllAsync<{
+      name: string;
+      notnull: number;
+    }>(`pragma table_info(image);`);
+  }
 
   const pinTableColumns = await sqlite.getAllAsync<{ name: string }>(
     `pragma table_info(pin);`,

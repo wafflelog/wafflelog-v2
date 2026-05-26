@@ -15,7 +15,7 @@ import {
 import { buildUUID } from "@/lib/sqlite/utils";
 import {
   isAllowedLocalImageMimeType,
-  persistLocalPinImage,
+  persistLocalImage,
 } from "@/lib/media/image";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
@@ -25,7 +25,7 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 const MAX_IMAGES_PER_PIN = 5;
 
 type DialogNewImageProps = {
-  pinId: string;
+  pinId?: string;
   tripId: string;
   visible: boolean;
   onDismiss: () => void;
@@ -60,19 +60,22 @@ export const DialogNewImage = ({
         throw new Error("You must be signed in to save images");
       }
 
-      const currentCount = await actionCountLocalImagesByPin(
-        pinId,
-        session.user.id,
-      );
+      if (pinId) {
+        const currentCount = await actionCountLocalImagesByPin(
+          pinId,
+          session.user.id,
+        );
 
-      if (currentCount + images.length > MAX_IMAGES_PER_PIN) {
-        throw new Error(`You can save up to ${MAX_IMAGES_PER_PIN} images per pin`);
+        if (currentCount + images.length > MAX_IMAGES_PER_PIN) {
+          throw new Error(`You can save up to ${MAX_IMAGES_PER_PIN} images per pin`);
+        }
       }
 
       await Promise.all(
         images.map(async (image) => {
           const localImageId = buildUUID();
-          const localUri = await persistLocalPinImage({
+          const localUri = await persistLocalImage({
+            tripId,
             pinId,
             localImageId,
             fileName: image.fileName,
@@ -81,7 +84,7 @@ export const DialogNewImage = ({
 
           return actionCreateLocalImage({
             id: localImageId,
-            pinId,
+            pinId: pinId ?? null,
             tripId,
             userId: session.user.id,
             localUri,
@@ -95,8 +98,14 @@ export const DialogNewImage = ({
     onSuccess: () => {
       if (session?.user.id) {
         queryClient.invalidateQueries({
-          queryKey: ["local-pin-images", pinId, session.user.id],
+          queryKey: ["local-trip-images", tripId, session.user.id],
         });
+
+        if (pinId) {
+          queryClient.invalidateQueries({
+            queryKey: ["local-pin-images", pinId, session.user.id],
+          });
+        }
       }
 
       setSelectedImages([]);
@@ -126,10 +135,12 @@ export const DialogNewImage = ({
       return;
     }
 
-    const currentCount = await actionCountLocalImagesByPin(pinId, session.user.id);
-    const remainingSlots = MAX_IMAGES_PER_PIN - currentCount;
+    const remainingSlots = pinId
+      ? MAX_IMAGES_PER_PIN -
+        (await actionCountLocalImagesByPin(pinId, session.user.id))
+      : MAX_IMAGES_PER_PIN;
 
-    if (remainingSlots <= 0) {
+    if (pinId && remainingSlots <= 0) {
       onShowMessage(
         `You can save up to ${MAX_IMAGES_PER_PIN} images per pin`,
         "error",
@@ -219,7 +230,7 @@ export const DialogNewImage = ({
               : "No images selected"}
           </UIText>
           <UIText style={styles.metaSubtext}>
-            Up to {MAX_IMAGES_PER_PIN} images per pin. JPG, PNG, or WebP only.
+            Up to {MAX_IMAGES_PER_PIN} images. JPG, PNG, or WebP only.
           </UIText>
         </View>
 

@@ -1,7 +1,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 import { supabase } from "@/lib/supabase/client";
 
-const LOCAL_PIN_IMAGE_DIRECTORY = `${FileSystem.documentDirectory}pin-images`;
+const LOCAL_IMAGE_DIRECTORY = `${FileSystem.documentDirectory}images`;
 const PIN_IMAGE_STORAGE_BUCKET = "images";
 
 const ALLOWED_IMAGE_MIME_TYPES = [
@@ -69,17 +69,29 @@ export function buildPinImageStoragePath(input: {
   return `trip/${input.tripId}/pin/${input.pinId}/images/${input.imageId}-${safeFileName}`;
 }
 
-export async function persistLocalPinImage(input: {
-  pinId: string;
+export function buildTripImageStoragePath(input: {
+  tripId: string;
+  imageId: string;
+  fileName: string;
+}) {
+  const safeFileName = sanitizeFileName(input.fileName || "image");
+  return `trip/${input.tripId}/images/${input.imageId}-${safeFileName}`;
+}
+
+export async function persistLocalImage(input: {
+  tripId: string;
+  pinId?: string | null;
   localImageId: string;
   fileName: string;
   fileUri: string;
 }) {
   const safeFileName = sanitizeFileName(input.fileName || "image");
-  const pinDirectory = `${LOCAL_PIN_IMAGE_DIRECTORY}/${input.pinId}`;
-  const localUri = `${pinDirectory}/${input.localImageId}-${safeFileName}`;
+  const imageDirectory = input.pinId
+    ? `${LOCAL_IMAGE_DIRECTORY}/trip/${input.tripId}/pin/${input.pinId}`
+    : `${LOCAL_IMAGE_DIRECTORY}/trip/${input.tripId}`;
+  const localUri = `${imageDirectory}/${input.localImageId}-${safeFileName}`;
 
-  await FileSystem.makeDirectoryAsync(pinDirectory, {
+  await FileSystem.makeDirectoryAsync(imageDirectory, {
     intermediates: true,
   });
 
@@ -106,6 +118,45 @@ export async function uploadPinImageToStorage(input: {
     imageId: input.imageId,
     fileName: input.fileName,
   });
+
+  const { error } = await supabase.storage
+    .from(PIN_IMAGE_STORAGE_BUCKET)
+    .upload(storagePath, imageBytes, {
+      contentType: input.mimeType,
+      upsert: false,
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    storageBucket: PIN_IMAGE_STORAGE_BUCKET,
+    storagePath,
+  };
+}
+
+export async function uploadImageToStorage(input: {
+  tripId: string;
+  pinId?: string | null;
+  imageId: string;
+  fileName: string;
+  mimeType: string;
+  localUri: string;
+}) {
+  const imageBytes = await readLocalFileAsBytes(input.localUri);
+  const storagePath = input.pinId
+    ? buildPinImageStoragePath({
+        tripId: input.tripId,
+        pinId: input.pinId,
+        imageId: input.imageId,
+        fileName: input.fileName,
+      })
+    : buildTripImageStoragePath({
+        tripId: input.tripId,
+        imageId: input.imageId,
+        fileName: input.fileName,
+      });
 
   const { error } = await supabase.storage
     .from(PIN_IMAGE_STORAGE_BUCKET)

@@ -1,17 +1,24 @@
+import { ButtonFab } from "@/components/button/fab";
 import { CardImageRegular } from "@/components/card/image/regular";
+import { DialogNewImage } from "@/components/dialog/new-image";
 import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { useSystemMessage } from "@/hook/use-system-message";
 import { actionListLocalImagesByTrip } from "@/lib/sqlite/model/image";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Plus as PlusIcon } from "lucide-react-native";
+import { useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 
 export default function TripImagesScreen() {
+  const [isDialogNewImageVisible, setIsDialogNewImageVisible] = useState(false);
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { session } = useAuthSession();
+  const { showMessage, SystemMessageModal } = useSystemMessage();
 
   const { data: localTrip } = useQuery({
     queryKey: ["local-trip", String(id), session?.user.id],
@@ -77,6 +84,20 @@ export default function TripImagesScreen() {
           </View>
         )}
       />
+      <ButtonFab
+        onPress={() => {
+          setIsDialogNewImageVisible(true);
+        }}
+        text="New Image"
+        icon={(color) => <PlusIcon size={20} color={color} />}
+      />
+      <DialogNewImage
+        tripId={String(id)}
+        visible={isDialogNewImageVisible}
+        onDismiss={() => setIsDialogNewImageVisible(false)}
+        onShowMessage={showMessage}
+      />
+      <SystemMessageModal />
     </View>
   );
 }
