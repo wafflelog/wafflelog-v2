@@ -38,14 +38,21 @@ export const DialogNewExpense = ({
     mutationFn: actionCreateLocalExpense,
     onSuccess: async () => {
       if (session?.user.id) {
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: ["local-pin-expenses", pinId, session.user.id],
-          }),
+        const invalidations = [
           queryClient.invalidateQueries({
             queryKey: ["local-trip-expenses", tripId, session.user.id],
           }),
-        ]);
+        ];
+
+        if (pinId) {
+          invalidations.push(
+            queryClient.invalidateQueries({
+              queryKey: ["local-pin-expenses", pinId, session.user.id],
+            }),
+          );
+        }
+
+        await Promise.all(invalidations);
       }
 
       setExpenseCurrency("EUR");
@@ -68,8 +75,8 @@ export const DialogNewExpense = ({
       return;
     }
 
-    if (!pinId || !tripId) {
-      onShowMessage("This expense needs to be attached to a pin", "error");
+    if (!tripId) {
+      onShowMessage("This expense needs to be attached to a trip", "error");
       return;
     }
 
@@ -88,7 +95,7 @@ export const DialogNewExpense = ({
     }
 
     createExpenseMutation.mutate({
-      pinId,
+      pinId: pinId ?? null,
       tripId,
       userId: session.user.id,
       description: result.data.expenseDescription,

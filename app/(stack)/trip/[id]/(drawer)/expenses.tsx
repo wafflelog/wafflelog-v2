@@ -1,22 +1,29 @@
+import { ButtonFab } from "@/components/button/fab";
 import { CardExpenseRegular } from "@/components/card/expense/regular";
+import { DialogNewExpense } from "@/components/dialog/new-expense";
 import { TripExpenseSummary } from "@/components/trip/expense-summary";
 import { UITab } from "@/components/ui/tab";
 import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { useSystemMessage } from "@/hook/use-system-message";
 import { actionListLocalExpensesByTrip } from "@/lib/sqlite/model/expense";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { type Currency } from "@/types/pin";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
+import { Plus as PlusIcon } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 
 export default function TripExpensesScreen() {
   const { id } = useLocalSearchParams();
   const { session } = useAuthSession();
+  const { showMessage, SystemMessageModal } = useSystemMessage();
 
   const [activeCurrency, setActiveCurrency] = useState<Currency | null>(null);
+  const [isDialogNewExpenseVisible, setIsDialogNewExpenseVisible] =
+    useState(false);
 
   const { data: localTrip } = useQuery({
     queryKey: ["local-trip", String(id), session?.user.id],
@@ -133,6 +140,20 @@ export default function TripExpensesScreen() {
           )}
         />
       </View>
+      <ButtonFab
+        onPress={() => {
+          setIsDialogNewExpenseVisible(true);
+        }}
+        text="New Item"
+        icon={(color) => <PlusIcon size={20} color={color} />}
+      />
+      <DialogNewExpense
+        tripId={String(id)}
+        visible={isDialogNewExpenseVisible}
+        onDismiss={() => setIsDialogNewExpenseVisible(false)}
+        onShowMessage={showMessage}
+      />
+      <SystemMessageModal />
     </View>
   );
 }

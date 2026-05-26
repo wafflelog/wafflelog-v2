@@ -83,7 +83,8 @@ export async function initializeDatabase() {
 
     create table if not exists reference_link (
       id text primary key not null,
-      pin_id text not null,
+      trip_id text not null,
+      pin_id text,
       user_id text not null,
       title text,
       url text not null,
@@ -136,7 +137,7 @@ export async function initializeDatabase() {
 
     create table if not exists expense (
       id text primary key not null,
-      pin_id text not null,
+      pin_id text,
       trip_id text not null,
       user_id text not null,
       description text not null,
@@ -203,13 +204,81 @@ export async function initializeDatabase() {
     `pragma table_info(checklist_item);`,
   );
 
-  const referenceLinkTableColumns = await sqlite.getAllAsync<{ name: string }>(
-    `pragma table_info(reference_link);`,
+  let referenceLinkTableColumns = await sqlite.getAllAsync<{
+    name: string;
+    notnull: number;
+  }>(`pragma table_info(reference_link);`);
+
+  const hasCurrentReferenceLinkSchema =
+    referenceLinkTableColumns.some((column) => column.name === "trip_id") &&
+    referenceLinkTableColumns.some(
+      (column) => column.name === "pin_id" && column.notnull === 0,
+    );
+
+  if (!hasCurrentReferenceLinkSchema) {
+    await sqlite.execAsync(`
+      drop table if exists reference_link;
+
+      create table reference_link (
+        id text primary key not null,
+        trip_id text not null,
+        pin_id text,
+        user_id text not null,
+        title text,
+        url text not null,
+        caption text,
+        created_at text not null,
+        updated_at text not null,
+        sync_status text not null,
+        last_synced_at text,
+        sync_error text,
+        deleted_at text
+      );
+    `);
+
+    referenceLinkTableColumns = await sqlite.getAllAsync<{
+      name: string;
+      notnull: number;
+    }>(`pragma table_info(reference_link);`);
+  }
+
+  let expenseTableColumns = await sqlite.getAllAsync<{
+    name: string;
+    notnull: number;
+  }>(`pragma table_info(expense);`);
+
+  const hasCurrentExpenseSchema = expenseTableColumns.some(
+    (column) => column.name === "pin_id" && column.notnull === 0,
   );
 
-  const expenseTableColumns = await sqlite.getAllAsync<{ name: string }>(
-    `pragma table_info(expense);`,
-  );
+  if (!hasCurrentExpenseSchema) {
+    await sqlite.execAsync(`
+      drop table if exists expense;
+
+      create table expense (
+        id text primary key not null,
+        pin_id text,
+        trip_id text not null,
+        user_id text not null,
+        description text not null,
+        amount real not null,
+        currency text not null,
+        paid_by_user_id text not null,
+        paid_by_name text not null,
+        created_at text not null,
+        updated_at text not null,
+        sync_status text not null,
+        last_synced_at text,
+        sync_error text,
+        deleted_at text
+      );
+    `);
+
+    expenseTableColumns = await sqlite.getAllAsync<{
+      name: string;
+      notnull: number;
+    }>(`pragma table_info(expense);`);
+  }
 
   const imageTableColumns = await sqlite.getAllAsync<{ name: string }>(
     `pragma table_info(image);`,

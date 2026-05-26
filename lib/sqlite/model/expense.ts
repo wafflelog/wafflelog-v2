@@ -7,7 +7,7 @@ import {
 
 export type LocalExpense = {
   id: string;
-  pinId: string;
+  pinId: string | null;
   tripId: string;
   userId: string;
   description: string;
@@ -24,7 +24,7 @@ export type LocalExpense = {
 };
 
 export type CreateLocalExpenseInput = {
-  pinId: string;
+  pinId?: string | null;
   tripId: string;
   userId: string;
   description: string;
@@ -38,7 +38,7 @@ const DEFAULT_SYNC_BATCH_SIZE = 25;
 
 function mapLocalExpenseRow(row: {
   id: string;
-  pin_id: string;
+  pin_id: string | null;
   trip_id: string;
   user_id: string;
   description: string;
@@ -76,7 +76,7 @@ export async function actionCreateLocalExpense(input: CreateLocalExpenseInput) {
   const now = new Date().toISOString();
   const localExpense = {
     id: buildUUID(),
-    pin_id: input.pinId,
+    pin_id: input.pinId ?? null,
     trip_id: input.tripId,
     user_id: input.userId,
     description: input.description.trim(),
@@ -140,7 +140,7 @@ export async function actionListLocalExpensesByPin(
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
-    pin_id: string;
+    pin_id: string | null;
     trip_id: string;
     user_id: string;
     description: string;
@@ -188,7 +188,7 @@ export async function actionListLocalExpensesByTrip(
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
-    pin_id: string;
+    pin_id: string | null;
     trip_id: string;
     user_id: string;
     description: string;
@@ -236,7 +236,7 @@ export async function actionListPendingLocalExpenses(
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
-    pin_id: string;
+    pin_id: string | null;
     trip_id: string;
     user_id: string;
     description: string;

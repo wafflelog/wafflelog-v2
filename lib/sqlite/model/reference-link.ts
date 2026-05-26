@@ -7,7 +7,8 @@ import {
 
 export type LocalReferenceLink = {
   id: string;
-  pinId: string;
+  tripId: string;
+  pinId: string | null;
   userId: string;
   title: string | null;
   url: string;
@@ -21,7 +22,8 @@ export type LocalReferenceLink = {
 };
 
 export type CreateLocalReferenceLinkInput = {
-  pinId: string;
+  tripId: string;
+  pinId?: string | null;
   userId: string;
   url: string;
   caption?: string;
@@ -39,7 +41,8 @@ function deriveTitleFromUrl(url: string) {
 
 function mapLocalReferenceLinkRow(row: {
   id: string;
-  pin_id: string;
+  trip_id: string;
+  pin_id: string | null;
   user_id: string;
   title: string | null;
   url: string;
@@ -53,6 +56,7 @@ function mapLocalReferenceLinkRow(row: {
 }): LocalReferenceLink {
   return {
     id: row.id,
+    tripId: row.trip_id,
     pinId: row.pin_id,
     userId: row.user_id,
     title: row.title,
@@ -76,7 +80,8 @@ export async function actionCreateLocalReferenceLink(
 
   const localReferenceLink = {
     id: buildUUID(),
-    pin_id: input.pinId,
+    trip_id: input.tripId,
+    pin_id: input.pinId ?? null,
     user_id: input.userId,
     title: deriveTitleFromUrl(normalizedUrl),
     url: normalizedUrl,
@@ -93,6 +98,7 @@ export async function actionCreateLocalReferenceLink(
     `
       insert into reference_link (
         id,
+        trip_id,
         pin_id,
         user_id,
         title,
@@ -104,10 +110,11 @@ export async function actionCreateLocalReferenceLink(
         last_synced_at,
         sync_error,
         deleted_at
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       localReferenceLink.id,
+      localReferenceLink.trip_id,
       localReferenceLink.pin_id,
       localReferenceLink.user_id,
       localReferenceLink.title,
@@ -131,7 +138,8 @@ export async function actionListLocalReferenceLinksByPin(
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
-    pin_id: string;
+    trip_id: string;
+    pin_id: string | null;
     user_id: string;
     title: string | null;
     url: string;
@@ -146,6 +154,7 @@ export async function actionListLocalReferenceLinksByPin(
     `
       select
         id,
+        trip_id,
         pin_id,
         user_id,
         title,
@@ -173,50 +182,8 @@ export async function actionListLocalReferenceLinksByTrip(
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
-    pin_id: string;
-    user_id: string;
-    title: string | null;
-    url: string;
-    caption: string | null;
-    created_at: string;
-    updated_at: string;
-    sync_status: string;
-    last_synced_at: string | null;
-    sync_error: string | null;
-    deleted_at: string | null;
-  }>(
-    `
-      select
-        rl.id,
-        rl.pin_id,
-        rl.user_id,
-        rl.title,
-        rl.url,
-        rl.caption,
-        rl.created_at,
-        rl.updated_at,
-        rl.sync_status,
-        rl.last_synced_at,
-        rl.sync_error,
-        rl.deleted_at
-      from reference_link rl
-      join pin p on p.id = rl.pin_id
-      where p.trip_id = ? and rl.user_id = ? and rl.deleted_at is null
-      order by rl.created_at desc
-    `,
-    [tripId, userId],
-  );
-
-  return rows.map(mapLocalReferenceLinkRow);
-}
-
-export async function actionListPendingLocalReferenceLinks(
-  userId: string,
-  limit = DEFAULT_SYNC_BATCH_SIZE,
-) {
-  const rows = await sqlite.getAllAsync<{
-    id: string;
-    pin_id: string;
+    trip_id: string;
+    pin_id: string | null;
     user_id: string;
     title: string | null;
     url: string;
@@ -231,6 +198,51 @@ export async function actionListPendingLocalReferenceLinks(
     `
       select
         id,
+        trip_id,
+        pin_id,
+        user_id,
+        title,
+        url,
+        caption,
+        created_at,
+        updated_at,
+        sync_status,
+        last_synced_at,
+        sync_error,
+        deleted_at
+      from reference_link
+      where trip_id = ? and user_id = ? and deleted_at is null
+      order by created_at desc
+    `,
+    [tripId, userId],
+  );
+
+  return rows.map(mapLocalReferenceLinkRow);
+}
+
+export async function actionListPendingLocalReferenceLinks(
+  userId: string,
+  limit = DEFAULT_SYNC_BATCH_SIZE,
+) {
+  const rows = await sqlite.getAllAsync<{
+    id: string;
+    trip_id: string;
+    pin_id: string | null;
+    user_id: string;
+    title: string | null;
+    url: string;
+    caption: string | null;
+    created_at: string;
+    updated_at: string;
+    sync_status: string;
+    last_synced_at: string | null;
+    sync_error: string | null;
+    deleted_at: string | null;
+  }>(
+    `
+      select
+        id,
+        trip_id,
         pin_id,
         user_id,
         title,
@@ -385,6 +397,7 @@ export async function actionSyncLocalReferenceLink(
   try {
     await actionUpsertRemoteReferenceLinkFromLocal({
       id: localReferenceLink.id,
+      tripId: localReferenceLink.tripId,
       pinId: localReferenceLink.pinId,
       title: localReferenceLink.title,
       url: localReferenceLink.url,

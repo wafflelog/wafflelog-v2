@@ -35,7 +35,8 @@ export type CreateNoteInput = {
 
 export type CreateReferenceLinkInput = {
   id: string;
-  pinId: string;
+  tripId: string;
+  pinId: string | null;
   title: string | null;
   url: string;
   caption: string | null;
@@ -43,7 +44,7 @@ export type CreateReferenceLinkInput = {
 
 export type CreateExpenseInput = {
   id: string;
-  pinId: string;
+  pinId: string | null;
   tripId: string;
   description: string;
   amount: number;
@@ -189,7 +190,8 @@ const mapNoteRow = (note: {
 
 const mapReferenceLinkRow = (referenceLink: {
   id: string;
-  pin_id: string;
+  trip_id: string;
+  pin_id: string | null;
   user_id: string;
   title: string | null;
   url: string;
@@ -199,6 +201,7 @@ const mapReferenceLinkRow = (referenceLink: {
   deleted_at: string | null;
 }) => ({
   id: referenceLink.id,
+  tripId: referenceLink.trip_id,
   pinId: referenceLink.pin_id,
   userId: referenceLink.user_id,
   title: referenceLink.title,
@@ -211,7 +214,7 @@ const mapReferenceLinkRow = (referenceLink: {
 
 const mapExpenseRow = (expense: {
   id: string;
-  pin_id: string;
+  pin_id: string | null;
   trip_id: string;
   user_id: string;
   description: string;
@@ -625,6 +628,7 @@ export async function actionUpsertRemoteReferenceLinkFromLocal(
 
   const payload: TablesInsert<"reference_link"> = {
     id: input.id,
+    trip_id: input.tripId,
     pin_id: input.pinId,
     user_id: user.id,
     title: input.title,
@@ -636,7 +640,7 @@ export async function actionUpsertRemoteReferenceLinkFromLocal(
     .from("reference_link")
     .upsert(payload)
     .select(
-      "id, pin_id, user_id, title, url, caption, created_at, updated_at, deleted_at",
+      "id, trip_id, pin_id, user_id, title, url, caption, created_at, updated_at, deleted_at",
     )
     .single();
 

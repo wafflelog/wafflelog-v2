@@ -207,7 +207,7 @@ export type Database = {
           id: string
           paid_by_name: string
           paid_by_user_id: string
-          pin_id: string
+          pin_id: string | null
           trip_id: string
           updated_at: string
           user_id: string
@@ -221,7 +221,7 @@ export type Database = {
           id: string
           paid_by_name: string
           paid_by_user_id: string
-          pin_id: string
+          pin_id?: string | null
           trip_id: string
           updated_at?: string
           user_id: string
@@ -235,7 +235,7 @@ export type Database = {
           id?: string
           paid_by_name?: string
           paid_by_user_id?: string
-          pin_id?: string
+          pin_id?: string | null
           trip_id?: string
           updated_at?: string
           user_id?: string
@@ -445,8 +445,9 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: string
-          pin_id: string
+          pin_id: string | null
           title: string | null
+          trip_id: string
           updated_at: string
           url: string
           user_id: string
@@ -456,8 +457,9 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id: string
-          pin_id: string
+          pin_id?: string | null
           title?: string | null
+          trip_id: string
           updated_at?: string
           url: string
           user_id: string
@@ -467,8 +469,9 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
-          pin_id?: string
+          pin_id?: string | null
           title?: string | null
+          trip_id?: string
           updated_at?: string
           url?: string
           user_id?: string

@@ -72,9 +72,9 @@ export const DialogNewReferenceLink = ({
       return;
     }
 
-    if (!pinId) {
+    if (!tripId) {
       onShowMessage(
-        "Reference links need to be created from a pin so they can be attached to a place.",
+        "Reference links need to be attached to a trip.",
         "error",
       );
       return;
@@ -94,7 +94,8 @@ export const DialogNewReferenceLink = ({
     }
 
     createReferenceLinkMutation.mutate({
-      pinId,
+      tripId,
+      pinId: pinId ?? null,
       userId: session.user.id,
       url: result.data.referenceLinkUrl,
       caption: result.data.referenceLinkCaption,
