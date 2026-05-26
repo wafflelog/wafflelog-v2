@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 
-import { type Pin, type PinCategory, type PinMetadata } from "@/types/pin";
+import { type Pin, type PinMetadata } from "@/types/pin";
 
 export const EMPTY_PIN_METADATA: PinMetadata = { version: 1 };
 
@@ -18,9 +18,54 @@ export const buildTransportMetadata = (input: {
   destination: input.destination.trim() || undefined,
 });
 
-export const getPinTitle = (
-  pin: Pick<Pin, "name" | "category">,
-) => pin.name?.trim() || pin.category.name;
+type PinTitleInput = {
+  name?: string | null;
+  category?: Pick<Pin["category"], "id" | "name">;
+  categoryId?: string;
+  metadata?: Pick<PinMetadata, "departure" | "destination">;
+  metadataJson?: Pick<PinMetadata, "departure" | "destination">;
+  location?: {
+    name?: string | null;
+    displayName?: string | null;
+  } | null;
+  displayName?: string | null;
+};
+
+const UNKNOWN_LOCATION_NAME = "Unknown location";
+
+const getTransportTitle = (
+  metadata?: Pick<PinMetadata, "departure" | "destination">,
+) => {
+  if (metadata?.departure && metadata.destination) {
+    return `${metadata.departure} -> ${metadata.destination}`;
+  }
+
+  return null;
+};
+
+export const getPinTitle = (pin: PinTitleInput) => {
+  const name = pin.name?.trim();
+
+  if (name) {
+    return name;
+  }
+
+  const transportTitle =
+    getTransportTitle(pin.metadata) ?? getTransportTitle(pin.metadataJson);
+
+  if (transportTitle) {
+    return transportTitle;
+  }
+
+  const locationName =
+    pin.location?.name ?? pin.location?.displayName ?? pin.displayName;
+
+  if (locationName && locationName !== UNKNOWN_LOCATION_NAME) {
+    return locationName;
+  }
+
+  return pin.category?.name ?? pin.categoryId ?? "Pin";
+};
 
 export const getPinTimeLabelForDate = (
   pin: Pick<Pin, "startDate" | "endDate" | "time">,
@@ -47,9 +92,12 @@ export const getPinHeaderTimeLabel = (
 };
 
 export const getPinSubtitle = (
-  pin: Pick<Pin, "category" | "metadata" | "location">,
+  pin: Pick<Pin, "name" | "category" | "metadata" | "location">,
 ) => {
+  const hasName = Boolean(pin.name?.trim());
+
   if (
+    hasName &&
     pin.category.id === "transport" &&
     pin.metadata.departure &&
     pin.metadata.destination
@@ -57,7 +105,5 @@ export const getPinSubtitle = (
     return `${pin.metadata.departure} -> ${pin.metadata.destination}`;
   }
 
-  return pin.location.name === "Unknown location" ? "" : pin.location.name;
+  return pin.location.name === UNKNOWN_LOCATION_NAME ? "" : pin.location.name;
 };
-
-export const getPinFallbackName = (category: PinCategory) => category.name;

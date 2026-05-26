@@ -294,7 +294,13 @@ export const DialogNewPin = ({
         onDismiss={handleDismiss}
         title={isEditMode ? "Edit Pin" : "New Pin"}
         size="md"
-        confirmText={step === "category" ? "Next" : isEditMode ? "Save" : "Create"}
+        confirmText={
+          step === "category"
+            ? "Next"
+            : isEditMode
+              ? "Save"
+              : "Create"
+        }
         onConfirm={handleConfirm}
       >
         <View style={styles.content}>

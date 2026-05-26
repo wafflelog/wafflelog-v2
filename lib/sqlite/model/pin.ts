@@ -7,6 +7,14 @@ import {
 } from "@/lib/supabase/actions";
 import { type PinMetadata } from "@/types/pin";
 
+export type LocalPinLocationSummary = {
+  placeId: string;
+  displayName: string;
+  formattedAddress: string;
+  latitude: number;
+  longitude: number;
+};
+
 export type LocalPin = {
   id: string;
   tripId: string;
@@ -23,6 +31,7 @@ export type LocalPin = {
   lastSyncedAt: string | null;
   syncError: string | null;
   deletedAt: string | null;
+  location: LocalPinLocationSummary | null;
 };
 
 export type CreateLocalPinInput = {
@@ -90,6 +99,11 @@ type LocalPinRow = {
   last_synced_at: string | null;
   sync_error: string | null;
   deleted_at: string | null;
+  place_id?: string | null;
+  display_name?: string | null;
+  formatted_address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 function mapLocalPinRow(row: LocalPinRow): LocalPin {
@@ -109,25 +123,45 @@ function mapLocalPinRow(row: LocalPinRow): LocalPin {
     lastSyncedAt: row.last_synced_at,
     syncError: row.sync_error,
     deletedAt: row.deleted_at,
+    location:
+      row.place_id &&
+      row.display_name &&
+      row.latitude !== undefined &&
+      row.latitude !== null &&
+      row.longitude !== undefined &&
+      row.longitude !== null
+        ? {
+            placeId: row.place_id,
+            displayName: row.display_name,
+            formattedAddress: row.formatted_address ?? "",
+            latitude: row.latitude,
+            longitude: row.longitude,
+          }
+        : null,
   };
 }
 
 const selectLocalPinColumns = `
-  id,
-  trip_id,
-  user_id,
-  name,
-  start_date,
-  end_date,
-  time,
-  category_id,
-  metadata_json,
-  created_at,
-  updated_at,
-  sync_status,
-  last_synced_at,
-  sync_error,
-  deleted_at
+  pin.id,
+  pin.trip_id,
+  pin.user_id,
+  pin.name,
+  pin.start_date,
+  pin.end_date,
+  pin.time,
+  pin.category_id,
+  pin.metadata_json,
+  pin.created_at,
+  pin.updated_at,
+  pin.sync_status,
+  pin.last_synced_at,
+  pin.sync_error,
+  pin.deleted_at,
+  pin_location.place_id,
+  pin_location.display_name,
+  pin_location.formatted_address,
+  pin_location.latitude,
+  pin_location.longitude
 `;
 
 export async function actionCreateLocalPin(input: CreateLocalPinInput) {
@@ -197,8 +231,11 @@ export async function actionListLocalPins(tripId: string, userId: string) {
     `
       select ${selectLocalPinColumns}
       from pin
-      where trip_id = ? and user_id = ? and deleted_at is null
-      order by start_date asc, time asc, created_at asc
+      left join pin_location
+        on pin_location.pin_id = pin.id
+        and pin_location.user_id = pin.user_id
+      where pin.trip_id = ? and pin.user_id = ? and pin.deleted_at is null
+      order by pin.start_date asc, pin.time asc, pin.created_at asc
     `,
     [tripId, userId],
   );
@@ -215,12 +252,15 @@ export async function actionListLocalPinsByTripAndDate(
     `
       select ${selectLocalPinColumns}
       from pin
-      where trip_id = ?
-        and user_id = ?
-        and start_date <= ?
-        and coalesce(end_date, start_date) >= ?
-        and deleted_at is null
-      order by start_date asc, time asc, created_at asc
+      left join pin_location
+        on pin_location.pin_id = pin.id
+        and pin_location.user_id = pin.user_id
+      where pin.trip_id = ?
+        and pin.user_id = ?
+        and pin.start_date <= ?
+        and coalesce(pin.end_date, pin.start_date) >= ?
+        and pin.deleted_at is null
+      order by pin.start_date asc, pin.time asc, pin.created_at asc
     `,
     [tripId, userId, date, date],
   );
@@ -233,7 +273,10 @@ export async function actionGetLocalPin(id: string, userId: string) {
     `
       select ${selectLocalPinColumns}
       from pin
-      where id = ? and user_id = ? and deleted_at is null
+      left join pin_location
+        on pin_location.pin_id = pin.id
+        and pin_location.user_id = pin.user_id
+      where pin.id = ? and pin.user_id = ? and pin.deleted_at is null
       limit 1
     `,
     [id, userId],
@@ -362,8 +405,11 @@ export async function actionListPendingLocalPins(
     `
       select ${selectLocalPinColumns}
       from pin
-      where user_id = ? and sync_status != 'synced'
-      order by created_at asc
+      left join pin_location
+        on pin_location.pin_id = pin.id
+        and pin_location.user_id = pin.user_id
+      where pin.user_id = ? and pin.sync_status != 'synced'
+      order by pin.created_at asc
       limit ?
     `,
     [userId, limit],

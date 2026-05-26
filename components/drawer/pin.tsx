@@ -12,6 +12,7 @@ import { DrawerItemRegular } from "@/components/drawer/item/regular";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { getPinTitle } from "@/lib/pin";
 import {
   actionGetLocalPin,
   actionListLocalPinsByTripAndDate,
@@ -91,7 +92,7 @@ export function DrawerPin({ id }: DrawerPinProps) {
           <DrawerItemRegular
             key={pin.id}
             item={{
-              label: pin.name ?? pin.categoryId,
+              label: getPinTitle(pin),
               isActive: id === pin.id,
               onPress: () => {
                 router.replace(`/pin/${pin.id}`);

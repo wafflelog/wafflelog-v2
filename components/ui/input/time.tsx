@@ -58,7 +58,7 @@ export const UIInputTime = ({
   autoFocus = false,
 }: UIInputTimeProps) => {
   const [showPicker, setShowPicker] = useState(autoFocus);
-  const [time, setTime] = useState<Date>(() => toPickerTime(value));
+  const [time, setTime] = useState<Date>(new Date());
 
   useEffect(() => {
     if (!showPicker) {
@@ -69,6 +69,8 @@ export const UIInputTime = ({
   const displayValue = value || "";
 
   const handleTimeChange = (_event: unknown, selectedTime?: Date) => {
+    console.log("Selected time:", selectedTime);
+
     if (Platform.OS === "android") {
       setShowPicker(false);
     }

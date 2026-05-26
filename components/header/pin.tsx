@@ -1,5 +1,5 @@
 import { colors, getColor } from "@/constants/theme";
-import { getPinHeaderTimeLabel } from "@/lib/pin";
+import { getPinHeaderTimeLabel, getPinTitle } from "@/lib/pin";
 import { type Pin } from "@/types/pin";
 import {
   HeaderBackButton,
@@ -19,10 +19,13 @@ type HeaderDefaultProps = {
 };
 
 type HeaderPinTitleProps = {
-  pin?: Pick<
-    Pin,
-    "name" | "startDate" | "endDate" | "time"
-  > | null;
+  pin?: Pick<Pin, "name" | "startDate" | "endDate" | "time"> & {
+    categoryId?: string;
+    metadataJson?: {
+      departure?: string;
+      destination?: string;
+    };
+  } | null;
 } & Partial<HeaderTitleProps>;
 
 type HeaderPinButtonProps = {
@@ -40,7 +43,7 @@ export const HeaderPin = ({
         <ChevronLeftIcon size={24} color={getColor(colors.textDarkGrey)} />
       </TouchableOpacity>
       <View style={styles.headerContent}>
-        <Text style={styles.headerTitle}>{pin.name ?? "Pin"}</Text>
+        <Text style={styles.headerTitle}>{getPinTitle(pin)}</Text>
         <Text style={styles.headerSubtitle}>{getPinHeaderTimeLabel(pin)}</Text>
       </View>
       <TouchableOpacity style={styles.moreButton} onPress={onMorePress}>
@@ -68,7 +71,7 @@ export const HeaderPinTitle = ({
         allowFontScaling={allowFontScaling}
         onLayout={onLayout}
       >
-        {pin.name ?? "Pin"}
+        {getPinTitle(pin)}
       </Text>
       <Text
         style={styles.headerSubtitle}
