@@ -353,12 +353,6 @@ export const DialogNewPin = ({
                   </TitleRegular>
                 </TouchableOpacity>
               )}
-              <UIInputText
-                placeholder="Enter pin name"
-                value={pinName}
-                onChange={setPinName}
-                autoFocus
-              />
               <UIInputDate
                 placeholder={isRangePin ? "Start date" : "Date"}
                 value={pinStartDate}
@@ -404,6 +398,11 @@ export const DialogNewPin = ({
                   />
                 </View>
               )}
+              <UIInputText
+                placeholder="Pin name (optional)"
+                value={pinName}
+                onChange={setPinName}
+              />
             </>
           )}
         </View>
