@@ -31,6 +31,7 @@ type DialogNewPinProps = {
   tripId: string;
   tripStartDate: string;
   tripEndDate: string;
+  initialStartDate?: string | null;
   visible: boolean;
   onDismiss: () => void;
   mode?: "create" | "edit";
@@ -53,6 +54,7 @@ export const DialogNewPin = ({
   tripId,
   tripStartDate,
   tripEndDate,
+  initialStartDate,
   visible,
   onDismiss,
   mode = "create",
@@ -92,13 +94,13 @@ export const DialogNewPin = ({
 
     setPinName("");
     setPinCategoryId("");
-    setPinStartDate("");
-    setPinEndDate("");
+    setPinStartDate(initialStartDate ?? "");
+    setPinEndDate(initialStartDate ?? "");
     setPinTime("");
     setTransportDeparture("");
     setTransportDestination("");
     setStep("category");
-  }, [visible, isEditMode, initialPin]);
+  }, [visible, isEditMode, initialPin, initialStartDate]);
 
   const createPinMutation = useMutation({
     mutationFn: actionCreateLocalPin,

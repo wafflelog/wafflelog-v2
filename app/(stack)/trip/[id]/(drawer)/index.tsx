@@ -228,6 +228,7 @@ export default function TripIndexScreen() {
         tripId={String(id)}
         tripStartDate={trip.startDate}
         tripEndDate={trip.endDate}
+        initialStartDate={selectedDate ?? trip.startDate}
         visible={isDialogNewPinOpen}
         onDismiss={() => setIsDialogNewPinOpen(false)}
       />
