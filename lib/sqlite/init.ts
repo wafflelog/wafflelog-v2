@@ -70,7 +70,8 @@ export async function initializeDatabase() {
 
     create table if not exists note (
       id text primary key not null,
-      pin_id text not null,
+      trip_id text not null,
+      pin_id text,
       user_id text not null,
       text text not null,
       created_at text not null,
@@ -379,9 +380,43 @@ export async function initializeDatabase() {
     `);
   }
 
-  const noteTableColumns = await sqlite.getAllAsync<{ name: string }>(
+  let noteTableColumns = await sqlite.getAllAsync<{
+    name: string;
+    notnull: number;
+  }>(
     `pragma table_info(note);`,
   );
+
+  const hasCurrentNoteSchema =
+    noteTableColumns.some((column) => column.name === "trip_id") &&
+    noteTableColumns.some(
+      (column) => column.name === "pin_id" && column.notnull === 0,
+    );
+
+  if (!hasCurrentNoteSchema) {
+    await sqlite.execAsync(`
+      drop table if exists note;
+
+      create table note (
+        id text primary key not null,
+        trip_id text not null,
+        pin_id text,
+        user_id text not null,
+        text text not null,
+        created_at text not null,
+        updated_at text not null,
+        sync_status text not null,
+        last_synced_at text,
+        sync_error text,
+        deleted_at text
+      );
+    `);
+
+    noteTableColumns = await sqlite.getAllAsync<{
+      name: string;
+      notnull: number;
+    }>(`pragma table_info(note);`);
+  }
 
   const hasNoteDeletedAtColumn = noteTableColumns.some(
     (column) => column.name === "deleted_at",

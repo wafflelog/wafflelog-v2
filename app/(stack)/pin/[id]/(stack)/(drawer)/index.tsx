@@ -385,7 +385,15 @@ export default function PinIndexScreen() {
       </ScrollView>
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => router.push(`/pin/${id}/notes`)}
+        onPress={() => {
+          router.push({
+            pathname: "/notes",
+            params: {
+              tripId: localPin.tripId,
+              pinId: String(id),
+            },
+          });
+        }}
         activeOpacity={0.8}
       >
         <SquarePenIcon size={24} color="#fff" />

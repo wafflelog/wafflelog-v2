@@ -1,5 +1,19 @@
 import { CardNoteRegular } from "@/components/card/note/regular";
-import { getCardBasicStyle } from "@/constants/theme";
+import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
+import { TitleRegular } from "@/components/title/regular";
+import { UIInputText } from "@/components/ui/input/text";
+import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
+import { useAuthSession } from "@/hook/use-auth-session";
+import { useSystemMessage } from "@/hook/use-system-message";
+import {
+  actionCreateLocalNote,
+  actionListLocalNotesByPin,
+  actionListLocalNotesByTrip,
+  actionSoftDeleteLocalNote,
+} from "@/lib/sqlite/model/note";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import {
   FlatList,
   Platform,
@@ -13,21 +27,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
-
-import { UIInputText } from "@/components/ui/input/text";
-import { useState } from "react";
-import { TitleRegular } from "@/components/title/regular";
-import { colors, gaps, getColor } from "@/constants/theme";
-import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
-import { useAuthSession } from "@/hook/use-auth-session";
-import { useSystemMessage } from "@/hook/use-system-message";
-import {
-  actionCreateLocalNote,
-  actionListLocalNotesByPin,
-  actionSoftDeleteLocalNote,
-} from "@/lib/sqlite/model/note";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams } from "expo-router";
 
 const PADDING_BOTTOM = 32;
 
@@ -47,7 +46,10 @@ const useGradualAnimation = () => {
 };
 
 export default function NotesScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { tripId, pinId } = useLocalSearchParams<{
+    tripId?: string;
+    pinId?: string;
+  }>();
   const { session } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const queryClient = useQueryClient();
@@ -61,10 +63,29 @@ export default function NotesScreen() {
     };
   }, []);
 
+  const noteScopeId = pinId ?? tripId;
+  const noteScope = pinId ? "pin" : "trip";
+  const localNotesQueryKey = [
+    "local-notes",
+    noteScope,
+    noteScopeId,
+    session?.user.id,
+  ];
+
   const { data: localNotes = [] } = useQuery({
-    queryKey: ["local-notes", String(id), session?.user.id],
-    queryFn: () => actionListLocalNotesByPin(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: localNotesQueryKey,
+    queryFn: () => {
+      if (!tripId || !session?.user.id) {
+        throw new Error("Unable to load notes right now");
+      }
+
+      if (pinId) {
+        return actionListLocalNotesByPin(pinId, session.user.id);
+      }
+
+      return actionListLocalNotesByTrip(tripId, session.user.id);
+    },
+    enabled: Boolean(tripId && session?.user.id),
   });
 
   const createNoteMutation = useMutation({
@@ -72,11 +93,12 @@ export default function NotesScreen() {
     onSuccess: async () => {
       setNewNote("");
       await queryClient.invalidateQueries({
-        queryKey: ["local-notes", String(id), session?.user.id],
+        queryKey: localNotesQueryKey,
       });
     },
     onError: (error) => {
-      const message = error instanceof Error ? error.message : "Failed to save note";
+      const message =
+        error instanceof Error ? error.message : "Failed to save note";
       showMessage(message, "error");
     },
   });
@@ -86,7 +108,7 @@ export default function NotesScreen() {
       actionSoftDeleteLocalNote(noteId, session!.user.id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: ["local-notes", String(id), session?.user.id],
+        queryKey: localNotesQueryKey,
       });
       setIsDeleteDialogOpen(false);
       setSelectedNoteId(null);
@@ -109,13 +131,14 @@ export default function NotesScreen() {
   }));
 
   const handleCreateNote = () => {
-    if (!id || !session?.user.id) {
+    if (!tripId || !session?.user.id) {
       showMessage("Unable to save note right now", "error");
       return;
     }
 
     createNoteMutation.mutate({
-      pinId: String(id),
+      tripId,
+      pinId: pinId ?? null,
       userId: session.user.id,
       text: newNote,
     });

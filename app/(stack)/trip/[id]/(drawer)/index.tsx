@@ -8,6 +8,7 @@ import { colors, gaps, getColor } from "@/constants/theme";
 import { CATEGORIES } from "@/constants/pin-categories";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionGetRemoteTripById } from "@/lib/supabase/actions";
+import { actionListLocalNotesByTrip } from "@/lib/sqlite/model/note";
 import { actionListLocalPinsByTripAndDate } from "@/lib/sqlite/model/pin";
 import {
   actionGetLocalTrip,
@@ -21,12 +22,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Map as MapIcon,
   Plus as PlusIcon,
+  SquarePen as SquarePenIcon,
 } from "lucide-react-native";
 import { useMemo, useRef, useState } from "react";
 import {
   FlatList,
   ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -110,6 +113,15 @@ export default function TripIndexScreen() {
       ),
     enabled: Boolean(id && selectedDate && session?.user.id),
   });
+
+  const { data: localNotes = [] } = useQuery({
+    queryKey: ["local-notes", "trip", String(id), session?.user.id],
+    queryFn: () => actionListLocalNotesByTrip(String(id), session!.user.id),
+    enabled: Boolean(id && session?.user.id),
+  });
+
+  const noteCount = localNotes.length;
+  const noteBadgeText = noteCount > 99 ? "99+" : String(noteCount);
 
   const numOfDays =
     dayjs(trip?.endDate).diff(dayjs(trip?.startDate), "day") + 1 || 0;
@@ -224,6 +236,25 @@ export default function TripIndexScreen() {
         text="New Pin"
         icon={(color) => <PlusIcon size={20} color={color} />}
       />
+      <TouchableOpacity
+        style={styles.notesFab}
+        onPress={() => {
+          router.push({
+            pathname: "/notes",
+            params: {
+              tripId: String(id),
+            },
+          });
+        }}
+        activeOpacity={0.8}
+      >
+        <SquarePenIcon size={24} color="#fff" />
+        {noteCount > 0 && (
+          <View style={styles.noteBadge}>
+            <Text style={styles.noteBadgeText}>{noteBadgeText}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
       <DialogNewPin
         tripId={String(id)}
         tripStartDate={trip.startDate}
@@ -244,6 +275,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "column",
     gap: 16,
+    paddingBottom: 112,
   },
   top: {
     gap: 16,
@@ -274,5 +306,34 @@ const styles = StyleSheet.create({
     paddingVertical: gaps.xxs,
     borderRadius: 8,
     backgroundColor: getColor(colors.pineGreen, 0.12),
+  },
+  notesFab: {
+    position: "absolute",
+    bottom: 88,
+    right: 20,
+    width: 56,
+    height: 56,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: getColor(colors.purple),
+    borderRadius: 28,
+  },
+  noteBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    minWidth: 20,
+    maxWidth: 30,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: getColor(colors.waffle),
+  },
+  noteBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#fff",
   },
 });

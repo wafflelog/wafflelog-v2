@@ -16,6 +16,10 @@ export default function Layout() {
         <Stack.Screen name="trip/[id]/map" options={{ headerShown: false }} />
         <Stack.Screen name="pin/[id]/(stack)" options={{ headerShown: false }} />
         <Stack.Screen
+          name="notes"
+          options={{ headerShown: true, presentation: "modal" }}
+        />
+        <Stack.Screen
           name="notification-center"
           options={{ headerShown: false }}
         />

@@ -7,7 +7,8 @@ import {
 
 export type LocalNote = {
   id: string;
-  pinId: string;
+  tripId: string;
+  pinId: string | null;
   userId: string;
   text: string;
   createdAt: string;
@@ -19,7 +20,8 @@ export type LocalNote = {
 };
 
 export type CreateLocalNoteInput = {
-  pinId: string;
+  tripId?: string;
+  pinId?: string | null;
   userId: string;
   text: string;
 };
@@ -28,7 +30,8 @@ const DEFAULT_SYNC_BATCH_SIZE = 25;
 
 function mapLocalNoteRow(row: {
   id: string;
-  pin_id: string;
+  trip_id: string;
+  pin_id: string | null;
   user_id: string;
   text: string;
   created_at: string;
@@ -40,6 +43,7 @@ function mapLocalNoteRow(row: {
 }): LocalNote {
   return {
     id: row.id,
+    tripId: row.trip_id,
     pinId: row.pin_id,
     userId: row.user_id,
     text: row.text,
@@ -60,9 +64,30 @@ export async function actionCreateLocalNote(input: CreateLocalNoteInput) {
     throw new Error("Note cannot be empty");
   }
 
+  let tripId = input.tripId;
+
+  if (!tripId && input.pinId) {
+    const pin = await sqlite.getFirstAsync<{ trip_id: string }>(
+      `
+        select trip_id
+        from pin
+        where id = ? and user_id = ? and deleted_at is null
+        limit 1
+      `,
+      [input.pinId, input.userId],
+    );
+
+    tripId = pin?.trip_id;
+  }
+
+  if (!tripId) {
+    throw new Error("Trip is required to save note");
+  }
+
   const localNote = {
     id: buildUUID(),
-    pin_id: input.pinId,
+    trip_id: tripId,
+    pin_id: input.pinId ?? null,
     user_id: input.userId,
     text: normalizedText,
     created_at: now,
@@ -77,6 +102,7 @@ export async function actionCreateLocalNote(input: CreateLocalNoteInput) {
     `
       insert into note (
         id,
+        trip_id,
         pin_id,
         user_id,
         text,
@@ -86,10 +112,11 @@ export async function actionCreateLocalNote(input: CreateLocalNoteInput) {
         last_synced_at,
         sync_error,
         deleted_at
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       localNote.id,
+      localNote.trip_id,
       localNote.pin_id,
       localNote.user_id,
       localNote.text,
@@ -108,7 +135,8 @@ export async function actionCreateLocalNote(input: CreateLocalNoteInput) {
 export async function actionListLocalNotesByPin(pinId: string, userId: string) {
   const rows = await sqlite.getAllAsync<{
     id: string;
-    pin_id: string;
+    trip_id: string;
+    pin_id: string | null;
     user_id: string;
     text: string;
     created_at: string;
@@ -121,6 +149,7 @@ export async function actionListLocalNotesByPin(pinId: string, userId: string) {
     `
       select
         id,
+        trip_id,
         pin_id,
         user_id,
         text,
@@ -140,13 +169,11 @@ export async function actionListLocalNotesByPin(pinId: string, userId: string) {
   return rows.map(mapLocalNoteRow);
 }
 
-export async function actionListPendingLocalNotes(
-  userId: string,
-  limit = DEFAULT_SYNC_BATCH_SIZE,
-) {
+export async function actionListLocalNotesByTrip(tripId: string, userId: string) {
   const rows = await sqlite.getAllAsync<{
     id: string;
-    pin_id: string;
+    trip_id: string;
+    pin_id: string | null;
     user_id: string;
     text: string;
     created_at: string;
@@ -159,6 +186,47 @@ export async function actionListPendingLocalNotes(
     `
       select
         id,
+        trip_id,
+        pin_id,
+        user_id,
+        text,
+        created_at,
+        updated_at,
+        sync_status,
+        last_synced_at,
+        sync_error,
+        deleted_at
+      from note
+      where trip_id = ? and pin_id is null and user_id = ? and deleted_at is null
+      order by created_at desc
+    `,
+    [tripId, userId],
+  );
+
+  return rows.map(mapLocalNoteRow);
+}
+
+export async function actionListPendingLocalNotes(
+  userId: string,
+  limit = DEFAULT_SYNC_BATCH_SIZE,
+) {
+  const rows = await sqlite.getAllAsync<{
+    id: string;
+    trip_id: string;
+    pin_id: string | null;
+    user_id: string;
+    text: string;
+    created_at: string;
+    updated_at: string;
+    sync_status: string;
+    last_synced_at: string | null;
+    sync_error: string | null;
+    deleted_at: string | null;
+  }>(
+    `
+      select
+        id,
+        trip_id,
         pin_id,
         user_id,
         text,
@@ -285,6 +353,7 @@ export async function actionSyncLocalNote(localNote: LocalNote) {
   try {
     await actionUpsertRemoteNoteFromLocal({
       id: localNote.id,
+      tripId: localNote.tripId,
       pinId: localNote.pinId,
       text: localNote.text,
     });

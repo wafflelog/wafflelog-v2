@@ -29,7 +29,8 @@ export type CreateChecklistItemInput = {
 
 export type CreateNoteInput = {
   id: string;
-  pinId: string;
+  tripId: string;
+  pinId: string | null;
   text: string;
 };
 
@@ -172,7 +173,8 @@ const mapChecklistItemRow = (checklistItem: {
 
 const mapNoteRow = (note: {
   id: string;
-  pin_id: string;
+  trip_id: string;
+  pin_id: string | null;
   user_id: string;
   text: string;
   created_at: string;
@@ -180,6 +182,7 @@ const mapNoteRow = (note: {
   deleted_at: string | null;
 }) => ({
   id: note.id,
+  tripId: note.trip_id,
   pinId: note.pin_id,
   userId: note.user_id,
   text: note.text,
@@ -566,6 +569,7 @@ export async function actionUpsertRemoteNoteFromLocal(input: CreateNoteInput) {
 
   const payload: TablesInsert<"note"> = {
     id: input.id,
+    trip_id: input.tripId,
     pin_id: input.pinId,
     user_id: user.id,
     text: normalizedText,
@@ -574,7 +578,9 @@ export async function actionUpsertRemoteNoteFromLocal(input: CreateNoteInput) {
   const { data, error } = await supabase
     .from("note")
     .upsert(payload)
-    .select("id, pin_id, user_id, text, created_at, updated_at, deleted_at")
+    .select(
+      "id, trip_id, pin_id, user_id, text, created_at, updated_at, deleted_at",
+    )
     .single();
 
   if (error) {

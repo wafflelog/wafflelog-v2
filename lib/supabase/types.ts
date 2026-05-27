@@ -346,8 +346,9 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: string
-          pin_id: string
+          pin_id: string | null
           text: string
+          trip_id: string
           updated_at: string
           user_id: string
         }
@@ -355,8 +356,9 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id: string
-          pin_id: string
+          pin_id?: string | null
           text: string
+          trip_id: string
           updated_at?: string
           user_id: string
         }
@@ -364,8 +366,9 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: string
-          pin_id?: string
+          pin_id?: string | null
           text?: string
+          trip_id?: string
           updated_at?: string
           user_id?: string
         }
