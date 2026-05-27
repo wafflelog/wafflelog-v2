@@ -378,7 +378,7 @@ export const DialogNewPin = ({
                 />
               )}
               <UIInputTime
-                placeholder="Time (optional)"
+                placeholder="Time, e.g. 14:30 (optional)"
                 value={pinTime}
                 onChange={setPinTime}
               />

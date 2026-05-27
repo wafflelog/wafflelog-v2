@@ -6,142 +6,94 @@ import {
   gaps,
   getColor,
 } from "@/constants/theme";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import dayjs from "dayjs";
-import { useEffect, useState } from "react";
-import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
-import { Dialog } from "../dialog";
+import { getFontFamily } from "@/lib/utils";
+import { StyleSheet, TextInput, View } from "react-native";
 
 type UIInputTimeProps = {
   placeholder?: string;
-  value?: string; // HH:mm time string
-  onChange?: (time: string) => void; // Returns HH:mm time string
+  value?: string;
+  onChange?: (time: string) => void;
   autoFocus?: boolean;
 };
 
-const toTimeString = (input: Date) => dayjs(input).format("HH:mm");
+const DIGIT_LIMIT = 4;
 
-const toPickerTime = (input?: string) => {
-  if (!input) {
-    return new Date();
+function formatTimeDigits(digits: string) {
+  if (digits.length <= 2) {
+    return digits;
   }
 
-  const match = input.match(/^(\d{2}):(\d{2})$/);
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
 
-  if (!match) {
-    return new Date();
+function getDigitsFromTime(input?: string) {
+  return (input ?? "").replace(/\D/g, "").slice(0, DIGIT_LIMIT);
+}
+
+function isValidPartialTimeDigits(digits: string) {
+  if (!digits) {
+    return true;
   }
 
-  const hours = Number(match[1]);
-  const minutes = Number(match[2]);
+  if (digits.length >= 2) {
+    const hours = Number(digits.slice(0, 2));
 
-  if (
-    Number.isNaN(hours) ||
-    Number.isNaN(minutes) ||
-    hours < 0 ||
-    hours > 23 ||
-    minutes < 0 ||
-    minutes > 59
-  ) {
-    return new Date();
+    if (Number.isNaN(hours) || hours > 23) {
+      return false;
+    }
   }
 
-  const now = new Date();
-  now.setHours(hours, minutes, 0, 0);
-  return now;
-};
+  if (digits.length === 4) {
+    const minutes = Number(digits.slice(2, 4));
+
+    if (Number.isNaN(minutes) || minutes > 59) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 export const UIInputTime = ({
-  placeholder,
+  placeholder = "e.g. 14:30",
   value,
   onChange,
   autoFocus = false,
 }: UIInputTimeProps) => {
-  const [showPicker, setShowPicker] = useState(autoFocus);
-  const [time, setTime] = useState<Date>(new Date());
+  const digits = getDigitsFromTime(value);
+  const displayValue = formatTimeDigits(digits);
+  const isEmpty = !displayValue;
+  const isInvalid = !isValidPartialTimeDigits(digits);
 
-  useEffect(() => {
-    if (!showPicker) {
-      setTime(toPickerTime(value));
-    }
-  }, [showPicker, value]);
-
-  const displayValue = value || "";
-
-  const handleTimeChange = (_event: unknown, selectedTime?: Date) => {
-    console.log("Selected time:", selectedTime);
-
-    if (Platform.OS === "android") {
-      setShowPicker(false);
-    }
-
-    if (selectedTime) {
-      setTime(selectedTime);
-      if (Platform.OS === "android") {
-        onChange?.(toTimeString(selectedTime));
-      }
-    }
-  };
-
-  const handleConfirm = () => {
-    onChange?.(toTimeString(time));
-    setShowPicker(false);
-  };
-
-  const handleNowPress = () => {
-    const now = new Date();
-    setTime(now);
-    onChange?.(toTimeString(now));
-    if (showPicker) {
-      setShowPicker(false);
-    }
+  const handleChangeText = (text: string) => {
+    const nextDigits = getDigitsFromTime(text);
+    onChange?.(formatTimeDigits(nextDigits));
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.inputContainer}>
-        <TouchableOpacity
-          style={styles.inputContainer}
-          onPress={() => setShowPicker(true)}
-          activeOpacity={0.7}
-        >
-          <View style={styles.input}>
-            {displayValue ? (
-              <TitleRegular size="md" color={colors.textDarkGrey}>
-                {displayValue}
-              </TitleRegular>
-            ) : (
-              <TitleRegular size="md" color={colors.textLightGrey}>
-                {placeholder || "HH:mm"}
-              </TitleRegular>
-            )}
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.nowButton} onPress={handleNowPress}>
-          <TitleRegular size="xs" weight="500" color={colors.turquoise}>
-            Now
+      <TextInput
+        style={[
+          styles.input,
+          isInvalid && styles.inputInvalid,
+          { fontFamily: getFontFamily("400") },
+        ]}
+        value={displayValue}
+        onChangeText={handleChangeText}
+        autoFocus={autoFocus}
+        keyboardType="number-pad"
+        inputMode="numeric"
+        maxLength={5}
+        autoCapitalize="none"
+        autoCorrect={false}
+        placeholder=""
+      />
+      {isEmpty && (
+        <View style={styles.placeholderContainer} pointerEvents="none">
+          <TitleRegular size="md" weight="400" color={colors.textLightGrey}>
+            {placeholder}
           </TitleRegular>
-        </TouchableOpacity>
-      </View>
-
-      {showPicker && (
-        <Dialog
-          visible={showPicker}
-          onDismiss={() => setShowPicker(false)}
-          onConfirm={handleConfirm}
-          title="Select Time"
-          confirmText="Select"
-          cancelText="Cancel"
-        >
-          <DateTimePicker
-            value={time}
-            mode="time"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
-            onChange={handleTimeChange}
-            themeVariant="light"
-          />
-        </Dialog>
+        </View>
       )}
     </View>
   );
@@ -149,24 +101,27 @@ export const UIInputTime = ({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "column",
-    gap: gaps.sm,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: gaps.sm,
+    position: "relative",
   },
   input: {
     borderWidth: 1,
     borderColor: getColor(colors.whiteGrey),
     borderRadius: borderRadiuses.sm,
     padding: gaps.sm,
-    minHeight: fontSizes.md + gaps.sm * 2,
-    justifyContent: "center",
+    fontSize: fontSizes.md,
+    color: getColor(colors.textDarkGrey),
+    zIndex: 1,
   },
-  nowButton: {
-    paddingVertical: gaps.xs,
-    paddingHorizontal: gaps.sm,
+  inputInvalid: {
+    borderColor: getColor(colors.red),
+    backgroundColor: getColor(colors.red, 0.08),
+    color: getColor(colors.red),
+  },
+  placeholderContainer: {
+    position: "absolute",
+    left: gaps.sm,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
   },
 });
