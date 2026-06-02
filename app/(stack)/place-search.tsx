@@ -1,8 +1,8 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { persistLocalPlaceImage } from "@/lib/media/place";
 import { actionUpsertLocalPinLocation } from "@/lib/sqlite/model/pin-location";
+import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -110,19 +110,18 @@ export default function PlaceSearchScreen() {
             textQuery: query,
             pageSize: 3,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.error?.message || `API Error: ${response.status}`
+          errorData.error?.message || `API Error: ${response.status}`,
         );
       }
 
       const data = await response.json();
 
-      console.log("data.places", JSON.stringify(data.places, null, 2));
       setSearchResults(data.places || []);
     } catch (err) {
       const errorMessage =
@@ -171,8 +170,9 @@ export default function PlaceSearchScreen() {
 
     try {
       setIsSaving(true);
-      const imageUrl =
-        place.photos?.[0]?.name ? buildPlaceImageUrl(place.photos[0].name) : null;
+      const imageUrl = place.photos?.[0]?.name
+        ? buildPlaceImageUrl(place.photos[0].name)
+        : null;
       const localImageUri = imageUrl
         ? await persistLocalPlaceImage({
             pinId,
@@ -198,6 +198,12 @@ export default function PlaceSearchScreen() {
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["local-pin-location", pinId, session.user.id],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["local-pin", pinId, session.user.id],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["local-pins"],
         }),
         queryClient.invalidateQueries({
           queryKey: ["local-pin-locations"],

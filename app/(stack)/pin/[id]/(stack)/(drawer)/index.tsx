@@ -102,7 +102,7 @@ export default function PinIndexScreen() {
     enabled: Boolean(id && session?.user.id),
   });
   const { data: localNotes = [] } = useQuery({
-    queryKey: ["local-notes", String(id), session?.user.id],
+    queryKey: ["local-notes", "pin", String(id), session?.user.id],
     queryFn: () => actionListLocalNotesByPin(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
   });

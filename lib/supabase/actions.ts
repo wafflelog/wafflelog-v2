@@ -821,7 +821,9 @@ export async function actionSoftDeleteRemoteDocument(id: string) {
   }
 }
 
-export async function actionUpsertRemoteImageFromLocal(input: CreateImageInput) {
+export async function actionUpsertRemoteImageFromLocal(
+  input: CreateImageInput,
+) {
   const {
     data: { user },
     error: authError,
@@ -933,8 +935,6 @@ export async function actionListPublicUsers(searchQuery: string) {
   }
 
   const { data, error } = await query;
-
-  console.log("users:", data);
 
   if (error) {
     throw error;

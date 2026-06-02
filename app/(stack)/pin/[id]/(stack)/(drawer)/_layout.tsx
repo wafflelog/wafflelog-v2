@@ -30,7 +30,6 @@ export default function Layout() {
           <HeaderPinBackButton
             {...props}
             onPress={() => {
-              console.log("Back button pressed", router.canGoBack());
               router.back();
             }}
           />

@@ -135,13 +135,21 @@ export default function TripIndexScreen() {
       category:
         CATEGORIES.find((category) => category.id === pin.categoryId) ??
         CATEGORIES[0],
-      location: {
-        id: `location-${pin.id}`,
-        name: "Unknown location",
-        address: "",
-        latitude: 0,
-        longitude: 0,
-      },
+      location: pin.location
+        ? {
+            id: pin.location.placeId,
+            name: pin.location.displayName,
+            address: pin.location.formattedAddress,
+            latitude: pin.location.latitude,
+            longitude: pin.location.longitude,
+          }
+        : {
+            id: `location-${pin.id}`,
+            name: "Unknown location",
+            address: "",
+            latitude: 0,
+            longitude: 0,
+          },
       startDate: pin.startDate,
       endDate: pin.endDate,
       time: pin.time,

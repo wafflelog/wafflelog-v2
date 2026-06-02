@@ -1,11 +1,11 @@
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { getPinTimeLabelForDate, getPinTitle } from "@/lib/pin";
 import {
   actionListLocalPinLocationsByTripAndDate,
   type LocalPinWithLocation,
 } from "@/lib/sqlite/model/pin-location";
-import { getPinTimeLabelForDate, getPinTitle } from "@/lib/pin";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { formatDate } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -19,13 +19,13 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
   useWindowDimensions,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
 import MapView, { Marker, type LatLng, type Region } from "react-native-maps";
 import {
@@ -126,8 +126,6 @@ export default function TripMapScreen() {
       ),
     enabled: Boolean(tripId && selectedDate && session?.user.id),
   });
-
-  console.log("Pins for selected date:", pins);
 
   const selectedPin = useMemo(() => {
     if (selectedPinId) {
@@ -401,10 +399,7 @@ export default function TripMapScreen() {
                 }}
                 renderItem={({ item }) => (
                   <View
-                    style={[
-                      styles.carouselItem,
-                      { width: carouselItemWidth },
-                    ]}
+                    style={[styles.carouselItem, { width: carouselItemWidth }]}
                   >
                     <View style={styles.pinCard}>
                       <View style={styles.pinCardHeader}>
