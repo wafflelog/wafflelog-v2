@@ -16,6 +16,7 @@ export const newPinFormSchema = z
     pinStartDate: z.string().min(1, "Select a date").pipe(iso.date()),
     pinEndDate: z.string(),
     pinTime: z.string(),
+    pinEndTime: z.string(),
     transportDeparture: z.string(),
     transportDestination: z.string(),
   })
@@ -45,6 +46,33 @@ export const newPinFormSchema = z
         code: "custom",
         path: ["pinTime"],
         message: "Enter a valid time",
+      });
+    }
+
+    if (
+      value.pinEndTime.trim() &&
+      !timeSchema.safeParse(value.pinEndTime).success
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["pinEndTime"],
+        message: "Enter a valid end time",
+      });
+    }
+
+    if (
+      isRangePin &&
+      value.pinStartDate === value.pinEndDate &&
+      value.pinTime.trim() &&
+      value.pinEndTime.trim() &&
+      timeSchema.safeParse(value.pinTime).success &&
+      timeSchema.safeParse(value.pinEndTime).success &&
+      value.pinEndTime < value.pinTime
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["pinEndTime"],
+        message: "End time must be on or after the start time",
       });
     }
 

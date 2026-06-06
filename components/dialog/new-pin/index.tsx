@@ -41,6 +41,7 @@ type DialogNewPinProps = {
     startDate: string;
     endDate: string | null;
     time: string | null;
+    endTime: string | null;
     categoryId: string;
     metadataJson: {
       version: 1;
@@ -68,6 +69,7 @@ export const DialogNewPin = ({
   const [pinStartDate, setPinStartDate] = useState("");
   const [pinEndDate, setPinEndDate] = useState("");
   const [pinTime, setPinTime] = useState("");
+  const [pinEndTime, setPinEndTime] = useState("");
   const [transportDeparture, setTransportDeparture] = useState("");
   const [transportDestination, setTransportDestination] = useState("");
   const [step, setStep] = useState<DialogNewPinStep>("category");
@@ -86,6 +88,7 @@ export const DialogNewPin = ({
       setPinStartDate(initialPin.startDate);
       setPinEndDate(initialPin.endDate ?? "");
       setPinTime(initialPin.time ?? "");
+      setPinEndTime(initialPin.endTime ?? "");
       setTransportDeparture(initialPin.metadataJson.departure ?? "");
       setTransportDestination(initialPin.metadataJson.destination ?? "");
       setStep("details");
@@ -97,6 +100,7 @@ export const DialogNewPin = ({
     setPinStartDate(initialStartDate ?? "");
     setPinEndDate(initialStartDate ?? "");
     setPinTime("");
+    setPinEndTime("");
     setTransportDeparture("");
     setTransportDestination("");
     setStep("category");
@@ -117,6 +121,7 @@ export const DialogNewPin = ({
       setPinStartDate("");
       setPinEndDate("");
       setPinTime("");
+      setPinEndTime("");
       setTransportDeparture("");
       setTransportDestination("");
       setStep("category");
@@ -214,6 +219,7 @@ export const DialogNewPin = ({
       pinStartDate,
       pinEndDate,
       pinTime,
+      pinEndTime,
       transportDeparture,
       transportDestination,
     });
@@ -269,6 +275,9 @@ export const DialogNewPin = ({
           ? result.data.pinEndDate
           : null,
         time: result.data.pinTime || null,
+        endTime: isRangePinCategory(result.data.pinCategoryId)
+          ? result.data.pinEndTime || null
+          : null,
         categoryId: result.data.pinCategoryId,
         metadataJson,
       });
@@ -284,6 +293,9 @@ export const DialogNewPin = ({
         ? result.data.pinEndDate
         : null,
       time: result.data.pinTime || null,
+      endTime: isRangePinCategory(result.data.pinCategoryId)
+        ? result.data.pinEndTime || null
+        : null,
       categoryId: result.data.pinCategoryId,
       metadataJson,
     });
@@ -384,6 +396,13 @@ export const DialogNewPin = ({
                 value={pinTime}
                 onChange={setPinTime}
               />
+              {isRangePin && (
+                <UIInputTime
+                  placeholder="End time, e.g. 16:30 (optional)"
+                  value={pinEndTime}
+                  onChange={setPinEndTime}
+                />
+              )}
               {isTransport && (
                 <View style={styles.transportFields}>
                   <UIInputText

@@ -76,6 +76,7 @@ export type Pin = {
   startDate: string;
   endDate: string | null;
   time: string | null;
+  endTime: string | null;
   metadata: PinMetadata;
   location: Location;
   referenceLinks: ReferenceLink[];

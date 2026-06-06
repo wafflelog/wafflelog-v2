@@ -24,9 +24,8 @@ import {
   Plus as PlusIcon,
   SquarePen as SquarePenIcon,
 } from "lucide-react-native";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  FlatList,
   ScrollView,
   StyleSheet,
   Text,
@@ -39,7 +38,6 @@ export default function TripIndexScreen() {
   const router = useRouter();
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
-  const carouselRef = useRef<FlatList>(null);
 
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
@@ -153,6 +151,7 @@ export default function TripIndexScreen() {
       startDate: pin.startDate,
       endDate: pin.endDate,
       time: pin.time,
+      endTime: pin.endTime,
       metadata: pin.metadataJson,
       referenceLinks: [],
       documents: [],
@@ -173,10 +172,6 @@ export default function TripIndexScreen() {
       pins: selectedDayIndex === index ? filteredSelectedDayPins : [],
       onPress: () => {
         setSelectedDayIndex(index);
-        carouselRef.current?.scrollToIndex({
-          index,
-          animated: true,
-        });
       },
     }));
   }, [
@@ -233,8 +228,7 @@ export default function TripIndexScreen() {
         </View>
         <TripPinsList
           tripDays={tripDays}
-          ref={carouselRef}
-          onSlideChanged={setSelectedDayIndex}
+          onDayChanged={setSelectedDayIndex}
         />
       </ScrollView>
       <ButtonFab
@@ -280,7 +274,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     flexDirection: "column",
     gap: 16,
     paddingBottom: 112,

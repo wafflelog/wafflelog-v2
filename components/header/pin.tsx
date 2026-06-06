@@ -19,7 +19,7 @@ type HeaderDefaultProps = {
 };
 
 type HeaderPinTitleProps = {
-  pin?: Pick<Pin, "name" | "startDate" | "endDate" | "time"> & {
+  pin?: Pick<Pin, "name" | "startDate" | "endDate" | "time" | "endTime"> & {
     categoryId?: string;
     metadataJson?: {
       departure?: string;

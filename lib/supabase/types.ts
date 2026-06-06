@@ -395,6 +395,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           end_date: string | null
+          end_time: string | null
           id: string
           metadata_json: Json
           name: string | null
@@ -409,6 +410,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           end_date?: string | null
+          end_time?: string | null
           id?: string
           metadata_json?: Json
           name?: string | null
@@ -423,6 +425,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           end_date?: string | null
+          end_time?: string | null
           id?: string
           metadata_json?: Json
           name?: string | null

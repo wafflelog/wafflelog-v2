@@ -169,6 +169,7 @@ export default function PinIndexScreen() {
         startDate: localPin.startDate,
         endDate: localPin.endDate,
         time: localPin.time,
+        endTime: localPin.endTime,
         metadata: localPin.metadataJson,
         referenceLinks: [],
         documents: [],
@@ -433,6 +434,7 @@ export default function PinIndexScreen() {
             startDate: localPin.startDate,
             endDate: localPin.endDate,
             time: localPin.time,
+            endTime: localPin.endTime,
             categoryId: localPin.categoryId,
             metadataJson: localPin.metadataJson,
           }}

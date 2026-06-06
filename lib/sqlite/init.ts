@@ -58,6 +58,7 @@ export async function initializeDatabase() {
       start_date text not null,
       end_date text,
       time text,
+      end_time text,
       category_id text not null,
       metadata_json text not null default '{"version":1}',
       created_at text not null,
@@ -191,6 +192,14 @@ export async function initializeDatabase() {
       delete from pin;
       delete from trip;
     `);
+  }
+
+  const endTimePinTableColumns = await sqlite.getAllAsync<{ name: string }>(
+    `pragma table_info(pin);`,
+  );
+
+  if (!endTimePinTableColumns.some((column) => column.name === "end_time")) {
+    await sqlite.execAsync(`alter table pin add column end_time text;`);
   }
 
   const documentTableColumns = await sqlite.getAllAsync<{ name: string }>(

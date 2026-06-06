@@ -24,6 +24,7 @@ export type LocalPinWithLocation = {
   startDate: string;
   endDate: string | null;
   time: string | null;
+  endTime: string | null;
   categoryId: string;
   placeId: string;
   displayName: string;
@@ -205,6 +206,7 @@ export async function actionListLocalPinLocationsByTripAndDate(
     start_date: string;
     end_date: string | null;
     time: string | null;
+    end_time: string | null;
     category_id: string;
     place_id: string;
     display_name: string;
@@ -221,6 +223,7 @@ export async function actionListLocalPinLocationsByTripAndDate(
         pin.start_date,
         pin.end_date,
         pin.time,
+        pin.end_time,
         pin.category_id,
         pin_location.place_id,
         pin_location.display_name,
@@ -250,6 +253,7 @@ export async function actionListLocalPinLocationsByTripAndDate(
       startDate: row.start_date,
       endDate: row.end_date,
       time: row.time,
+      endTime: row.end_time,
       categoryId: row.category_id,
       placeId: row.place_id,
       displayName: row.display_name,

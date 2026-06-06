@@ -16,6 +16,7 @@ export type CreatePinInput = {
   startDate: string;
   endDate: string | null;
   time: string | null;
+  endTime: string | null;
   categoryId: string;
   metadataJson: PinMetadata;
 };
@@ -131,6 +132,7 @@ const mapPinRow = (pin: {
   start_date: string;
   end_date: string | null;
   time: string | null;
+  end_time: string | null;
   category_id: string;
   metadata_json: Json;
   created_at: string;
@@ -144,6 +146,7 @@ const mapPinRow = (pin: {
   startDate: pin.start_date,
   endDate: pin.end_date,
   time: pin.time,
+  endTime: pin.end_time,
   categoryId: pin.category_id,
   metadataJson: mapPinMetadata(pin.metadata_json),
   createdAt: pin.created_at,
@@ -436,6 +439,7 @@ export async function actionUpsertRemotePinFromLocal(input: CreatePinInput) {
     start_date: input.startDate,
     end_date: input.endDate,
     time: input.time?.trim() || null,
+    end_time: input.endTime?.trim() || null,
     category_id: input.categoryId,
     metadata_json: input.metadataJson,
   };
@@ -444,7 +448,7 @@ export async function actionUpsertRemotePinFromLocal(input: CreatePinInput) {
     .from("pin")
     .upsert(payload)
     .select(
-      "id, trip_id, user_id, name, start_date, end_date, time, category_id, metadata_json, created_at, updated_at, deleted_at",
+      "id, trip_id, user_id, name, start_date, end_date, time, end_time, category_id, metadata_json, created_at, updated_at, deleted_at",
     )
     .single();
 
@@ -1158,7 +1162,7 @@ export async function actionGetRemotePinById(pinId: string) {
   const { data, error } = await supabase
     .from("pin")
     .select(
-      "id, trip_id, user_id, name, start_date, end_date, time, category_id, metadata_json, created_at, updated_at, deleted_at",
+      "id, trip_id, user_id, name, start_date, end_date, time, end_time, category_id, metadata_json, created_at, updated_at, deleted_at",
     )
     .eq("id", pinId)
     .is("deleted_at", null)

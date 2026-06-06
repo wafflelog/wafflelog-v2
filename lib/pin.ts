@@ -68,24 +68,32 @@ export const getPinTitle = (pin: PinTitleInput) => {
 };
 
 export const getPinTimeLabelForDate = (
-  pin: Pick<Pin, "startDate" | "endDate" | "time">,
+  pin: Pick<Pin, "startDate" | "endDate" | "time" | "endTime">,
   date: string,
 ) => {
   const selectedDate = dayjs(date);
   const isStartDay = selectedDate.isSame(dayjs(pin.startDate), "day");
 
   if (isStartDay) {
-    return pin.time ?? "Full day";
+    if (pin.time && pin.endTime) {
+      return `${pin.time} - ${pin.endTime}`;
+    }
+
+    return pin.time ?? pin.endTime ?? "Full day";
   }
 
   return "Full day";
 };
 
 export const getPinHeaderTimeLabel = (
-  pin: Pick<Pin, "startDate" | "endDate" | "time">,
+  pin: Pick<Pin, "startDate" | "endDate" | "time" | "endTime">,
 ) => {
   if (!pin.endDate || pin.startDate === pin.endDate) {
-    return pin.time ?? dayjs(pin.startDate).format("DD MMM");
+    if (pin.time && pin.endTime) {
+      return `${pin.time} - ${pin.endTime}`;
+    }
+
+    return pin.time ?? pin.endTime ?? dayjs(pin.startDate).format("DD MMM");
   }
 
   return `${dayjs(pin.startDate).format("DD MMM")} - ${dayjs(pin.endDate).format("DD MMM")}`;
