@@ -73,30 +73,67 @@ export const getPinTimeLabelForDate = (
 ) => {
   const selectedDate = dayjs(date);
   const isStartDay = selectedDate.isSame(dayjs(pin.startDate), "day");
+  const isEndDay = pin.endDate
+    ? selectedDate.isSame(dayjs(pin.endDate), "day")
+    : false;
+  const isMultiDayPin =
+    Boolean(pin.endDate) && !dayjs(pin.startDate).isSame(dayjs(pin.endDate), "day");
 
-  if (isStartDay) {
+  if (!isMultiDayPin) {
     if (pin.time && pin.endTime) {
       return `${pin.time} - ${pin.endTime}`;
     }
 
-    return pin.time ?? pin.endTime ?? "Full day";
+    if (pin.endTime) {
+      return `ends at ${pin.endTime}`;
+    }
+
+    return pin.time ?? null;
   }
 
-  return "Full day";
+  if (isStartDay) {
+    return pin.time;
+  }
+
+  if (isEndDay) {
+    return pin.endTime ? `ends at ${pin.endTime}` : null;
+  }
+
+  return pin.time && pin.endTime ? "Full day" : null;
 };
 
 export const getPinHeaderTimeLabel = (
   pin: Pick<Pin, "startDate" | "endDate" | "time" | "endTime">,
 ) => {
-  if (!pin.endDate || pin.startDate === pin.endDate) {
+  const startDateLabel = dayjs(pin.startDate).format("DD MMM");
+  const endDateLabel = pin.endDate
+    ? dayjs(pin.endDate).format("DD MMM")
+    : startDateLabel;
+  const isMultiDayPin =
+    Boolean(pin.endDate) && !dayjs(pin.startDate).isSame(dayjs(pin.endDate), "day");
+
+  if (!isMultiDayPin) {
     if (pin.time && pin.endTime) {
-      return `${pin.time} - ${pin.endTime}`;
+      return `${startDateLabel} ${pin.time} - ${pin.endTime}`;
     }
 
-    return pin.time ?? pin.endTime ?? dayjs(pin.startDate).format("DD MMM");
+    if (pin.time) {
+      return `${startDateLabel} ${pin.time}`;
+    }
+
+    if (pin.endTime) {
+      return `${startDateLabel} ends at ${pin.endTime}`;
+    }
+
+    return startDateLabel;
   }
 
-  return `${dayjs(pin.startDate).format("DD MMM")} - ${dayjs(pin.endDate).format("DD MMM")}`;
+  const startLabel = pin.time
+    ? `${startDateLabel} ${pin.time}`
+    : startDateLabel;
+  const endLabel = pin.endTime ? `${endDateLabel} ${pin.endTime}` : endDateLabel;
+
+  return `${startLabel} - ${endLabel}`;
 };
 
 export const getPinSubtitle = (

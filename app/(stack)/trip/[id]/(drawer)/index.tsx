@@ -4,16 +4,16 @@ import { TitleRegular } from "@/components/title/regular";
 import { TripCategoryFilter } from "@/components/trip/category-filter";
 import { TripDaysTab } from "@/components/trip/days-tab";
 import { TripPinsList } from "@/components/trip/pins-list";
-import { colors, gaps, getColor } from "@/constants/theme";
 import { CATEGORIES } from "@/constants/pin-categories";
+import { colors, gaps, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
-import { actionGetRemoteTripById } from "@/lib/supabase/actions";
 import { actionListLocalNotesByTrip } from "@/lib/sqlite/model/note";
 import { actionListLocalPinsByTripAndDate } from "@/lib/sqlite/model/pin";
 import {
   actionGetLocalTrip,
   actionUpsertLocalTripFromRemote,
 } from "@/lib/sqlite/model/trip";
+import { actionGetRemoteTripById } from "@/lib/supabase/actions";
 import { type Pin } from "@/types/pin";
 import { type Trip } from "@/types/trip";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -25,13 +25,7 @@ import {
   SquarePen as SquarePenIcon,
 } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function TripIndexScreen() {
   const { id } = useLocalSearchParams();
@@ -174,13 +168,7 @@ export default function TripIndexScreen() {
         setSelectedDayIndex(index);
       },
     }));
-  }, [
-    trip,
-    numOfDays,
-    selectedDayIndex,
-    selectedDayPins,
-    selectedCategoryIds,
-  ]);
+  }, [trip, numOfDays, selectedDayIndex, selectedDayPins, selectedCategoryIds]);
 
   if (!trip) {
     return <View style={styles.container} />;
@@ -188,49 +176,42 @@ export default function TripIndexScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.content}
-      >
-        <View style={styles.top}>
-          <TripCategoryFilter
-            categories={CATEGORIES}
-            selectedCategoryIds={selectedCategoryIds}
-            onSelectedCategoryIdsChange={setSelectedCategoryIds}
-          />
-        </View>
-
-        <View style={styles.itinerary}>
-          <View style={styles.itineraryHeader}>
-            <TitleRegular size="md" weight="600">
-              Itinerary
-            </TitleRegular>
-            <TouchableOpacity
-              style={styles.mapButton}
-              onPress={() => {
-                router.push({
-                  pathname: "/trip/[id]/map",
-                  params: {
-                    id: String(id),
-                    date: selectedDate ?? undefined,
-                  },
-                });
-              }}
-              activeOpacity={0.8}
-            >
-              <MapIcon size={16} color={getColor(colors.pineGreen)} />
-              <TitleRegular size="xs" weight="600" color={colors.pineGreen}>
-                Map
-              </TitleRegular>
-            </TouchableOpacity>
-          </View>
-          <TripDaysTab tripDays={tripDays} />
-        </View>
-        <TripPinsList
-          tripDays={tripDays}
-          onDayChanged={setSelectedDayIndex}
+      <View style={styles.top}>
+        <TripCategoryFilter
+          categories={CATEGORIES}
+          selectedCategoryIds={selectedCategoryIds}
+          onSelectedCategoryIdsChange={setSelectedCategoryIds}
         />
-      </ScrollView>
+      </View>
+
+      <View style={styles.itinerary}>
+        <View style={styles.itineraryHeader}>
+          <TitleRegular size="md" weight="600">
+            Itinerary
+          </TitleRegular>
+          <TouchableOpacity
+            style={styles.mapButton}
+            onPress={() => {
+              router.push({
+                pathname: "/trip/[id]/map",
+                params: {
+                  id: String(id),
+                  date: selectedDate ?? undefined,
+                },
+              });
+            }}
+            activeOpacity={0.8}
+          >
+            <MapIcon size={16} color={getColor(colors.pineGreen)} />
+            <TitleRegular size="xs" weight="600" color={colors.pineGreen}>
+              Map
+            </TitleRegular>
+          </TouchableOpacity>
+        </View>
+        <TripDaysTab tripDays={tripDays} />
+      </View>
+
+      <TripPinsList tripDays={tripDays} onDayChanged={setSelectedDayIndex} />
       <ButtonFab
         onPress={() => {
           setIsDialogNewPinOpen(true);
@@ -273,12 +254,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
-    flexGrow: 1,
-    flexDirection: "column",
-    gap: 16,
-    paddingBottom: 112,
-  },
   top: {
     gap: 16,
     backgroundColor: "white",
@@ -292,6 +267,7 @@ const styles = StyleSheet.create({
   itinerary: {
     gap: 16,
     paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   itineraryHeader: {
     flexDirection: "row",

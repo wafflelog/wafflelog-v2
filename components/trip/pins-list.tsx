@@ -1,7 +1,7 @@
 import { CardPin } from "@/components/card/pin";
 import { type TripDay } from "@/types/trip";
 import { useCallback, useMemo } from "react";
-import { StyleSheet, useWindowDimensions, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-reanimated";
 import { UIText } from "../ui/text";
@@ -15,10 +15,8 @@ const SWIPE_DISTANCE = 56;
 const SWIPE_DOMINANCE = 1.25;
 
 export const TripPinsList = ({ tripDays, onDayChanged }: TripPinsListProps) => {
-  const { height: screenHeight } = useWindowDimensions();
   const activeDayIndex = tripDays.findIndex((tripDay) => tripDay.isActive);
   const activeDay = activeDayIndex >= 0 ? tripDays[activeDayIndex] : null;
-  const gestureAreaMinHeight = Math.max(screenHeight * 0.45, 320);
 
   const handleSwipeEnd = useCallback(
     (translationX: number, translationY: number) => {
@@ -57,8 +55,12 @@ export const TripPinsList = ({ tripDays, onDayChanged }: TripPinsListProps) => {
 
   return (
     <GestureDetector gesture={swipeGesture}>
-      <View style={[styles.gestureArea, { minHeight: gestureAreaMinHeight }]}>
-        <View style={styles.container}>
+      <View style={styles.gestureArea}>
+        <ScrollView
+          style={styles.scroller}
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+        >
           {activeDay.pins.length > 0 ? (
             activeDay.pins.map((pin) => (
               <CardPin
@@ -71,7 +73,7 @@ export const TripPinsList = ({ tripDays, onDayChanged }: TripPinsListProps) => {
           ) : (
             <UIText>No pins found</UIText>
           )}
-        </View>
+        </ScrollView>
       </View>
     </GestureDetector>
   );
@@ -79,10 +81,16 @@ export const TripPinsList = ({ tripDays, onDayChanged }: TripPinsListProps) => {
 
 const styles = StyleSheet.create({
   gestureArea: {
-    flexGrow: 1,
+    flex: 1,
+  },
+  scroller: {
+    flex: 1,
   },
   container: {
+    flexGrow: 1,
     paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 112,
     gap: 16,
   },
 });

@@ -271,7 +271,7 @@ export async function actionListLocalPinsByTripAndDate(
         and pin.start_date <= ?
         and coalesce(pin.end_date, pin.start_date) >= ?
         and pin.deleted_at is null
-      order by pin.start_date asc, pin.time asc, pin.created_at asc
+      order by pin.time is null asc, pin.time asc, pin.start_date asc, pin.created_at asc
     `,
     [tripId, userId, date, date],
   );

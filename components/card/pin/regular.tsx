@@ -19,6 +19,7 @@ export const CardPinRegular = ({
   onPress,
 }: CardPinRegularProps) => {
   const subtitle = getPinSubtitle(pin);
+  const timeLabel = getPinTimeLabelForDate(pin, selectedDate);
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
@@ -31,9 +32,7 @@ export const CardPinRegular = ({
           {getPinTitle(pin)}
         </TitleRegular>
 
-        <TitleRegular size="xs">
-          {getPinTimeLabelForDate(pin, selectedDate)}
-        </TitleRegular>
+        {timeLabel ? <TitleRegular size="xs">{timeLabel}</TitleRegular> : null}
         {subtitle ? <TitleRegular size="xs">{subtitle}</TitleRegular> : null}
       </View>
 
