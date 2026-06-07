@@ -59,6 +59,7 @@ function getScheme(variant: AppVariant) {
 export default ({ config }: ConfigContext): ExpoConfig => {
   const variant = getAppVariant();
   const uniqueIdentifier = getUniqueIdentifier(variant);
+  const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   return {
     ...config,
@@ -73,5 +74,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...baseConfig.android,
       package: uniqueIdentifier,
     },
+    plugins: baseConfig.plugins?.map((plugin) =>
+      Array.isArray(plugin) && plugin[0] === "react-native-maps"
+        ? [
+            "react-native-maps",
+            {
+              iosGoogleMapsApiKey: googleMapsApiKey,
+              androidGoogleMapsApiKey: googleMapsApiKey,
+            },
+          ]
+        : plugin,
+    ),
   };
 };

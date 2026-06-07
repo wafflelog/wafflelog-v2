@@ -25,7 +25,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
@@ -250,6 +250,7 @@ export default function PinIndexScreen() {
               pointerEvents="none"
               style={styles.map}
               region={mapPreview.region}
+              provider={PROVIDER_GOOGLE}
               scrollEnabled={false}
               zoomEnabled={false}
               rotateEnabled={false}

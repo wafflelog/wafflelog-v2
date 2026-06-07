@@ -27,7 +27,12 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
-import MapView, { Marker, type LatLng, type Region } from "react-native-maps";
+import MapView, {
+  Marker,
+  PROVIDER_GOOGLE,
+  type LatLng,
+  type Region,
+} from "react-native-maps";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -274,6 +279,7 @@ export default function TripMapScreen() {
         ref={mapRef}
         style={styles.map}
         initialRegion={initialRegion}
+        provider={PROVIDER_GOOGLE}
         showsUserLocation
         showsMyLocationButton={false}
         toolbarEnabled={false}

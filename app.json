@@ -14,9 +14,7 @@
     "android": {
       "predictiveBackGestureEnabled": false,
       "package": "com.wafflelog.wafflelogv2",
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      "permissions": ["android.permission.RECORD_AUDIO"]
     },
     "web": {
       "output": "static",
@@ -41,6 +39,13 @@
       "expo-secure-store",
       "expo-sqlite",
       "expo-document-picker",
+      [
+        "react-native-maps",
+        {
+          "iosGoogleMapsApiKey": "process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY",
+          "androidGoogleMapsApiKey": "process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY"
+        }
+      ],
       [
         "expo-image-picker",
         {
