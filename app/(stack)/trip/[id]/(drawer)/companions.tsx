@@ -34,6 +34,11 @@ const prototypeCompanions: Companion[] = [
     fullname: "sam_weekends",
     state: "REJECTED",
   },
+  {
+    id: "proto-ivy",
+    fullname: "ivy.in.transit",
+    state: "DISABLED",
+  },
 ];
 
 export default function TripCompanionsScreen() {
@@ -113,10 +118,10 @@ export default function TripCompanionsScreen() {
     if (companion.state === "ACCEPTED") {
       setCompanions((currentCompanions) =>
         currentCompanions.map((item) =>
-          item.id === companion.id ? { ...item, state: "REMOVED" } : item,
+          item.id === companion.id ? { ...item, state: "DISABLED" } : item,
         ),
       );
-      showMessage(`Removed ${companion.fullname} from this trip`, "info");
+      showMessage(`Access disabled for ${companion.fullname}`, "info");
       return;
     }
 

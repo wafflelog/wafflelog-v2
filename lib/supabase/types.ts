@@ -587,6 +587,64 @@ export type Database = {
           },
         ]
       }
+      trip_member: {
+        Row: {
+          created_at: string
+          created_from_invitation_id: string | null
+          disabled_reason: string | null
+          id: string
+          role: string
+          status: string
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_from_invitation_id?: string | null
+          disabled_reason?: string | null
+          id?: string
+          role?: string
+          status?: string
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_from_invitation_id?: string | null
+          disabled_reason?: string | null
+          id?: string
+          role?: string
+          status?: string
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_member_created_from_invitation_id_fkey"
+            columns: ["created_from_invitation_id"]
+            isOneToOne: false
+            referencedRelation: "trip_invitation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_member_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trip"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_member_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user: {
         Row: {
           created_at: string

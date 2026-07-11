@@ -96,7 +96,13 @@ export type CreateTripInvitationInput = {
 
 export type TripRow = Tables<"trip">;
 export type PublicUserRow = Tables<"user">;
+export type AppNotificationRow = Tables<"app_notification">;
 export type TripInvitationRow = Tables<"trip_invitation">;
+export type TripMemberRow = Tables<"trip_member">;
+
+export type AppNotification = AppNotificationRow & {
+  invitationStatus: string | null;
+};
 
 const mapTripRow = (trip: TripRow) => ({
   id: trip.id,
@@ -315,6 +321,10 @@ const mapTripInvitationStatus = (status: string) => {
       return "ACCEPTED" as const;
     case "rejected":
       return "REJECTED" as const;
+    case "withdrawn":
+      return "WITHDRAWN" as const;
+    case "disabled":
+      return "DISABLED" as const;
     default:
       return "INVITED" as const;
   }
@@ -981,6 +991,102 @@ export async function actionCreateTripInvitation(
   return data;
 }
 
+export async function actionListAppNotifications(): Promise<AppNotification[]> {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to view notifications");
+  }
+
+  const { data: notifications, error } = await supabase
+    .from("app_notification")
+    .select(
+      "id, user_id, actor_user_id, trip_id, trip_invitation_id, type, title, body, read_at, created_at",
+    )
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    throw error;
+  }
+
+  const invitationIds = Array.from(
+    new Set(
+      notifications
+        .map((notification) => notification.trip_invitation_id)
+        .filter((invitationId): invitationId is string =>
+          Boolean(invitationId),
+        ),
+    ),
+  );
+
+  if (invitationIds.length === 0) {
+    return notifications.map((notification) => ({
+      ...notification,
+      invitationStatus: null,
+    }));
+  }
+
+  const { data: invitations, error: invitationsError } = await supabase
+    .from("trip_invitation")
+    .select("id, status")
+    .in("id", invitationIds);
+
+  if (invitationsError) {
+    throw invitationsError;
+  }
+
+  const invitationStatusById = new Map(
+    invitations.map((invitation) => [invitation.id, invitation.status]),
+  );
+
+  return notifications.map((notification) => ({
+    ...notification,
+    invitationStatus: notification.trip_invitation_id
+      ? invitationStatusById.get(notification.trip_invitation_id) ?? null
+      : null,
+  }));
+}
+
+export async function actionMarkNotificationRead(notificationId: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to update notifications");
+  }
+
+  const { data, error } = await supabase
+    .from("app_notification")
+    .update({
+      read_at: new Date().toISOString(),
+    })
+    .eq("id", notificationId)
+    .eq("user_id", user.id)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export async function actionListTripInvitationsByTrip(tripId: string) {
   const {
     data: { user },
@@ -1046,6 +1152,166 @@ export async function actionListTripInvitationsByTrip(tripId: string) {
     );
 }
 
+export async function actionAcceptTripInvitation(invitationId: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to accept an invitation");
+  }
+
+  const { data, error } = await supabase
+    .from("trip_invitation")
+    .update({
+      status: "accepted",
+    })
+    .eq("id", invitationId)
+    .eq("invitee_user_id", user.id)
+    .eq("status", "pending")
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function actionRejectTripInvitation(invitationId: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to reject an invitation");
+  }
+
+  const { data, error } = await supabase
+    .from("trip_invitation")
+    .update({
+      status: "rejected",
+    })
+    .eq("id", invitationId)
+    .eq("invitee_user_id", user.id)
+    .eq("status", "pending")
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function actionWithdrawTripInvitation(invitationId: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to withdraw an invitation");
+  }
+
+  const { data, error } = await supabase
+    .from("trip_invitation")
+    .update({
+      status: "withdrawn",
+    })
+    .eq("id", invitationId)
+    .eq("inviter_user_id", user.id)
+    .eq("status", "pending")
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function actionDisableCompanionAccess(tripMemberId: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to disable companion access");
+  }
+
+  const { data, error } = await supabase
+    .from("trip_member")
+    .update({
+      status: "disabled",
+      disabled_reason: "owner_disabled",
+    })
+    .eq("id", tripMemberId)
+    .eq("status", "active")
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function actionRestoreCompanionAccess(tripMemberId: string) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to restore companion access");
+  }
+
+  const { data, error } = await supabase
+    .from("trip_member")
+    .update({
+      status: "active",
+      disabled_reason: null,
+    })
+    .eq("status", "disabled")
+    .eq("id", tripMemberId)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export async function actionListAcceptedCompanionTrips() {
   const {
     data: { user },
@@ -1060,18 +1326,18 @@ export async function actionListAcceptedCompanionTrips() {
     throw new Error("You must be signed in to view shared trips");
   }
 
-  const { data: invitations, error: invitationsError } = await supabase
-    .from("trip_invitation")
-    .select("trip_id, invitee_user_id, status")
-    .eq("invitee_user_id", user.id)
-    .eq("status", "accepted");
+  const { data: memberships, error: membershipsError } = await supabase
+    .from("trip_member")
+    .select("trip_id, user_id, status")
+    .eq("user_id", user.id)
+    .eq("status", "active");
 
-  if (invitationsError) {
-    throw invitationsError;
+  if (membershipsError) {
+    throw membershipsError;
   }
 
   const tripIds = Array.from(
-    new Set(invitations.map((invitation) => invitation.trip_id)),
+    new Set(memberships.map((membership) => membership.trip_id)),
   );
 
   if (tripIds.length === 0) {

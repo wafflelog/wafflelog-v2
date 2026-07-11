@@ -1,8 +1,15 @@
 import { CardCompanionSearchResult } from "@/components/card/companion/search-result";
 import { UIText } from "@/components/ui/text";
 import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
+import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
+import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
+import {
+  actionCreateTripInvitation,
+  actionListPublicUsers,
+} from "@/lib/supabase/actions";
 import { Ionicons } from "@expo/vector-icons";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
@@ -17,35 +24,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const MAX_COMPANIONS = 10;
 
-const prototypeUsers = [
-  {
-    id: "proto-maya",
-    username: "maya.miles",
-  },
-  {
-    id: "proto-eli",
-    username: "eli_eats",
-  },
-  {
-    id: "proto-jules",
-    username: "jules.windowseat",
-  },
-  {
-    id: "proto-rina",
-    username: "rina_routes",
-  },
-  {
-    id: "proto-omar",
-    username: "omar.on.the.go",
-  },
-  {
-    id: "proto-claire",
-    username: "claire_carryon",
-  },
-];
-
 export default function UserSearchScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { session } = useAuthSession();
   const params = useLocalSearchParams<{
     tripId?: string;
     invitedUserIds?: string;
@@ -65,37 +47,77 @@ export default function UserSearchScreen() {
     return params.inTripUserIds?.split(",").filter(Boolean) ?? [];
   }, [params.inTripUserIds]);
 
+  const usersQuery = useQuery({
+    queryKey: ["public-users", session?.user.id, searchQuery.trim().toLowerCase()],
+    queryFn: () => actionListPublicUsers(searchQuery),
+    enabled: Boolean(session?.user.id),
+  });
+
+  const inviteMutation = useMutation({
+    mutationFn: actionCreateTripInvitation,
+    onSuccess: (_, variables) => {
+      const invitedUser = availableUsers.find(
+        (user) => user.id === variables.inviteeUserId,
+      );
+
+      setLocallyInvitedUserIds((currentUserIds) =>
+        currentUserIds.includes(variables.inviteeUserId)
+          ? currentUserIds
+          : [...currentUserIds, variables.inviteeUserId],
+      );
+
+      void queryClient.invalidateQueries({
+        queryKey: ["trip-invitations", params.tripId],
+      });
+
+      showMessage(
+        `Invite sent to ${invitedUser?.username ?? "companion"}`,
+        "info",
+      );
+
+      router.replace({
+        pathname: "/(stack)/trip/[id]/(drawer)/companions",
+        params: {
+          id: params.tripId ?? "",
+          invitedUserId: variables.inviteeUserId,
+          invitedUserName: invitedUser?.username ?? "",
+        },
+      });
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Failed to invite companion";
+      showMessage(message, "error");
+    },
+  });
+
   const availableUsers = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const publicUsers = usersQuery.data ?? [];
 
-    if (!normalizedQuery) {
-      return prototypeUsers;
-    }
+    return publicUsers.filter((user) => user.id !== session?.user.id);
+  }, [session?.user.id, usersQuery.data]);
 
-    return prototypeUsers.filter((user) =>
-      user.username.toLowerCase().includes(normalizedQuery),
-    );
-  }, [searchQuery]);
-
-  const handleInviteUser = (user: { id: string; username: string }) => {
+  const handleInviteUser = async (user: { id: string; username: string }) => {
     if (invitedUserIds.length + inTripUserIds.length >= MAX_COMPANIONS) {
       showMessage(`You can invite up to ${MAX_COMPANIONS} companions`, "error");
       return;
     }
 
-    setLocallyInvitedUserIds((currentUserIds) =>
-      currentUserIds.includes(user.id) ? currentUserIds : [...currentUserIds, user.id],
-    );
+    if (!params.tripId || !session?.user.id) {
+      showMessage("Unable to invite companion right now", "error");
+      return;
+    }
 
-    showMessage(`Prototype invite sent to ${user.username}`, "info");
+    const localTrip = await actionGetLocalTrip(params.tripId, session.user.id);
 
-    router.replace({
-      pathname: "/(stack)/trip/[id]/(drawer)/companions",
-      params: {
-        id: params.tripId ?? "prototype-trip",
-        invitedUserId: user.id,
-        invitedUserName: user.username,
-      },
+    if (!localTrip || localTrip.syncStatus !== "synced") {
+      showMessage("Trip is still syncing. Please try again in a moment.", "error");
+      return;
+    }
+
+    inviteMutation.mutate({
+      tripId: localTrip.id,
+      inviteeUserId: user.id,
     });
   };
 
@@ -170,7 +192,9 @@ export default function UserSearchScreen() {
         keyExtractor={(item) => item.id}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <UIText>No matching usernames</UIText>
+            <UIText>
+              {usersQuery.isPending ? "Loading users..." : "No matching usernames"}
+            </UIText>
           </View>
         }
         renderItem={({ item }) => (
@@ -182,7 +206,7 @@ export default function UserSearchScreen() {
               }}
               state={getUserState(item.id)}
               onPress={() => {
-                handleInviteUser(item);
+                void handleInviteUser(item);
               }}
             />
           </View>

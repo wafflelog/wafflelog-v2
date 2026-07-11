@@ -3,9 +3,9 @@ import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
 import { Companion } from "@/types/trip";
 import {
   Check as CheckIcon,
-  LogOut as LogOutIcon,
   Mail as MailIcon,
   MinusCircle as MinusCircleIcon,
+  Power as PowerIcon,
   X as XIcon,
 } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
@@ -19,8 +19,7 @@ const stateColors = {
   ACCEPTED: colors.turquoise,
   REJECTED: colors.red,
   WITHDRAWN: colors.paleGrey,
-  REMOVED: colors.orange,
-  LEFT: colors.textLightGrey,
+  DISABLED: colors.textLightGrey,
 };
 
 const stateTexts = {
@@ -28,8 +27,7 @@ const stateTexts = {
   ACCEPTED: "Accepted",
   REJECTED: "Declined",
   WITHDRAWN: "Withdrawn",
-  REMOVED: "Removed",
-  LEFT: "Left trip",
+  DISABLED: "Access disabled",
 };
 
 const stateIcons = {
@@ -37,8 +35,7 @@ const stateIcons = {
   ACCEPTED: <CheckIcon size={14} color={getColor(colors.white)} />,
   REJECTED: <XIcon size={14} color={getColor(colors.white)} />,
   WITHDRAWN: <MinusCircleIcon size={14} color={getColor(colors.white)} />,
-  REMOVED: <XIcon size={14} color={getColor(colors.white)} />,
-  LEFT: <LogOutIcon size={14} color={getColor(colors.white)} />,
+  DISABLED: <PowerIcon size={14} color={getColor(colors.white)} />,
 };
 
 export function CardCompanionStateRegular({
