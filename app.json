@@ -14,7 +14,9 @@
     "android": {
       "predictiveBackGestureEnabled": false,
       "package": "com.wafflelog.wafflelogv2",
-      "permissions": ["android.permission.RECORD_AUDIO"]
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
