@@ -1,5 +1,4 @@
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { match } from "ts-pattern";
 
 import { CardUserIcon } from "@/components/card/user/icon";
 import { TitleRegular } from "@/components/title/regular";
@@ -11,23 +10,17 @@ import { CardCompanionStateRegular } from "./state/regular";
 
 type CardCompanionRegularProps = {
   companion: Companion;
+  showStateBadge?: boolean;
   showRemoveButton?: boolean;
   onRemove?: (companionId: string) => void;
 };
 
 export function CardCompanionRegular({
   companion,
+  showStateBadge = true,
   showRemoveButton = false,
   onRemove,
 }: CardCompanionRegularProps) {
-  const renderStateBadge = () => {
-    return match(companion.state)
-      .with("INVITED", () => <CardCompanionStateRegular state="INVITED" />)
-      .with("ACCEPTED", () => <CardCompanionStateRegular state="ACCEPTED" />)
-      .with("REJECTED", () => <CardCompanionStateRegular state="REJECTED" />)
-      .otherwise(() => null);
-  };
-
   return (
     <View style={styles.container}>
       <CardUserIcon user={companion} radius="full" />
@@ -35,7 +28,7 @@ export function CardCompanionRegular({
         <TitleRegular size="sm" weight="500">
           {companion.fullname}
         </TitleRegular>
-        {renderStateBadge()}
+        {showStateBadge ? <CardCompanionStateRegular state={companion.state} /> : null}
       </View>
       {showRemoveButton && onRemove ? (
         <TouchableOpacity

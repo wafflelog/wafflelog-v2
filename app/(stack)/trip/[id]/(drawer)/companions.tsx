@@ -1,19 +1,40 @@
-import { CardCompanionRegular } from "@/components/card/companion/regular";
 import { ButtonFab } from "@/components/button/fab";
+import { CardCompanionRegular } from "@/components/card/companion/regular";
 import { UIText } from "@/components/ui/text";
-import { gaps, getCardBasicStyle } from "@/constants/theme";
+import { borderRadiuses, colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
-import { actionListTripInvitationsByTrip } from "@/lib/supabase/actions";
 import { type Companion } from "@/types/trip";
 import { useQuery } from "@tanstack/react-query";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { Plus as PlusIcon } from "lucide-react-native";
-import { useCallback, useMemo, useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import {
+  Copy as CopyIcon,
+  Link as LinkIcon,
+  Plus as PlusIcon,
+} from "lucide-react-native";
+import { useEffect, useMemo, useState } from "react";
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const MAX_COMPANIONS = 10;
+
+const prototypeCompanions: Companion[] = [
+  {
+    id: "proto-amelia",
+    fullname: "amelia_roams",
+    state: "ACCEPTED",
+  },
+  {
+    id: "proto-noah",
+    fullname: "noah.food.maps",
+    state: "INVITED",
+  },
+  {
+    id: "proto-sam",
+    fullname: "sam_weekends",
+    state: "REJECTED",
+  },
+];
 
 export default function TripCompanionsScreen() {
   const { id, invitedUserId, invitedUserName } = useLocalSearchParams<{
@@ -24,73 +45,45 @@ export default function TripCompanionsScreen() {
   const router = useRouter();
   const { session } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
+  const [companions, setCompanions] = useState<Companion[]>(prototypeCompanions);
 
   const { data: localTrip } = useQuery({
     queryKey: ["local-trip", String(id), session?.user.id],
     queryFn: () => actionGetLocalTrip(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
   });
-  const { data: remoteCompanions = [] } = useQuery({
-    queryKey: ["trip-invitations", String(id), session?.user.id],
-    queryFn: () => actionListTripInvitationsByTrip(String(id)),
-    enabled: Boolean(id && session?.user.id && localTrip?.syncStatus === "synced"),
-  });
 
-  const trip = localTrip
-    ? {
-        id: localTrip.id,
-        title: localTrip.title,
-        startDate: localTrip.startDate,
-        endDate: localTrip.endDate,
-        location: "Unknown destination",
-        companions: [],
-        pins: [],
-        checklistItems: [],
-        referenceLinks: [],
-        documents: [],
-        images: [],
-        expenses: [],
-      }
-    : null;
-  const [optimisticCompanions, setOptimisticCompanions] = useState<Companion[]>([]);
+  const trip = {
+    id: String(id ?? "prototype-trip"),
+    title: localTrip?.title ?? "Barcelona Getaway",
+  };
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!invitedUserId || !invitedUserName) {
-        return;
-      }
-
-      setOptimisticCompanions((currentCompanions) => {
-        if (
-          currentCompanions.some((companion) => companion.id === invitedUserId)
-        ) {
-          return currentCompanions;
-        }
-
-        if (currentCompanions.length >= MAX_COMPANIONS) {
-          showMessage(`You can invite up to ${MAX_COMPANIONS} companions`, "error");
-          return currentCompanions;
-        }
-
-        return [
-          ...currentCompanions,
-          {
-            id: invitedUserId,
-            fullname: invitedUserName,
-            state: "INVITED",
-          },
-        ];
-      });
-    }, [invitedUserId, invitedUserName, showMessage]),
-  );
-
-  const companions = useMemo(() => {
-    if (remoteCompanions.length > 0) {
-      return remoteCompanions;
+  useEffect(() => {
+    if (!invitedUserId || !invitedUserName) {
+      return;
     }
 
-    return optimisticCompanions;
-  }, [optimisticCompanions, remoteCompanions]);
+    setCompanions((currentCompanions) => {
+      if (currentCompanions.some((companion) => companion.id === invitedUserId)) {
+        return currentCompanions;
+      }
+
+      return [
+        {
+          id: invitedUserId,
+          fullname: invitedUserName,
+          state: "INVITED",
+        },
+        ...currentCompanions,
+      ];
+    });
+  }, [invitedUserId, invitedUserName]);
+
+  const activeCompanionCount = useMemo(() => {
+    return companions.filter((companion) =>
+      ["ACCEPTED", "INVITED"].includes(companion.state),
+    ).length;
+  }, [companions]);
 
   const invitedUserIds = useMemo(() => {
     return companions
@@ -106,13 +99,31 @@ export default function TripCompanionsScreen() {
       .join(",");
   }, [companions]);
 
-  const handleRemoveCompanion = (companionId: string) => {
-    setOptimisticCompanions((currentCompanions) =>
-      currentCompanions.filter((companion) => companion.id !== companionId),
-    );
+  const handleCompanionAction = (companion: Companion) => {
+    if (companion.state === "INVITED") {
+      setCompanions((currentCompanions) =>
+        currentCompanions.map((item) =>
+          item.id === companion.id ? { ...item, state: "WITHDRAWN" } : item,
+        ),
+      );
+      showMessage(`Withdrew invite for ${companion.fullname}`, "info");
+      return;
+    }
+
+    if (companion.state === "ACCEPTED") {
+      setCompanions((currentCompanions) =>
+        currentCompanions.map((item) =>
+          item.id === companion.id ? { ...item, state: "REMOVED" } : item,
+        ),
+      );
+      showMessage(`Removed ${companion.fullname} from this trip`, "info");
+      return;
+    }
+
+    showMessage(`${companion.fullname} is kept as history`, "info");
   };
 
-  if (!trip) {
+  if (!trip.id) {
     return <UIText>Trip not found</UIText>;
   }
 
@@ -122,19 +133,62 @@ export default function TripCompanionsScreen() {
         contentContainerStyle={styles.companions}
         data={companions}
         keyExtractor={(item) => item.id}
+        ListHeaderComponent={
+          <View style={styles.headerStack}>
+            <View style={styles.summaryCard}>
+              <Text style={styles.eyebrow}>Prototype companion access</Text>
+              <Text style={styles.title}>{trip.title}</Text>
+              <View style={styles.statsRow}>
+                <View style={styles.stat}>
+                  <Text style={styles.statValue}>{activeCompanionCount}</Text>
+                  <Text style={styles.statLabel}>active</Text>
+                </View>
+                <View style={styles.stat}>
+                  <Text style={styles.statValue}>{MAX_COMPANIONS}</Text>
+                  <Text style={styles.statLabel}>max</Text>
+                </View>
+                <View style={styles.stat}>
+                  <Text style={styles.statValue}>owner</Text>
+                  <Text style={styles.statLabel}>admin</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.inviteLinkCard}>
+              <View style={styles.inviteLinkIcon}>
+                <LinkIcon size={20} color={getColor(colors.purple)} />
+              </View>
+              <View style={styles.inviteLinkContent}>
+                <Text style={styles.inviteLinkTitle}>Invite link</Text>
+                <Text style={styles.inviteLinkText}>wafflelog.app/invite/barcelona-7d</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.smallAction}
+                onPress={() => {
+                  showMessage("Prototype invite link copied", "info");
+                }}
+              >
+                <CopyIcon size={16} color={getColor(colors.white)} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        }
         renderItem={({ item }) => (
           <View key={item.id} style={styles.companion}>
             <CardCompanionRegular
               companion={item}
-              showRemoveButton={true}
-              onRemove={handleRemoveCompanion}
+              showStateBadge={item.state !== "ACCEPTED"}
+              showRemoveButton={item.state === "INVITED" || item.state === "ACCEPTED"}
+              onRemove={() => {
+                handleCompanionAction(item);
+              }}
             />
           </View>
         )}
       />
       <ButtonFab
         onPress={() => {
-          if (companions.length >= MAX_COMPANIONS) {
+          if (activeCompanionCount >= MAX_COMPANIONS) {
             showMessage(`You can invite up to ${MAX_COMPANIONS} companions`, "error");
             return;
           }
@@ -149,7 +203,7 @@ export default function TripCompanionsScreen() {
             },
           });
         }}
-        text="New Companion"
+        text="Invite companion"
         icon={(color) => <PlusIcon size={20} color={color} />}
       />
       <SystemMessageModal />
@@ -164,8 +218,83 @@ const styles = StyleSheet.create({
   companions: {
     gap: gaps.md,
     padding: gaps.md,
+    paddingBottom: 96,
+  },
+  headerStack: {
+    gap: gaps.md,
+  },
+  summaryCard: {
+    ...getCardBasicStyle("md"),
+    gap: gaps.sm,
+  },
+  eyebrow: {
+    color: getColor(colors.purple),
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  title: {
+    color: getColor(colors.textDarkGrey),
+    fontSize: 22,
+    fontWeight: "700",
+  },
+  statsRow: {
+    flexDirection: "row",
+    gap: gaps.sm,
+  },
+  stat: {
+    flex: 1,
+    borderRadius: borderRadiuses.sm,
+    backgroundColor: getColor(colors.whiteGrey, 0.3),
+    padding: gaps.sm,
+  },
+  statValue: {
+    color: getColor(colors.textDarkGrey),
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  statLabel: {
+    color: getColor(colors.textLightGrey),
+    fontSize: 12,
+    marginTop: 2,
+  },
+  inviteLinkCard: {
+    ...getCardBasicStyle("sm"),
+    flexDirection: "row",
+    alignItems: "center",
+    gap: gaps.sm,
+  },
+  inviteLinkIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: getColor(colors.purple, 0.12),
+  },
+  inviteLinkContent: {
+    flex: 1,
+  },
+  inviteLinkTitle: {
+    color: getColor(colors.textDarkGrey),
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  inviteLinkText: {
+    color: getColor(colors.textLightGrey),
+    fontSize: 12,
+    marginTop: 2,
+  },
+  smallAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: getColor(colors.purple),
   },
   companion: {
     ...getCardBasicStyle("sm"),
+    gap: gaps.xs,
   },
 });

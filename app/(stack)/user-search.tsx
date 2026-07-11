@@ -1,18 +1,9 @@
-import { ButtonFab } from "@/components/button/fab";
 import { CardCompanionSearchResult } from "@/components/card/companion/search-result";
 import { UIText } from "@/components/ui/text";
-import { gaps, getCardBasicStyle } from "@/constants/theme";
-import { useAuthSession } from "@/hook/use-auth-session";
+import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
-import {
-  actionCreateTripInvitation,
-  actionListPublicUsers,
-} from "@/lib/supabase/actions";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Check as CheckIcon } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import {
   FlatList,
@@ -26,9 +17,35 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const MAX_COMPANIONS = 10;
 
+const prototypeUsers = [
+  {
+    id: "proto-maya",
+    username: "maya.miles",
+  },
+  {
+    id: "proto-eli",
+    username: "eli_eats",
+  },
+  {
+    id: "proto-jules",
+    username: "jules.windowseat",
+  },
+  {
+    id: "proto-rina",
+    username: "rina_routes",
+  },
+  {
+    id: "proto-omar",
+    username: "omar.on.the.go",
+  },
+  {
+    id: "proto-claire",
+    username: "claire_carryon",
+  },
+];
+
 export default function UserSearchScreen() {
   const router = useRouter();
-  const { session } = useAuthSession();
   const params = useLocalSearchParams<{
     tripId?: string;
     invitedUserIds?: string;
@@ -37,87 +54,48 @@ export default function UserSearchScreen() {
   }>();
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const [searchQuery, setSearchQuery] = useState("");
+  const [locallyInvitedUserIds, setLocallyInvitedUserIds] = useState<string[]>([]);
 
   const invitedUserIds = useMemo(() => {
-    if (!params.invitedUserIds) {
-      return [];
-    }
-
-    return params.invitedUserIds.split(",").filter(Boolean);
-  }, [params.invitedUserIds]);
+    const fromParams = params.invitedUserIds?.split(",").filter(Boolean) ?? [];
+    return Array.from(new Set([...fromParams, ...locallyInvitedUserIds]));
+  }, [locallyInvitedUserIds, params.invitedUserIds]);
 
   const inTripUserIds = useMemo(() => {
-    if (!params.inTripUserIds) {
-      return [];
-    }
-
-    return params.inTripUserIds.split(",").filter(Boolean);
+    return params.inTripUserIds?.split(",").filter(Boolean) ?? [];
   }, [params.inTripUserIds]);
 
-  const usersQuery = useQuery({
-    queryKey: ["public-users", session?.user.id, searchQuery.trim().toLowerCase()],
-    queryFn: () => actionListPublicUsers(searchQuery),
-    enabled: Boolean(session?.user.id),
-  });
-
-  const inviteMutation = useMutation({
-    mutationFn: actionCreateTripInvitation,
-    onSuccess: (_, variables) => {
-      router.replace({
-        pathname: "/(stack)/trip/[id]/(drawer)/companions",
-        params: {
-          id: params.tripId ?? "",
-          invitedUserId: variables.inviteeUserId,
-          invitedUserName:
-            availableUsers.find((user) => user.id === variables.inviteeUserId)
-              ?.username ?? "",
-        },
-      });
-    },
-    onError: (error) => {
-      const message =
-        error instanceof Error ? error.message : "Failed to invite companion";
-      showMessage(message, "error");
-    },
-  });
-
   const availableUsers = useMemo(() => {
-    const publicUsers = usersQuery.data ?? [];
+    const normalizedQuery = searchQuery.trim().toLowerCase();
 
-    return publicUsers.filter((user) => {
-      if (user.id === session?.user.id) {
-        return false;
-      }
+    if (!normalizedQuery) {
+      return prototypeUsers;
+    }
 
-      if (!searchQuery.trim()) {
-        return true;
-      }
+    return prototypeUsers.filter((user) =>
+      user.username.toLowerCase().includes(normalizedQuery),
+    );
+  }, [searchQuery]);
 
-      return true;
-    });
-  }, [searchQuery, session?.user.id, usersQuery.data]);
-
-  const handleInviteUser = async (user: { id: string; username: string }) => {
+  const handleInviteUser = (user: { id: string; username: string }) => {
     if (invitedUserIds.length + inTripUserIds.length >= MAX_COMPANIONS) {
       showMessage(`You can invite up to ${MAX_COMPANIONS} companions`, "error");
       return;
     }
 
-    if (!params.tripId || !session?.user.id) {
-      showMessage("Unable to invite companion right now", "error");
-      return;
-    }
+    setLocallyInvitedUserIds((currentUserIds) =>
+      currentUserIds.includes(user.id) ? currentUserIds : [...currentUserIds, user.id],
+    );
 
-    const localTrip = await actionGetLocalTrip(params.tripId, session.user.id);
+    showMessage(`Prototype invite sent to ${user.username}`, "info");
 
-    if (!localTrip || localTrip.syncStatus !== "synced") {
-      showMessage("Trip is still syncing. Please try again in a moment.", "error");
-      return;
-    }
-
-    inviteMutation.mutate({
-      tripId: localTrip.id,
-      inviteeUserId: user.id,
+    router.replace({
+      pathname: "/(stack)/trip/[id]/(drawer)/companions",
+      params: {
+        id: params.tripId ?? "prototype-trip",
+        invitedUserId: user.id,
+        invitedUserName: user.username,
+      },
     });
   };
 
@@ -140,7 +118,7 @@ export default function UserSearchScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color={getColor(colors.textDarkGrey)} />
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Invite Companion</Text>
@@ -148,7 +126,12 @@ export default function UserSearchScreen() {
             <Text style={styles.headerSubtitle}>{params.tripTitle}</Text>
           ) : null}
         </View>
-        <View style={styles.backButton} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="close" size={24} color={getColor(colors.textDarkGrey)} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
@@ -156,13 +139,13 @@ export default function UserSearchScreen() {
           <Ionicons
             name="search"
             size={20}
-            color="#666"
+            color={getColor(colors.textLightGrey)}
             style={styles.searchIcon}
           />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search for a username..."
-            placeholderTextColor="#999"
+            placeholder="Search by username"
+            placeholderTextColor={getColor(colors.paleGrey)}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoFocus
@@ -175,7 +158,7 @@ export default function UserSearchScreen() {
                 setSearchQuery("");
               }}
             >
-              <Ionicons name="close-circle" size={20} color="#999" />
+              <Ionicons name="close-circle" size={20} color={getColor(colors.paleGrey)} />
             </TouchableOpacity>
           )}
         </View>
@@ -187,9 +170,7 @@ export default function UserSearchScreen() {
         keyExtractor={(item) => item.id}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <UIText>
-              {usersQuery.isPending ? "Loading users..." : "No users found"}
-            </UIText>
+            <UIText>No matching usernames</UIText>
           </View>
         }
         renderItem={({ item }) => (
@@ -201,23 +182,13 @@ export default function UserSearchScreen() {
               }}
               state={getUserState(item.id)}
               onPress={() => {
-                void handleInviteUser(item);
+                handleInviteUser(item);
               }}
             />
           </View>
         )}
       />
 
-      <ButtonFab
-        onPress={() => {
-          showMessage(
-            `Invite up to ${MAX_COMPANIONS} companions`,
-            "info",
-          );
-        }}
-        text="Max 10"
-        icon={(color) => <CheckIcon size={20} color={color} />}
-      />
       <SystemMessageModal />
     </SafeAreaView>
   );
@@ -247,21 +218,22 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#333",
+    color: getColor(colors.textDarkGrey),
   },
   headerSubtitle: {
     fontSize: 13,
-    color: "#777",
+    color: getColor(colors.textLightGrey),
   },
   searchContainer: {
     paddingHorizontal: gaps.md,
     paddingBottom: gaps.sm,
+    gap: gaps.xs,
   },
   searchInputContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: getColor(colors.whiteGrey),
     borderRadius: 12,
     paddingHorizontal: gaps.sm,
     paddingVertical: gaps.xs,
@@ -273,11 +245,12 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: "#333",
+    color: getColor(colors.textDarkGrey),
   },
   results: {
     gap: gaps.md,
     padding: gaps.md,
+    paddingBottom: 96,
   },
   resultCard: {
     ...getCardBasicStyle("sm"),

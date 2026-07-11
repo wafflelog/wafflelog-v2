@@ -23,6 +23,10 @@ export default function Layout() {
           name="notification-center"
           options={{ headerShown: false }}
         />
+        <Stack.Screen
+          name="user-search"
+          options={{ headerShown: false, presentation: "modal" }}
+        />
         {/* <Stack.Screen name="(stack)" options={{ headerShown: false }} /> */}
         <Stack.Screen
           name="image-viewer"

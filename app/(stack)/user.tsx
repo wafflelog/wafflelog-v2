@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -15,6 +16,7 @@ export default function UserScreen() {
   // Dummy data
   const userData = {
     name: "Mike Johnson",
+    username: "mike_maps",
     thumbnail: "M",
     isConnected: true,
     sharedTrips: {
@@ -146,6 +148,23 @@ export default function UserScreen() {
                 <Text style={styles.connectionText}>Not Connected</Text>
               </>
             )}
+          </View>
+          <View style={styles.usernameCard}>
+            <View style={styles.usernameContent}>
+              <Text style={styles.usernameLabel}>Your username</Text>
+              <Text style={styles.usernameValue}>@{userData.username}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.usernameButton}
+              onPress={() => {
+                void Share.share({
+                  message: `Invite me on Wafflelog: @${userData.username}`,
+                });
+              }}
+            >
+              <Ionicons name="share-outline" size={18} color="#fff" />
+              <Text style={styles.usernameButtonText}>Share</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -435,6 +454,45 @@ const styles = StyleSheet.create({
   connectionText: {
     fontSize: 14,
     color: "#666",
+  },
+  usernameCard: {
+    alignSelf: "stretch",
+    marginTop: 20,
+    marginHorizontal: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: "#F5F7FA",
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  usernameContent: {
+    flex: 1,
+  },
+  usernameLabel: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 4,
+  },
+  usernameValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#333",
+  },
+  usernameButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#4A90E2",
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  usernameButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
   },
   section: {
     paddingHorizontal: 20,
