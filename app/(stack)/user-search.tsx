@@ -69,6 +69,9 @@ export default function UserSearchScreen() {
       void queryClient.invalidateQueries({
         queryKey: ["trip-invitations", params.tripId],
       });
+      void queryClient.invalidateQueries({
+        queryKey: ["trip-companions", params.tripId],
+      });
 
       showMessage(
         `Invite sent to ${invitedUser?.username ?? "companion"}`,

@@ -5,84 +5,82 @@ import { borderRadiuses, colors, gaps, getCardBasicStyle, getColor } from "@/con
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
-import { type Companion } from "@/types/trip";
-import { useQuery } from "@tanstack/react-query";
+import {
+  actionDisableCompanionAccess,
+  actionListTripCompanions,
+  actionWithdrawTripInvitation,
+  type TripCompanionListItem,
+} from "@/lib/supabase/actions";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Copy as CopyIcon,
   Link as LinkIcon,
   Plus as PlusIcon,
 } from "lucide-react-native";
-import { useEffect, useMemo, useState } from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useMemo } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const MAX_COMPANIONS = 10;
 
-const prototypeCompanions: Companion[] = [
-  {
-    id: "proto-amelia",
-    fullname: "amelia_roams",
-    state: "ACCEPTED",
-  },
-  {
-    id: "proto-noah",
-    fullname: "noah.food.maps",
-    state: "INVITED",
-  },
-  {
-    id: "proto-sam",
-    fullname: "sam_weekends",
-    state: "REJECTED",
-  },
-  {
-    id: "proto-ivy",
-    fullname: "ivy.in.transit",
-    state: "DISABLED",
-  },
-];
-
 export default function TripCompanionsScreen() {
-  const { id, invitedUserId, invitedUserName } = useLocalSearchParams<{
+  const { id } = useLocalSearchParams<{
     id?: string;
-    invitedUserId?: string;
-    invitedUserName?: string;
   }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { session } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
-  const [companions, setCompanions] = useState<Companion[]>(prototypeCompanions);
+  const tripId = String(id ?? "");
 
   const { data: localTrip } = useQuery({
-    queryKey: ["local-trip", String(id), session?.user.id],
-    queryFn: () => actionGetLocalTrip(String(id), session!.user.id),
+    queryKey: ["local-trip", tripId, session?.user.id],
+    queryFn: () => actionGetLocalTrip(tripId, session!.user.id),
     enabled: Boolean(id && session?.user.id),
   });
 
+  const companionsQuery = useQuery({
+    queryKey: ["trip-companions", tripId, session?.user.id],
+    queryFn: () => actionListTripCompanions(tripId),
+    enabled: Boolean(tripId && session?.user.id),
+  });
+
+  const withdrawInvitationMutation = useMutation({
+    mutationFn: actionWithdrawTripInvitation,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["trip-companions", tripId, session?.user.id],
+      });
+      showMessage("Invite withdrawn", "info");
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Unable to withdraw invite";
+      showMessage(message, "error");
+    },
+  });
+
+  const disableCompanionMutation = useMutation({
+    mutationFn: actionDisableCompanionAccess,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["trip-companions", tripId, session?.user.id],
+      });
+      showMessage("Companion access disabled", "info");
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Unable to disable access";
+      showMessage(message, "error");
+    },
+  });
+
   const trip = {
-    id: String(id ?? "prototype-trip"),
+    id: tripId,
     title: localTrip?.title ?? "Barcelona Getaway",
   };
 
-  useEffect(() => {
-    if (!invitedUserId || !invitedUserName) {
-      return;
-    }
-
-    setCompanions((currentCompanions) => {
-      if (currentCompanions.some((companion) => companion.id === invitedUserId)) {
-        return currentCompanions;
-      }
-
-      return [
-        {
-          id: invitedUserId,
-          fullname: invitedUserName,
-          state: "INVITED",
-        },
-        ...currentCompanions,
-      ];
-    });
-  }, [invitedUserId, invitedUserName]);
+  const companions = useMemo(() => companionsQuery.data ?? [], [companionsQuery.data]);
 
   const activeCompanionCount = useMemo(() => {
     return companions.filter((companion) =>
@@ -93,39 +91,41 @@ export default function TripCompanionsScreen() {
   const invitedUserIds = useMemo(() => {
     return companions
       .filter((companion) => companion.state === "INVITED")
-      .map((companion) => companion.id)
+      .map((companion) => companion.userId)
       .join(",");
   }, [companions]);
 
   const inTripUserIds = useMemo(() => {
     return companions
-      .filter((companion) => companion.state === "ACCEPTED")
-      .map((companion) => companion.id)
+      .filter((companion) =>
+        ["ACCEPTED", "DISABLED"].includes(companion.state),
+      )
+      .map((companion) => companion.userId)
       .join(",");
   }, [companions]);
 
-  const handleCompanionAction = (companion: Companion) => {
+  const handleCompanionAction = (companion: TripCompanionListItem) => {
     if (companion.state === "INVITED") {
-      setCompanions((currentCompanions) =>
-        currentCompanions.map((item) =>
-          item.id === companion.id ? { ...item, state: "WITHDRAWN" } : item,
-        ),
-      );
-      showMessage(`Withdrew invite for ${companion.fullname}`, "info");
+      if (!companion.tripInvitationId) {
+        showMessage("Invite not found", "error");
+        return;
+      }
+
+      withdrawInvitationMutation.mutate(companion.tripInvitationId);
       return;
     }
 
     if (companion.state === "ACCEPTED") {
-      setCompanions((currentCompanions) =>
-        currentCompanions.map((item) =>
-          item.id === companion.id ? { ...item, state: "DISABLED" } : item,
-        ),
-      );
-      showMessage(`Access disabled for ${companion.fullname}`, "info");
+      if (!companion.tripMemberId) {
+        showMessage("Companion not found", "error");
+        return;
+      }
+
+      disableCompanionMutation.mutate(companion.tripMemberId);
       return;
     }
 
-    showMessage(`${companion.fullname} is kept as history`, "info");
+    showMessage(`${companion.fullname} has disabled access`, "info");
   };
 
   if (!trip.id) {
@@ -141,7 +141,7 @@ export default function TripCompanionsScreen() {
         ListHeaderComponent={
           <View style={styles.headerStack}>
             <View style={styles.summaryCard}>
-              <Text style={styles.eyebrow}>Prototype companion access</Text>
+              <Text style={styles.eyebrow}>Companion access</Text>
               <Text style={styles.title}>{trip.title}</Text>
               <View style={styles.statsRow}>
                 <View style={styles.stat}>
@@ -177,6 +177,18 @@ export default function TripCompanionsScreen() {
               </TouchableOpacity>
             </View>
           </View>
+        }
+        ListEmptyComponent={
+          companionsQuery.isLoading ? (
+            <View style={styles.loadingState}>
+              <ActivityIndicator size="large" color={getColor(colors.purple)} />
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No companions yet</Text>
+              <Text style={styles.emptyText}>Invite someone to co-edit this trip.</Text>
+            </View>
+          )
         }
         renderItem={({ item }) => (
           <View key={item.id} style={styles.companion}>
@@ -301,5 +313,25 @@ const styles = StyleSheet.create({
   companion: {
     ...getCardBasicStyle("sm"),
     gap: gaps.xs,
+  },
+  loadingState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: gaps.xl,
+  },
+  emptyState: {
+    ...getCardBasicStyle("sm"),
+    alignItems: "center",
+    gap: gaps.xs,
+  },
+  emptyTitle: {
+    color: getColor(colors.textDarkGrey),
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  emptyText: {
+    color: getColor(colors.textLightGrey),
+    fontSize: 13,
+    textAlign: "center",
   },
 });

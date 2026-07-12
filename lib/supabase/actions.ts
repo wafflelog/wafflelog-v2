@@ -104,6 +104,15 @@ export type AppNotification = AppNotificationRow & {
   invitationStatus: string | null;
 };
 
+export type TripCompanionListItem = {
+  id: string;
+  userId: string;
+  fullname: string;
+  state: "INVITED" | "ACCEPTED" | "DISABLED";
+  tripInvitationId: string | null;
+  tripMemberId: string | null;
+};
+
 const mapTripRow = (trip: TripRow) => ({
   id: trip.id,
   title: trip.title,
@@ -1150,6 +1159,115 @@ export async function actionListTripInvitationsByTrip(tripId: string) {
       (invitation): invitation is NonNullable<typeof invitation> =>
         invitation !== null,
     );
+}
+
+export async function actionListTripCompanions(
+  tripId: string,
+): Promise<TripCompanionListItem[]> {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to view companions");
+  }
+
+  const { data: members, error: membersError } = await supabase
+    .from("trip_member")
+    .select("id, trip_id, user_id, status, created_at")
+    .eq("trip_id", tripId)
+    .in("status", ["active", "disabled"])
+    .order("created_at", { ascending: false });
+
+  if (membersError) {
+    throw membersError;
+  }
+
+  const { data: invitations, error: invitationsError } = await supabase
+    .from("trip_invitation")
+    .select("id, trip_id, invitee_user_id, status, created_at")
+    .eq("trip_id", tripId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (invitationsError) {
+    throw invitationsError;
+  }
+
+  const userIds = Array.from(
+    new Set([
+      ...members.map((member) => member.user_id),
+      ...invitations.map((invitation) => invitation.invitee_user_id),
+    ]),
+  );
+
+  if (userIds.length === 0) {
+    return [];
+  }
+
+  const { data: users, error: usersError } = await supabase
+    .from("user")
+    .select("id, username")
+    .in("id", userIds);
+
+  if (usersError) {
+    throw usersError;
+  }
+
+  const userById = new Map(users.map((companionUser) => [companionUser.id, companionUser]));
+
+  const memberUserIds = new Set(members.map((member) => member.user_id));
+
+  const mappedMembers: TripCompanionListItem[] = members.flatMap((member) => {
+    const companionUser = userById.get(member.user_id);
+
+    if (!companionUser) {
+      return [];
+    }
+
+    return [
+      {
+        id: member.id,
+        userId: member.user_id,
+        fullname: companionUser.username,
+        state: member.status === "disabled" ? "DISABLED" : "ACCEPTED",
+        tripInvitationId: null,
+        tripMemberId: member.id,
+      },
+    ];
+  });
+
+  const mappedInvitations: TripCompanionListItem[] = invitations.flatMap(
+    (invitation) => {
+      if (memberUserIds.has(invitation.invitee_user_id)) {
+        return [];
+      }
+
+      const companionUser = userById.get(invitation.invitee_user_id);
+
+      if (!companionUser) {
+        return [];
+      }
+
+      return [
+        {
+          id: invitation.id,
+          userId: invitation.invitee_user_id,
+          fullname: companionUser.username,
+          state: "INVITED",
+          tripInvitationId: invitation.id,
+          tripMemberId: null,
+        },
+      ];
+    },
+  );
+
+  return [...mappedInvitations, ...mappedMembers];
 }
 
 export async function actionAcceptTripInvitation(invitationId: string) {
