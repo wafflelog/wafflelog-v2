@@ -4,10 +4,7 @@ import { DialogNewTrip } from "@/components/dialog/new-trip";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
-import {
-  actionListLocalTrips
-} from "@/lib/sqlite/model/trip";
-import { actionListAcceptedCompanionTrips } from "@/lib/supabase/actions";
+import { actionListLocalTrips } from "@/lib/sqlite/model/trip";
 import { supabase } from "@/lib/supabase/client";
 import { type Trip } from "@/types/trip";
 import { useQuery } from "@tanstack/react-query";
@@ -45,12 +42,6 @@ export default function IndexScreen() {
     queryFn: () => actionListLocalTrips(session!.user.id),
     enabled: Boolean(session?.user.id),
   });
-  const { data: acceptedCompanionTrips = [] } = useQuery({
-    queryKey: ["accepted-companion-trips", session?.user.id],
-    queryFn: actionListAcceptedCompanionTrips,
-    enabled: Boolean(session?.user.id),
-  });
-
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer} edges={["top"]}>
@@ -87,11 +78,7 @@ export default function IndexScreen() {
     images: [],
     expenses: [],
   }));
-  const mappedTrips = Array.from(
-    new Map(
-      [...acceptedCompanionTrips, ...localTrips].map((trip) => [trip.id, trip]),
-    ).values(),
-  );
+  const mappedTrips = localTrips;
 
   const today = dayjs().startOf("day");
 

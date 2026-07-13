@@ -192,7 +192,7 @@ export async function actionCreateLocalDocument(
 
 export async function actionListLocalDocumentsByTrip(
   tripId: string,
-  userId: string,
+  _userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -241,14 +241,12 @@ export async function actionListLocalDocumentsByTrip(
       from document
       left join pin
         on pin.id = document.pin_id
-        and pin.user_id = document.user_id
       left join pin_location
         on pin_location.pin_id = pin.id
-        and pin_location.user_id = document.user_id
-      where document.trip_id = ? and document.user_id = ? and document.deleted_at is null
+      where document.trip_id = ? and document.deleted_at is null
       order by document.created_at desc
     `,
-    [tripId, userId],
+    [tripId],
   );
 
   return rows.map(mapLocalDocumentRow);
@@ -256,7 +254,7 @@ export async function actionListLocalDocumentsByTrip(
 
 export async function actionListLocalDocumentsByPin(
   pinId: string,
-  userId: string,
+  _userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -295,10 +293,10 @@ export async function actionListLocalDocumentsByPin(
         sync_error,
         deleted_at
       from document
-      where pin_id = ? and user_id = ? and deleted_at is null
+      where pin_id = ? and deleted_at is null
       order by created_at desc
     `,
-    [pinId, userId],
+    [pinId],
   );
 
   return rows.map(mapLocalDocumentRow);

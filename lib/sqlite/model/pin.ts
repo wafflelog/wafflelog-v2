@@ -237,7 +237,7 @@ export async function actionCreateLocalPin(input: CreateLocalPinInput) {
   return mapLocalPinRow(localPin);
 }
 
-export async function actionListLocalPins(tripId: string, userId: string) {
+export async function actionListLocalPins(tripId: string, _userId: string) {
   const rows = await sqlite.getAllAsync<LocalPinRow>(
     `
       select ${selectLocalPinColumns}
@@ -245,10 +245,10 @@ export async function actionListLocalPins(tripId: string, userId: string) {
       left join pin_location
         on pin_location.pin_id = pin.id
         and pin_location.user_id = pin.user_id
-      where pin.trip_id = ? and pin.user_id = ? and pin.deleted_at is null
+      where pin.trip_id = ? and pin.deleted_at is null
       order by pin.start_date asc, pin.time asc, pin.created_at asc
     `,
-    [tripId, userId],
+    [tripId],
   );
 
   return rows.map(mapLocalPinRow);
@@ -256,7 +256,7 @@ export async function actionListLocalPins(tripId: string, userId: string) {
 
 export async function actionListLocalPinsByTripAndDate(
   tripId: string,
-  userId: string,
+  _userId: string,
   date: string,
 ) {
   const rows = await sqlite.getAllAsync<LocalPinRow>(
@@ -267,19 +267,18 @@ export async function actionListLocalPinsByTripAndDate(
         on pin_location.pin_id = pin.id
         and pin_location.user_id = pin.user_id
       where pin.trip_id = ?
-        and pin.user_id = ?
         and pin.start_date <= ?
         and coalesce(pin.end_date, pin.start_date) >= ?
         and pin.deleted_at is null
       order by pin.time is null asc, pin.time asc, pin.start_date asc, pin.created_at asc
     `,
-    [tripId, userId, date, date],
+    [tripId, date, date],
   );
 
   return rows.map(mapLocalPinRow);
 }
 
-export async function actionGetLocalPin(id: string, userId: string) {
+export async function actionGetLocalPin(id: string, _userId: string) {
   const row = await sqlite.getFirstAsync<LocalPinRow>(
     `
       select ${selectLocalPinColumns}
@@ -287,10 +286,10 @@ export async function actionGetLocalPin(id: string, userId: string) {
       left join pin_location
         on pin_location.pin_id = pin.id
         and pin_location.user_id = pin.user_id
-      where pin.id = ? and pin.user_id = ? and pin.deleted_at is null
+      where pin.id = ? and pin.deleted_at is null
       limit 1
     `,
-    [id, userId],
+    [id],
   );
 
   return row ? mapLocalPinRow(row) : null;

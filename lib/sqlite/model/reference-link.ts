@@ -179,7 +179,7 @@ export async function actionCreateLocalReferenceLink(
 
 export async function actionListLocalReferenceLinksByPin(
   pinId: string,
-  userId: string,
+  _userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -212,10 +212,10 @@ export async function actionListLocalReferenceLinksByPin(
         sync_error,
         deleted_at
       from reference_link
-      where pin_id = ? and user_id = ? and deleted_at is null
+      where pin_id = ? and deleted_at is null
       order by created_at desc
     `,
-    [pinId, userId],
+    [pinId],
   );
 
   return rows.map(mapLocalReferenceLinkRow);
@@ -223,7 +223,7 @@ export async function actionListLocalReferenceLinksByPin(
 
 export async function actionListLocalReferenceLinksByTrip(
   tripId: string,
-  userId: string,
+  _userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -266,14 +266,12 @@ export async function actionListLocalReferenceLinksByTrip(
       from reference_link rl
       left join pin
         on pin.id = rl.pin_id
-        and pin.user_id = rl.user_id
       left join pin_location
         on pin_location.pin_id = pin.id
-        and pin_location.user_id = rl.user_id
-      where rl.trip_id = ? and rl.user_id = ? and rl.deleted_at is null
+      where rl.trip_id = ? and rl.deleted_at is null
       order by rl.created_at desc
     `,
-    [tripId, userId],
+    [tripId],
   );
 
   return rows.map(mapLocalReferenceLinkRow);

@@ -2,6 +2,7 @@ import { TitleRegular } from "@/components/title/regular";
 import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
+import { actionPullActiveCompanionTrips } from "@/lib/sqlite/model/companion-trip-sync";
 import {
   actionAcceptTripInvitation,
   actionListAppNotifications,
@@ -83,6 +84,7 @@ export default function NotificationCenterScreen() {
     }: InvitationResponseInput) => {
       if (response === "accepted") {
         await actionAcceptTripInvitation(invitationId);
+        await actionPullActiveCompanionTrips();
       } else {
         await actionRejectTripInvitation(invitationId);
       }
@@ -98,9 +100,7 @@ export default function NotificationCenterScreen() {
       void queryClient.invalidateQueries({
         queryKey: ["app-notifications", session?.user.id],
       });
-      void queryClient.invalidateQueries({
-        queryKey: ["accepted-companion-trips", session?.user.id],
-      });
+      void queryClient.invalidateQueries({ queryKey: ["local-trips", session?.user.id] });
 
       showMessage(
         response === "accepted" ? "Invitation accepted" : "Invitation declined",

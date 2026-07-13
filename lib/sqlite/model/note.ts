@@ -132,7 +132,7 @@ export async function actionCreateLocalNote(input: CreateLocalNoteInput) {
   return mapLocalNoteRow(localNote);
 }
 
-export async function actionListLocalNotesByPin(pinId: string, userId: string) {
+export async function actionListLocalNotesByPin(pinId: string, _userId: string) {
   const rows = await sqlite.getAllAsync<{
     id: string;
     trip_id: string;
@@ -160,16 +160,16 @@ export async function actionListLocalNotesByPin(pinId: string, userId: string) {
         sync_error,
         deleted_at
       from note
-      where pin_id = ? and user_id = ? and deleted_at is null
+      where pin_id = ? and deleted_at is null
       order by created_at desc
     `,
-    [pinId, userId],
+    [pinId],
   );
 
   return rows.map(mapLocalNoteRow);
 }
 
-export async function actionListLocalNotesByTrip(tripId: string, userId: string) {
+export async function actionListLocalNotesByTrip(tripId: string, _userId: string) {
   const rows = await sqlite.getAllAsync<{
     id: string;
     trip_id: string;
@@ -197,10 +197,10 @@ export async function actionListLocalNotesByTrip(tripId: string, userId: string)
         sync_error,
         deleted_at
       from note
-      where trip_id = ? and pin_id is null and user_id = ? and deleted_at is null
+      where trip_id = ? and pin_id is null and deleted_at is null
       order by created_at desc
     `,
-    [tripId, userId],
+    [tripId],
   );
 
   return rows.map(mapLocalNoteRow);

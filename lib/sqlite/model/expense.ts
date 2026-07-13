@@ -181,7 +181,7 @@ export async function actionCreateLocalExpense(input: CreateLocalExpenseInput) {
 
 export async function actionListLocalExpensesByPin(
   pinId: string,
-  userId: string,
+  _userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -218,10 +218,10 @@ export async function actionListLocalExpensesByPin(
         sync_error,
         deleted_at
       from expense
-      where pin_id = ? and user_id = ? and deleted_at is null
+      where pin_id = ? and deleted_at is null
       order by created_at desc
     `,
-    [pinId, userId],
+    [pinId],
   );
 
   return rows.map(mapLocalExpenseRow);
@@ -229,7 +229,7 @@ export async function actionListLocalExpensesByPin(
 
 export async function actionListLocalExpensesByTrip(
   tripId: string,
-  userId: string,
+  _userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -276,14 +276,12 @@ export async function actionListLocalExpensesByTrip(
       from expense
       left join pin
         on pin.id = expense.pin_id
-        and pin.user_id = expense.user_id
       left join pin_location
         on pin_location.pin_id = pin.id
-        and pin_location.user_id = expense.user_id
-      where expense.trip_id = ? and expense.user_id = ? and expense.deleted_at is null
+      where expense.trip_id = ? and expense.deleted_at is null
       order by expense.created_at desc
     `,
-    [tripId, userId],
+    [tripId],
   );
 
   return rows.map(mapLocalExpenseRow);

@@ -36,6 +36,18 @@ export async function initializeDatabase() {
       deleted_at text
     );
 
+    create table if not exists trip_membership (
+      trip_id text not null,
+      user_id text not null,
+      role text not null,
+      status text not null,
+      source text not null,
+      created_at text not null,
+      updated_at text not null,
+      last_synced_at text,
+      primary key (trip_id, user_id)
+    );
+
     create table if not exists checklist_item (
       id text primary key not null,
       trip_id text not null,

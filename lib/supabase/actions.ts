@@ -113,6 +113,36 @@ export type TripCompanionListItem = {
   tripMemberId: string | null;
 };
 
+export type ActiveCompanionMembership = {
+  id: string;
+  tripId: string;
+  userId: string;
+  role: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RemoteTripSyncBundle = {
+  trip: {
+    id: string;
+    userId: string;
+    title: string;
+    startDate: string;
+    endDate: string;
+    createdAt: string;
+    updatedAt: string;
+    deletedAt: string | null;
+  };
+  pins: ReturnType<typeof mapPinRow>[];
+  checklistItems: ReturnType<typeof mapChecklistItemRow>[];
+  notes: ReturnType<typeof mapNoteRow>[];
+  referenceLinks: ReturnType<typeof mapReferenceLinkRow>[];
+  expenses: ReturnType<typeof mapExpenseRow>[];
+  documents: ReturnType<typeof mapDocumentRow>[];
+  images: ReturnType<typeof mapImageRow>[];
+};
+
 const mapTripRow = (trip: TripRow) => ({
   id: trip.id,
   title: trip.title,
@@ -532,6 +562,42 @@ export async function actionUpsertRemoteChecklistItemFromLocal(
   const { data, error } = await supabase
     .from("checklist_item")
     .upsert(payload)
+    .select(
+      "id, trip_id, user_id, title, completed, created_at, updated_at, deleted_at",
+    )
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapChecklistItemRow(data);
+}
+
+export async function actionUpdateRemoteChecklistItemFromLocal(
+  input: CreateChecklistItemInput,
+) {
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to sync a checklist item");
+  }
+
+  const { data, error } = await supabase
+    .from("checklist_item")
+    .update({
+      title: input.title.trim(),
+      completed: input.completed,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.id)
     .select(
       "id, trip_id, user_id, title, completed, created_at, updated_at, deleted_at",
     )
@@ -1430,7 +1496,9 @@ export async function actionRestoreCompanionAccess(tripMemberId: string) {
   return data;
 }
 
-export async function actionListAcceptedCompanionTrips() {
+export async function actionListActiveCompanionMemberships(): Promise<
+  ActiveCompanionMembership[]
+> {
   const {
     data: { user },
     error: authError,
@@ -1441,53 +1509,119 @@ export async function actionListAcceptedCompanionTrips() {
   }
 
   if (!user) {
-    throw new Error("You must be signed in to view shared trips");
+    throw new Error("You must be signed in to sync shared trips");
   }
 
-  const { data: memberships, error: membershipsError } = await supabase
+  const { data, error } = await supabase
     .from("trip_member")
-    .select("trip_id, user_id, status")
+    .select("id, trip_id, user_id, role, status, created_at, updated_at")
     .eq("user_id", user.id)
-    .eq("status", "active");
+    .eq("status", "active")
+    .order("updated_at", { ascending: false });
 
-  if (membershipsError) {
-    throw membershipsError;
+  if (error) {
+    throw error;
   }
 
-  const tripIds = Array.from(
-    new Set(memberships.map((membership) => membership.trip_id)),
-  );
-
-  if (tripIds.length === 0) {
-    return [];
-  }
-
-  const { data: trips, error: tripsError } = await supabase
-    .from("trip")
-    .select("id, title, start_date, end_date, created_at, updated_at")
-    .in("id", tripIds)
-    .is("deleted_at", null);
-
-  if (tripsError) {
-    throw tripsError;
-  }
-
-  return trips.map((trip) => ({
-    id: trip.id,
-    title: trip.title,
-    startDate: trip.start_date,
-    endDate: trip.end_date,
-    createdAt: trip.created_at,
-    updatedAt: trip.updated_at,
-    location: "Shared trip",
-    companions: [],
-    pins: [],
-    checklistItems: [],
-    referenceLinks: [],
-    documents: [],
-    images: [],
-    expenses: [],
+  return data.map((membership) => ({
+    id: membership.id,
+    tripId: membership.trip_id,
+    userId: membership.user_id,
+    role: membership.role,
+    status: membership.status,
+    createdAt: membership.created_at,
+    updatedAt: membership.updated_at,
   }));
+}
+
+export async function actionGetRemoteTripSyncBundle(
+  tripId: string,
+): Promise<RemoteTripSyncBundle> {
+  const trip = await actionGetRemoteTripById(tripId);
+
+  const [
+    pinsResult,
+    checklistItemsResult,
+    notesResult,
+    referenceLinksResult,
+    expensesResult,
+    documentsResult,
+    imagesResult,
+  ] = await Promise.all([
+    supabase
+      .from("pin")
+      .select(
+        "id, trip_id, user_id, name, start_date, end_date, time, end_time, category_id, metadata_json, created_at, updated_at, deleted_at",
+      )
+      .eq("trip_id", tripId)
+      .is("deleted_at", null),
+    supabase
+      .from("checklist_item")
+      .select(
+        "id, trip_id, user_id, title, completed, created_at, updated_at, deleted_at",
+      )
+      .eq("trip_id", tripId)
+      .is("deleted_at", null),
+    supabase
+      .from("note")
+      .select("id, trip_id, pin_id, user_id, text, created_at, updated_at, deleted_at")
+      .eq("trip_id", tripId)
+      .is("deleted_at", null),
+    supabase
+      .from("reference_link")
+      .select(
+        "id, trip_id, pin_id, user_id, title, url, caption, created_at, updated_at, deleted_at",
+      )
+      .eq("trip_id", tripId)
+      .is("deleted_at", null),
+    supabase
+      .from("expense")
+      .select(
+        "id, pin_id, trip_id, user_id, description, amount, currency, paid_by_user_id, paid_by_name, created_at, updated_at, deleted_at",
+      )
+      .eq("trip_id", tripId)
+      .is("deleted_at", null),
+    supabase
+      .from("document")
+      .select(
+        "id, trip_id, pin_id, user_id, file_name, mime_type, storage_bucket, storage_path, caption, created_at, updated_at, deleted_at",
+      )
+      .eq("trip_id", tripId)
+      .is("deleted_at", null),
+    supabase
+      .from("image")
+      .select(
+        "id, pin_id, trip_id, user_id, storage_bucket, storage_path, mime_type, width, height, caption, created_at, updated_at, deleted_at",
+      )
+      .eq("trip_id", tripId)
+      .is("deleted_at", null),
+  ]);
+
+  const results = [
+    pinsResult,
+    checklistItemsResult,
+    notesResult,
+    referenceLinksResult,
+    expensesResult,
+    documentsResult,
+    imagesResult,
+  ];
+  const firstError = results.find((result) => result.error)?.error;
+
+  if (firstError) {
+    throw firstError;
+  }
+
+  return {
+    trip,
+    pins: (pinsResult.data ?? []).map(mapPinRow),
+    checklistItems: (checklistItemsResult.data ?? []).map(mapChecklistItemRow),
+    notes: (notesResult.data ?? []).map(mapNoteRow),
+    referenceLinks: (referenceLinksResult.data ?? []).map(mapReferenceLinkRow),
+    expenses: (expensesResult.data ?? []).map(mapExpenseRow),
+    documents: (documentsResult.data ?? []).map(mapDocumentRow),
+    images: (imagesResult.data ?? []).map(mapImageRow),
+  };
 }
 
 export async function actionGetRemoteTripById(tripId: string) {

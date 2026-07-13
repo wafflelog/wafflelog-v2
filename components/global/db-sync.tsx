@@ -1,5 +1,6 @@
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionSyncPendingLocalChecklistItems } from "@/lib/sqlite/model/checklist-item";
+import { actionPullActiveCompanionTrips } from "@/lib/sqlite/model/companion-trip-sync";
 import { actionSyncPendingLocalDocuments } from "@/lib/sqlite/model/document";
 import { actionSyncPendingLocalExpenses } from "@/lib/sqlite/model/expense";
 import { actionSyncPendingLocalImages } from "@/lib/sqlite/model/image";
@@ -7,6 +8,7 @@ import { actionSyncPendingLocalNotes } from "@/lib/sqlite/model/note";
 import { actionSyncPendingLocalPins } from "@/lib/sqlite/model/pin";
 import { actionSyncPendingLocalReferenceLinks } from "@/lib/sqlite/model/reference-link";
 import { actionSyncPendingLocalTrips } from "@/lib/sqlite/model/trip";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 
 const SYNC_BATCH_SIZE = 25;
@@ -95,8 +97,29 @@ async function runPendingUploadSync(userId: string) {
   }
 }
 
+async function runCompanionPullSync() {
+  let offset = 0;
+
+  while (true) {
+    const companionTripResult = await actionPullActiveCompanionTrips(
+      SYNC_BATCH_SIZE,
+      offset,
+    );
+
+    if (
+      companionTripResult.processed === 0 ||
+      !companionTripResult.hasMore
+    ) {
+      break;
+    }
+
+    offset = companionTripResult.nextOffset;
+  }
+}
+
 export const GlobalDbSync = () => {
   const { session } = useAuthSession();
+  const queryClient = useQueryClient();
   const isSyncRunningRef = useRef(false);
 
   useEffect(() => {
@@ -107,13 +130,19 @@ export const GlobalDbSync = () => {
     isSyncRunningRef.current = true;
 
     void runPendingUploadSync(session.user.id)
+      .then(runCompanionPullSync)
+      .then(() =>
+        queryClient.invalidateQueries({
+          queryKey: ["local-trips", session.user.id],
+        }),
+      )
       .catch((error) => {
         console.error("Error running pending upload sync:", error);
       })
       .finally(() => {
         isSyncRunningRef.current = false;
       });
-  }, [session?.user.id]);
+  }, [queryClient, session?.user.id]);
 
   return null;
 };

@@ -34,6 +34,16 @@ export type LocalTrip = {
   deletedAt: string | null;
 };
 
+export type UpsertLocalTripMembershipInput = {
+  tripId: string;
+  userId: string;
+  role: string;
+  status: string;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 const DEFAULT_SYNC_BATCH_SIZE = 25;
 
 function mapLocalTripRow(row: {
@@ -142,10 +152,20 @@ export async function actionListLocalTrips(userId: string) {
         sync_error,
         deleted_at
       from trip
-      where user_id = ? and deleted_at is null
+      where deleted_at is null
+        and (
+          user_id = ?
+          or exists (
+            select 1
+            from trip_membership
+            where trip_membership.trip_id = trip.id
+              and trip_membership.user_id = ?
+              and trip_membership.status = 'active'
+          )
+        )
       order by start_date asc, created_at desc
     `,
-    [userId],
+    [userId, userId],
   );
 
   return rows.map(mapLocalTripRow);
@@ -179,10 +199,21 @@ export async function actionGetLocalTrip(id: string, userId: string) {
         sync_error,
         deleted_at
       from trip
-      where id = ? and user_id = ? and deleted_at is null
+      where id = ?
+        and deleted_at is null
+        and (
+          user_id = ?
+          or exists (
+            select 1
+            from trip_membership
+            where trip_membership.trip_id = trip.id
+              and trip_membership.user_id = ?
+              and trip_membership.status = 'active'
+          )
+        )
       limit 1
     `,
-    [id, userId],
+    [id, userId, userId],
   );
 
   return row ? mapLocalTripRow(row) : null;
@@ -316,6 +347,44 @@ export async function actionUpsertLocalTripFromRemote(remoteTrip: {
       now,
       null,
       null,
+    ],
+  );
+}
+
+export async function actionUpsertLocalTripMembershipFromRemote(
+  input: UpsertLocalTripMembershipInput,
+) {
+  const now = new Date().toISOString();
+
+  await sqlite.runAsync(
+    `
+      insert into trip_membership (
+        trip_id,
+        user_id,
+        role,
+        status,
+        source,
+        created_at,
+        updated_at,
+        last_synced_at
+      ) values (?, ?, ?, ?, ?, ?, ?, ?)
+      on conflict(trip_id, user_id) do update set
+        role = excluded.role,
+        status = excluded.status,
+        source = excluded.source,
+        created_at = excluded.created_at,
+        updated_at = excluded.updated_at,
+        last_synced_at = excluded.last_synced_at
+    `,
+    [
+      input.tripId,
+      input.userId,
+      input.role,
+      input.status,
+      input.source,
+      input.createdAt,
+      input.updatedAt,
+      now,
     ],
   );
 }

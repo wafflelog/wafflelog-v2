@@ -2,6 +2,7 @@ import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
 import {
   actionSoftDeleteRemoteChecklistItem,
+  actionUpdateRemoteChecklistItemFromLocal,
   actionUpsertRemoteChecklistItemFromLocal,
 } from "@/lib/supabase/actions";
 
@@ -109,7 +110,7 @@ export async function actionCreateLocalChecklistItem(
 
 export async function actionListLocalChecklistItems(
   tripId: string,
-  userId: string,
+  _userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -138,10 +139,10 @@ export async function actionListLocalChecklistItems(
         sync_error,
         deleted_at
       from checklist_item
-      where trip_id = ? and user_id = ? and deleted_at is null
+      where trip_id = ? and deleted_at is null
       order by created_at asc
     `,
-    [tripId, userId],
+    [tripId],
   );
 
   return rows.map(mapLocalChecklistItemRow);
@@ -226,11 +227,21 @@ export async function actionListPendingLocalChecklistItems(
         sync_error,
         deleted_at
       from checklist_item
-      where user_id = ? and sync_status != 'synced'
+      where sync_status != 'synced'
+        and (
+          user_id = ?
+          or exists (
+            select 1
+            from trip_membership
+            where trip_membership.trip_id = checklist_item.trip_id
+              and trip_membership.user_id = ?
+              and trip_membership.status = 'active'
+          )
+        )
       order by created_at asc
       limit ?
     `,
-    [userId, limit],
+    [userId, userId, limit],
   );
 
   return rows.map(mapLocalChecklistItemRow);
@@ -335,7 +346,11 @@ export async function actionSyncLocalChecklistItem(
   );
 
   try {
-    await actionUpsertRemoteChecklistItemFromLocal({
+    const syncRemoteChecklistItem = localChecklistItem.lastSyncedAt
+      ? actionUpdateRemoteChecklistItemFromLocal
+      : actionUpsertRemoteChecklistItemFromLocal;
+
+    await syncRemoteChecklistItem({
       id: localChecklistItem.id,
       tripId: localChecklistItem.tripId,
       title: localChecklistItem.title,

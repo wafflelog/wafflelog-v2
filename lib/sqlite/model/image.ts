@@ -197,7 +197,7 @@ export async function actionCreateLocalImage(input: CreateLocalImageInput) {
 
 export async function actionListLocalImagesByPin(
   pinId: string,
-  userId: string,
+  _userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -238,10 +238,10 @@ export async function actionListLocalImagesByPin(
         sync_error,
         deleted_at
       from image
-      where pin_id = ? and user_id = ? and deleted_at is null
+      where pin_id = ? and deleted_at is null
       order by created_at desc
     `,
-    [pinId, userId],
+    [pinId],
   );
 
   return rows.map(mapLocalImageRow);
@@ -249,15 +249,15 @@ export async function actionListLocalImagesByPin(
 
 export async function actionCountLocalImagesByPin(
   pinId: string,
-  userId: string,
+  _userId: string,
 ) {
   const row = await sqlite.getFirstAsync<{ total: number }>(
     `
       select count(*) as total
       from image
-      where pin_id = ? and user_id = ? and deleted_at is null
+      where pin_id = ? and deleted_at is null
     `,
-    [pinId, userId],
+    [pinId],
   );
 
   return row?.total ?? 0;
@@ -265,7 +265,7 @@ export async function actionCountLocalImagesByPin(
 
 export async function actionListLocalImagesByTrip(
   tripId: string,
-  userId: string,
+  _userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -316,14 +316,12 @@ export async function actionListLocalImagesByTrip(
       from image
       left join pin
         on pin.id = image.pin_id
-        and pin.user_id = image.user_id
       left join pin_location
         on pin_location.pin_id = pin.id
-        and pin_location.user_id = image.user_id
-      where image.trip_id = ? and image.user_id = ? and image.deleted_at is null
+      where image.trip_id = ? and image.deleted_at is null
       order by image.created_at desc
     `,
-    [tripId, userId],
+    [tripId],
   );
 
   return rows.map(mapLocalImageRow);
