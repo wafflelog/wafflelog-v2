@@ -80,6 +80,7 @@ export default function TripImagesScreen() {
                 width: item.width,
                 height: item.height,
                 caption: item.caption ?? undefined,
+                creator: item.creator,
               }}
               showCaption={true}
               onPress={() => {

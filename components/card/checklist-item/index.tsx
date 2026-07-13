@@ -1,5 +1,6 @@
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
+import { getCreatorDisplayName } from "@/lib/creator";
 import { type ChecklistItem } from "@/types";
 import { Check as CheckIcon, Trash2 as Trash2Icon } from "lucide-react-native";
 
@@ -40,6 +41,9 @@ export const CardTripChecklistItem = ({
           style={checklistItem.completed && styles.titleCompleted}
         >
           {checklistItem.title}
+        </TitleRegular>
+        <TitleRegular size="xs" color={colors.textLightGrey}>
+          {getCreatorDisplayName(checklistItem.creator)}
         </TitleRegular>
       </View>
       {onDeletePress && (

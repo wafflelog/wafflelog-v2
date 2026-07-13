@@ -69,6 +69,7 @@ export const PinDocuments = ({
                 mimeType: document.mimeType,
                 url: document.localUri ?? "",
                 caption: document.caption ?? undefined,
+                creator: document.creator,
               }}
               variant="regular"
               onPress={() =>

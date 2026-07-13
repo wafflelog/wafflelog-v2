@@ -1,5 +1,6 @@
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
+import { getCreatorDisplayName } from "@/lib/creator";
 import { type Document } from "@/types/pin";
 import {
   ExternalLink as ExternalLinkIcon,
@@ -43,6 +44,9 @@ export function CardDocumentRegular({
         <TitleRegular size="xs">{document.caption}</TitleRegular>
         <TitleRegular size="xxs">
           {document.mimeType.toUpperCase()}
+        </TitleRegular>
+        <TitleRegular size="xs" color={colors.textLightGrey}>
+          {getCreatorDisplayName(document.creator)}
         </TitleRegular>
       </View>
 

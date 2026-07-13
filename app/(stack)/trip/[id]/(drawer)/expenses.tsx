@@ -135,6 +135,7 @@ export default function TripExpensesScreen() {
                     id: item.paidByUserId,
                     fullname: item.paidByName,
                   },
+                  creator: item.creator,
                 }}
                 onPress={() => {}}
               />

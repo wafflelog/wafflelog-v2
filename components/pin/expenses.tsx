@@ -45,6 +45,7 @@ export const PinExpenses = ({
       id: expense.paidByUserId,
       fullname: expense.paidByName,
     },
+    creator: expense.creator,
   }));
 
   const softDeleteExpenseMutation = useMutation({

@@ -152,6 +152,7 @@ export default function TripIndexScreen() {
       expenses: [],
       images: [],
       notes: [],
+      creator: pin.creator,
     }));
     const filteredSelectedDayPins =
       selectedCategoryIds.length > 0

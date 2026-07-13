@@ -5,6 +5,7 @@ import {
   actionUpdateRemoteChecklistItemFromLocal,
   actionUpsertRemoteChecklistItemFromLocal,
 } from "@/lib/supabase/actions";
+import { type CreatorAttribution } from "./user-profile";
 
 export type CreateLocalChecklistItemInput = {
   tripId: string;
@@ -24,6 +25,7 @@ export type LocalChecklistItem = {
   lastSyncedAt: string | null;
   syncError: string | null;
   deletedAt: string | null;
+  creator: CreatorAttribution;
 };
 
 const DEFAULT_SYNC_BATCH_SIZE = 25;
@@ -40,7 +42,8 @@ function mapLocalChecklistItemRow(row: {
   last_synced_at: string | null;
   sync_error: string | null;
   deleted_at: string | null;
-}): LocalChecklistItem {
+  creator_username?: string | null;
+}, currentUserId?: string): LocalChecklistItem {
   return {
     id: row.id,
     tripId: row.trip_id,
@@ -53,6 +56,11 @@ function mapLocalChecklistItemRow(row: {
     lastSyncedAt: row.last_synced_at,
     syncError: row.sync_error,
     deletedAt: row.deleted_at,
+    creator: {
+      userId: row.user_id,
+      username: row.creator_username ?? null,
+      isCurrentUser: row.user_id === currentUserId,
+    },
   };
 }
 
@@ -105,7 +113,7 @@ export async function actionCreateLocalChecklistItem(
     ],
   );
 
-  return mapLocalChecklistItemRow(localChecklistItem);
+  return mapLocalChecklistItemRow(localChecklistItem, input.userId);
 }
 
 export async function actionListLocalChecklistItems(
@@ -137,15 +145,18 @@ export async function actionListLocalChecklistItems(
         sync_status,
         last_synced_at,
         sync_error,
-        deleted_at
+        deleted_at,
+        user_profile.username as creator_username
       from checklist_item
+      left join user_profile
+        on user_profile.id = checklist_item.user_id
       where trip_id = ? and deleted_at is null
       order by created_at asc
     `,
     [tripId],
   );
 
-  return rows.map(mapLocalChecklistItemRow);
+  return rows.map((row) => mapLocalChecklistItemRow(row, _userId));
 }
 
 export async function actionToggleLocalChecklistItemCompleted(id: string) {
@@ -244,7 +255,7 @@ export async function actionListPendingLocalChecklistItems(
     [userId, userId, limit],
   );
 
-  return rows.map(mapLocalChecklistItemRow);
+  return rows.map((row) => mapLocalChecklistItemRow(row, userId));
 }
 
 export async function actionMarkLocalChecklistItemSyncing(

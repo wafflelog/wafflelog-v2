@@ -128,6 +128,7 @@ export default function TripDocumentsScreen() {
                   mimeType: item.mimeType,
                   url: "",
                   caption: item.caption ?? undefined,
+                  creator: item.creator,
                 }}
                 variant="regular"
                 onPress={() =>

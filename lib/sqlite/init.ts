@@ -48,6 +48,12 @@ export async function initializeDatabase() {
       primary key (trip_id, user_id)
     );
 
+    create table if not exists user_profile (
+      id text primary key not null,
+      username text not null,
+      updated_at text not null
+    );
+
     create table if not exists checklist_item (
       id text primary key not null,
       trip_id text not null,

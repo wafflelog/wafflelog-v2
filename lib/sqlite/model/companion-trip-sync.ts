@@ -9,6 +9,7 @@ import {
   actionUpsertLocalTripFromRemote,
   actionUpsertLocalTripMembershipFromRemote,
 } from "./trip";
+import { actionUpsertLocalUserProfilesFromRemote } from "./user-profile";
 
 const DEFAULT_SYNC_BATCH_SIZE = 25;
 
@@ -355,6 +356,7 @@ async function actionPullCompanionTrip(membership: {
 }) {
   const bundle = await actionGetRemoteTripSyncBundle(membership.tripId);
 
+  await actionUpsertLocalUserProfilesFromRemote(bundle.userProfiles);
   await actionUpsertLocalTripFromRemote(bundle.trip);
   await actionUpsertLocalTripMembershipFromRemote({
     tripId: membership.tripId,

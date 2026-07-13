@@ -1,5 +1,6 @@
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
+import { getCreatorDisplayName } from "@/lib/creator";
 import { type ReferenceLink } from "@/types/pin";
 import { useRouter } from "expo-router";
 import {
@@ -44,6 +45,9 @@ export function CardPinReferenceLinkRegular({
           <TitleRegular size="xs">{referenceLink.caption}</TitleRegular>
           <TitleRegular size="xs" color={colors.purple}>
             {referenceLink.url}
+          </TitleRegular>
+          <TitleRegular size="xs" color={colors.textLightGrey}>
+            {getCreatorDisplayName(referenceLink.creator)}
           </TitleRegular>
         </>
       </TouchableOpacity>

@@ -1,6 +1,7 @@
 import { IconPinCategory } from "@/components/icon/pin-category";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
+import { getCreatorDisplayName } from "@/lib/creator";
 import { getPinSubtitle, getPinTimeLabelForDate, getPinTitle } from "@/lib/pin";
 import { type Pin } from "@/types/pin";
 
@@ -34,6 +35,9 @@ export const CardPinRegular = ({
 
         {timeLabel ? <TitleRegular size="xs">{timeLabel}</TitleRegular> : null}
         {subtitle ? <TitleRegular size="xs">{subtitle}</TitleRegular> : null}
+        <TitleRegular size="xs" color={colors.textLightGrey}>
+          {getCreatorDisplayName(pin.creator)}
+        </TitleRegular>
       </View>
 
       <View style={styles.chevronContainer}>

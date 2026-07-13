@@ -53,6 +53,7 @@ export const PinImages = ({
     width: image.width,
     height: image.height,
     caption: image.caption ?? undefined,
+    creator: image.creator,
   }));
 
   return (

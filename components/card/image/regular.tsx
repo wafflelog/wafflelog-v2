@@ -1,8 +1,8 @@
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
+import { getCreatorDisplayName } from "@/lib/creator";
 import { type Image } from "@/types/pin";
 import { Image as ExpoImage } from "expo-image";
-import { useRouter } from "expo-router";
 import { Trash2 as Trash2Icon } from "lucide-react-native";
 import { StyleSheet, TouchableOpacity } from "react-native";
 
@@ -22,6 +22,9 @@ export function CardImageRegular({
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <ExpoImage style={styles.image} source={image.url} contentFit="cover" />
+      <TitleRegular size="xs" style={styles.creator}>
+        {getCreatorDisplayName(image.creator)}
+      </TitleRegular>
       {onDeletePress && (
         <TouchableOpacity
           style={styles.deleteButton}
@@ -56,6 +59,15 @@ const styles = StyleSheet.create({
     backgroundColor: getColor(colors.black, 0.5),
     color: getColor(colors.white),
     padding: gaps.xs,
+  },
+  creator: {
+    position: "absolute",
+    top: gaps.xs,
+    left: gaps.xs,
+    backgroundColor: getColor(colors.black, 0.5),
+    color: getColor(colors.white),
+    paddingHorizontal: gaps.xs,
+    paddingVertical: 2,
   },
   image: {
     flex: 1,

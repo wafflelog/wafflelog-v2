@@ -63,6 +63,7 @@ export const PinLinks = ({
                 title: referenceLink.title ?? referenceLink.url,
                 url: referenceLink.url,
                 caption: referenceLink.caption ?? undefined,
+                creator: referenceLink.creator,
               }}
               onDeletePress={() => {
                 setSelectedReferenceLinkId(referenceLink.id);

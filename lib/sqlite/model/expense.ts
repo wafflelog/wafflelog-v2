@@ -5,6 +5,7 @@ import {
   actionUpsertRemoteExpenseFromLocal,
 } from "@/lib/supabase/actions";
 import { type PinMetadata } from "@/types/pin";
+import { type CreatorAttribution } from "./user-profile";
 
 type LocalExpensePinSummary = {
   id: string;
@@ -32,6 +33,7 @@ export type LocalExpense = {
   lastSyncedAt: string | null;
   syncError: string | null;
   deletedAt: string | null;
+  creator: CreatorAttribution;
   pin: LocalExpensePinSummary | null;
 };
 
@@ -85,7 +87,8 @@ function mapLocalExpenseRow(row: {
   pin_category_id?: string | null;
   pin_metadata_json?: string | null;
   pin_display_name?: string | null;
-}): LocalExpense {
+  creator_username?: string | null;
+}, currentUserId?: string): LocalExpense {
   return {
     id: row.id,
     pinId: row.pin_id,
@@ -102,6 +105,11 @@ function mapLocalExpenseRow(row: {
     lastSyncedAt: row.last_synced_at,
     syncError: row.sync_error,
     deletedAt: row.deleted_at,
+    creator: {
+      userId: row.user_id,
+      username: row.creator_username ?? null,
+      isCurrentUser: row.user_id === currentUserId,
+    },
     pin:
       row.pin_id && row.pin_category_id
         ? {
@@ -176,12 +184,12 @@ export async function actionCreateLocalExpense(input: CreateLocalExpenseInput) {
     ],
   );
 
-  return mapLocalExpenseRow(localExpense);
+  return mapLocalExpenseRow(localExpense, input.userId);
 }
 
 export async function actionListLocalExpensesByPin(
   pinId: string,
-  _userId: string,
+  userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -202,34 +210,37 @@ export async function actionListLocalExpensesByPin(
   }>(
     `
       select
-        id,
-        pin_id,
-        trip_id,
-        user_id,
-        description,
-        amount,
-        currency,
-        paid_by_user_id,
-        paid_by_name,
-        created_at,
-        updated_at,
-        sync_status,
-        last_synced_at,
-        sync_error,
-        deleted_at
+        expense.id,
+        expense.pin_id,
+        expense.trip_id,
+        expense.user_id,
+        expense.description,
+        expense.amount,
+        expense.currency,
+        expense.paid_by_user_id,
+        expense.paid_by_name,
+        expense.created_at,
+        expense.updated_at,
+        expense.sync_status,
+        expense.last_synced_at,
+        expense.sync_error,
+        expense.deleted_at,
+        user_profile.username as creator_username
       from expense
-      where pin_id = ? and deleted_at is null
-      order by created_at desc
+      left join user_profile
+        on user_profile.id = expense.user_id
+      where expense.pin_id = ? and expense.deleted_at is null
+      order by expense.created_at desc
     `,
     [pinId],
   );
 
-  return rows.map(mapLocalExpenseRow);
+  return rows.map((row) => mapLocalExpenseRow(row, userId));
 }
 
 export async function actionListLocalExpensesByTrip(
   tripId: string,
-  _userId: string,
+  userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -251,6 +262,7 @@ export async function actionListLocalExpensesByTrip(
     pin_category_id: string | null;
     pin_metadata_json: string | null;
     pin_display_name: string | null;
+    creator_username: string | null;
   }>(
     `
       select
@@ -272,8 +284,11 @@ export async function actionListLocalExpensesByTrip(
         pin.name as pin_name,
         pin.category_id as pin_category_id,
         pin.metadata_json as pin_metadata_json,
-        pin_location.display_name as pin_display_name
+        pin_location.display_name as pin_display_name,
+        user_profile.username as creator_username
       from expense
+      left join user_profile
+        on user_profile.id = expense.user_id
       left join pin
         on pin.id = expense.pin_id
       left join pin_location
@@ -284,7 +299,7 @@ export async function actionListLocalExpensesByTrip(
     [tripId],
   );
 
-  return rows.map(mapLocalExpenseRow);
+  return rows.map((row) => mapLocalExpenseRow(row, userId));
 }
 
 export async function actionListPendingLocalExpenses(
@@ -333,7 +348,7 @@ export async function actionListPendingLocalExpenses(
     [userId, limit],
   );
 
-  return rows.map(mapLocalExpenseRow);
+  return rows.map((row) => mapLocalExpenseRow(row, userId));
 }
 
 export async function actionSoftDeleteLocalExpense(id: string, userId: string) {

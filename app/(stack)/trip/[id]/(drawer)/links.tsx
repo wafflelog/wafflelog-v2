@@ -65,6 +65,7 @@ export default function TripLinksScreen() {
       title: referenceLink.title ?? referenceLink.url,
       url: referenceLink.url,
       caption: captionParts.length ? captionParts.join(" · ") : undefined,
+      creator: referenceLink.creator,
     };
   });
 

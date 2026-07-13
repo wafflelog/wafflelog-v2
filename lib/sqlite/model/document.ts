@@ -6,6 +6,7 @@ import {
 } from "@/lib/supabase/actions";
 import { uploadTravelDocumentToStorage } from "@/lib/supabase/storage";
 import { type PinMetadata } from "@/types/pin";
+import { type CreatorAttribution } from "./user-profile";
 
 type LocalDocumentPinSummary = {
   id: string;
@@ -34,6 +35,7 @@ export type LocalDocument = {
   lastSyncedAt: string | null;
   syncError: string | null;
   deletedAt: string | null;
+  creator: CreatorAttribution;
   pin: LocalDocumentPinSummary | null;
 };
 
@@ -90,7 +92,8 @@ function mapLocalDocumentRow(row: {
   pin_category_id?: string | null;
   pin_metadata_json?: string | null;
   pin_display_name?: string | null;
-}): LocalDocument {
+  creator_username?: string | null;
+}, currentUserId?: string): LocalDocument {
   return {
     id: row.id,
     tripId: row.trip_id,
@@ -108,6 +111,11 @@ function mapLocalDocumentRow(row: {
     lastSyncedAt: row.last_synced_at,
     syncError: row.sync_error,
     deletedAt: row.deleted_at,
+    creator: {
+      userId: row.user_id,
+      username: row.creator_username ?? null,
+      isCurrentUser: row.user_id === currentUserId,
+    },
     pin:
       row.pin_id && row.pin_category_id
         ? {
@@ -187,12 +195,12 @@ export async function actionCreateLocalDocument(
     ],
   );
 
-  return mapLocalDocumentRow(localDocument);
+  return mapLocalDocumentRow(localDocument, input.userId);
 }
 
 export async function actionListLocalDocumentsByTrip(
   tripId: string,
-  _userId: string,
+  userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -215,6 +223,7 @@ export async function actionListLocalDocumentsByTrip(
     pin_category_id: string | null;
     pin_metadata_json: string | null;
     pin_display_name: string | null;
+    creator_username: string | null;
   }>(
     `
       select
@@ -237,8 +246,11 @@ export async function actionListLocalDocumentsByTrip(
         pin.name as pin_name,
         pin.category_id as pin_category_id,
         pin.metadata_json as pin_metadata_json,
-        pin_location.display_name as pin_display_name
+        pin_location.display_name as pin_display_name,
+        user_profile.username as creator_username
       from document
+      left join user_profile
+        on user_profile.id = document.user_id
       left join pin
         on pin.id = document.pin_id
       left join pin_location
@@ -249,12 +261,12 @@ export async function actionListLocalDocumentsByTrip(
     [tripId],
   );
 
-  return rows.map(mapLocalDocumentRow);
+  return rows.map((row) => mapLocalDocumentRow(row, userId));
 }
 
 export async function actionListLocalDocumentsByPin(
   pinId: string,
-  _userId: string,
+  userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -276,30 +288,33 @@ export async function actionListLocalDocumentsByPin(
   }>(
     `
       select
-        id,
-        trip_id,
-        pin_id,
-        user_id,
-        file_name,
-        mime_type,
-        local_uri,
-        storage_bucket,
-        storage_path,
-        caption,
-        created_at,
-        updated_at,
-        sync_status,
-        last_synced_at,
-        sync_error,
-        deleted_at
+        document.id,
+        document.trip_id,
+        document.pin_id,
+        document.user_id,
+        document.file_name,
+        document.mime_type,
+        document.local_uri,
+        document.storage_bucket,
+        document.storage_path,
+        document.caption,
+        document.created_at,
+        document.updated_at,
+        document.sync_status,
+        document.last_synced_at,
+        document.sync_error,
+        document.deleted_at,
+        user_profile.username as creator_username
       from document
-      where pin_id = ? and deleted_at is null
-      order by created_at desc
+      left join user_profile
+        on user_profile.id = document.user_id
+      where document.pin_id = ? and document.deleted_at is null
+      order by document.created_at desc
     `,
     [pinId],
   );
 
-  return rows.map(mapLocalDocumentRow);
+  return rows.map((row) => mapLocalDocumentRow(row, userId));
 }
 
 export async function actionListPendingLocalDocuments(
@@ -350,7 +365,7 @@ export async function actionListPendingLocalDocuments(
     [userId, limit],
   );
 
-  return rows.map(mapLocalDocumentRow);
+  return rows.map((row) => mapLocalDocumentRow(row, userId));
 }
 
 export async function actionSoftDeleteLocalDocument(

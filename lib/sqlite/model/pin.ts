@@ -6,6 +6,7 @@ import {
   actionUpsertRemotePinFromLocal,
 } from "@/lib/supabase/actions";
 import { type PinMetadata } from "@/types/pin";
+import { type CreatorAttribution } from "./user-profile";
 
 export type LocalPinLocationSummary = {
   placeId: string;
@@ -33,6 +34,7 @@ export type LocalPin = {
   syncError: string | null;
   deletedAt: string | null;
   location: LocalPinLocationSummary | null;
+  creator: CreatorAttribution;
 };
 
 export type CreateLocalPinInput = {
@@ -110,9 +112,10 @@ type LocalPinRow = {
   formatted_address?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  creator_username?: string | null;
 };
 
-function mapLocalPinRow(row: LocalPinRow): LocalPin {
+function mapLocalPinRow(row: LocalPinRow, currentUserId?: string): LocalPin {
   return {
     id: row.id,
     tripId: row.trip_id,
@@ -145,6 +148,11 @@ function mapLocalPinRow(row: LocalPinRow): LocalPin {
             longitude: row.longitude,
           }
         : null,
+    creator: {
+      userId: row.user_id,
+      username: row.creator_username ?? null,
+      isCurrentUser: row.user_id === currentUserId,
+    },
   };
 }
 
@@ -165,6 +173,7 @@ const selectLocalPinColumns = `
   pin.last_synced_at,
   pin.sync_error,
   pin.deleted_at,
+  user_profile.username as creator_username,
   pin_location.place_id,
   pin_location.display_name,
   pin_location.formatted_address,
@@ -234,14 +243,16 @@ export async function actionCreateLocalPin(input: CreateLocalPinInput) {
     ],
   );
 
-  return mapLocalPinRow(localPin);
+  return mapLocalPinRow(localPin, input.userId);
 }
 
-export async function actionListLocalPins(tripId: string, _userId: string) {
+export async function actionListLocalPins(tripId: string, userId: string) {
   const rows = await sqlite.getAllAsync<LocalPinRow>(
     `
       select ${selectLocalPinColumns}
       from pin
+      left join user_profile
+        on user_profile.id = pin.user_id
       left join pin_location
         on pin_location.pin_id = pin.id
         and pin_location.user_id = pin.user_id
@@ -251,18 +262,20 @@ export async function actionListLocalPins(tripId: string, _userId: string) {
     [tripId],
   );
 
-  return rows.map(mapLocalPinRow);
+  return rows.map((row) => mapLocalPinRow(row, userId));
 }
 
 export async function actionListLocalPinsByTripAndDate(
   tripId: string,
-  _userId: string,
+  userId: string,
   date: string,
 ) {
   const rows = await sqlite.getAllAsync<LocalPinRow>(
     `
       select ${selectLocalPinColumns}
       from pin
+      left join user_profile
+        on user_profile.id = pin.user_id
       left join pin_location
         on pin_location.pin_id = pin.id
         and pin_location.user_id = pin.user_id
@@ -275,14 +288,16 @@ export async function actionListLocalPinsByTripAndDate(
     [tripId, date, date],
   );
 
-  return rows.map(mapLocalPinRow);
+  return rows.map((row) => mapLocalPinRow(row, userId));
 }
 
-export async function actionGetLocalPin(id: string, _userId: string) {
+export async function actionGetLocalPin(id: string, userId: string) {
   const row = await sqlite.getFirstAsync<LocalPinRow>(
     `
       select ${selectLocalPinColumns}
       from pin
+      left join user_profile
+        on user_profile.id = pin.user_id
       left join pin_location
         on pin_location.pin_id = pin.id
         and pin_location.user_id = pin.user_id
@@ -292,7 +307,7 @@ export async function actionGetLocalPin(id: string, _userId: string) {
     [id],
   );
 
-  return row ? mapLocalPinRow(row) : null;
+  return row ? mapLocalPinRow(row, userId) : null;
 }
 
 export async function actionUpdateLocalPin(input: UpdateLocalPinInput) {
@@ -421,6 +436,8 @@ export async function actionListPendingLocalPins(
     `
       select ${selectLocalPinColumns}
       from pin
+      left join user_profile
+        on user_profile.id = pin.user_id
       left join pin_location
         on pin_location.pin_id = pin.id
         and pin_location.user_id = pin.user_id
@@ -431,7 +448,7 @@ export async function actionListPendingLocalPins(
     [userId, limit],
   );
 
-  return rows.map(mapLocalPinRow);
+  return rows.map((row) => mapLocalPinRow(row, userId));
 }
 
 export async function actionSoftDeleteLocalPin(id: string, userId: string) {

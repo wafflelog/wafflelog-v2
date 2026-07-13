@@ -141,6 +141,11 @@ export type RemoteTripSyncBundle = {
   expenses: ReturnType<typeof mapExpenseRow>[];
   documents: ReturnType<typeof mapDocumentRow>[];
   images: ReturnType<typeof mapImageRow>[];
+  userProfiles: {
+    id: string;
+    username: string;
+    updatedAt: string;
+  }[];
 };
 
 const mapTripRow = (trip: TripRow) => ({
@@ -1612,6 +1617,33 @@ export async function actionGetRemoteTripSyncBundle(
     throw firstError;
   }
 
+  const creatorUserIds = Array.from(
+    new Set([
+      trip.userId,
+      ...(pinsResult.data ?? []).map((pin) => pin.user_id),
+      ...(checklistItemsResult.data ?? []).map((checklistItem) => checklistItem.user_id),
+      ...(notesResult.data ?? []).map((note) => note.user_id),
+      ...(referenceLinksResult.data ?? []).map((referenceLink) => referenceLink.user_id),
+      ...(expensesResult.data ?? []).flatMap((expense) => [
+        expense.user_id,
+        expense.paid_by_user_id,
+      ]),
+      ...(documentsResult.data ?? []).map((document) => document.user_id),
+      ...(imagesResult.data ?? []).map((image) => image.user_id),
+    ]),
+  );
+
+  const { data: userProfiles, error: userProfilesError } = creatorUserIds.length
+    ? await supabase
+        .from("user")
+        .select("id, username, updated_at")
+        .in("id", creatorUserIds)
+    : { data: [], error: null };
+
+  if (userProfilesError) {
+    throw userProfilesError;
+  }
+
   return {
     trip,
     pins: (pinsResult.data ?? []).map(mapPinRow),
@@ -1621,6 +1653,11 @@ export async function actionGetRemoteTripSyncBundle(
     expenses: (expensesResult.data ?? []).map(mapExpenseRow),
     documents: (documentsResult.data ?? []).map(mapDocumentRow),
     images: (imagesResult.data ?? []).map(mapImageRow),
+    userProfiles: (userProfiles ?? []).map((profile) => ({
+      id: profile.id,
+      username: profile.username,
+      updatedAt: profile.updated_at,
+    })),
   };
 }
 

@@ -6,6 +6,7 @@ import {
 } from "@/lib/supabase/actions";
 import { uploadImageToStorage } from "@/lib/media/image";
 import { type PinMetadata } from "@/types/pin";
+import { type CreatorAttribution } from "./user-profile";
 
 type LocalImagePinSummary = {
   id: string;
@@ -35,6 +36,7 @@ export type LocalImage = {
   lastSyncedAt: string | null;
   syncError: string | null;
   deletedAt: string | null;
+  creator: CreatorAttribution;
   pin: LocalImagePinSummary | null;
 };
 
@@ -93,7 +95,8 @@ function mapLocalImageRow(row: {
   pin_category_id?: string | null;
   pin_metadata_json?: string | null;
   pin_display_name?: string | null;
-}): LocalImage {
+  creator_username?: string | null;
+}, currentUserId?: string): LocalImage {
   return {
     id: row.id,
     pinId: row.pin_id,
@@ -112,6 +115,11 @@ function mapLocalImageRow(row: {
     lastSyncedAt: row.last_synced_at,
     syncError: row.sync_error,
     deletedAt: row.deleted_at,
+    creator: {
+      userId: row.user_id,
+      username: row.creator_username ?? null,
+      isCurrentUser: row.user_id === currentUserId,
+    },
     pin:
       row.pin_id && row.pin_category_id
         ? {
@@ -192,12 +200,12 @@ export async function actionCreateLocalImage(input: CreateLocalImageInput) {
     ],
   );
 
-  return mapLocalImageRow(localImage);
+  return mapLocalImageRow(localImage, input.userId);
 }
 
 export async function actionListLocalImagesByPin(
   pinId: string,
-  _userId: string,
+  userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -220,36 +228,39 @@ export async function actionListLocalImagesByPin(
   }>(
     `
       select
-        id,
-        pin_id,
-        trip_id,
-        user_id,
-        local_uri,
-        storage_bucket,
-        storage_path,
-        mime_type,
-        width,
-        height,
-        caption,
-        created_at,
-        updated_at,
-        sync_status,
-        last_synced_at,
-        sync_error,
-        deleted_at
+        image.id,
+        image.pin_id,
+        image.trip_id,
+        image.user_id,
+        image.local_uri,
+        image.storage_bucket,
+        image.storage_path,
+        image.mime_type,
+        image.width,
+        image.height,
+        image.caption,
+        image.created_at,
+        image.updated_at,
+        image.sync_status,
+        image.last_synced_at,
+        image.sync_error,
+        image.deleted_at,
+        user_profile.username as creator_username
       from image
-      where pin_id = ? and deleted_at is null
-      order by created_at desc
+      left join user_profile
+        on user_profile.id = image.user_id
+      where image.pin_id = ? and image.deleted_at is null
+      order by image.created_at desc
     `,
     [pinId],
   );
 
-  return rows.map(mapLocalImageRow);
+  return rows.map((row) => mapLocalImageRow(row, userId));
 }
 
 export async function actionCountLocalImagesByPin(
   pinId: string,
-  _userId: string,
+  userId: string,
 ) {
   const row = await sqlite.getFirstAsync<{ total: number }>(
     `
@@ -265,7 +276,7 @@ export async function actionCountLocalImagesByPin(
 
 export async function actionListLocalImagesByTrip(
   tripId: string,
-  _userId: string,
+  userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -289,6 +300,7 @@ export async function actionListLocalImagesByTrip(
     pin_category_id: string | null;
     pin_metadata_json: string | null;
     pin_display_name: string | null;
+    creator_username: string | null;
   }>(
     `
       select
@@ -312,8 +324,11 @@ export async function actionListLocalImagesByTrip(
         pin.name as pin_name,
         pin.category_id as pin_category_id,
         pin.metadata_json as pin_metadata_json,
-        pin_location.display_name as pin_display_name
+        pin_location.display_name as pin_display_name,
+        user_profile.username as creator_username
       from image
+      left join user_profile
+        on user_profile.id = image.user_id
       left join pin
         on pin.id = image.pin_id
       left join pin_location
@@ -324,7 +339,7 @@ export async function actionListLocalImagesByTrip(
     [tripId],
   );
 
-  return rows.map(mapLocalImageRow);
+  return rows.map((row) => mapLocalImageRow(row, userId));
 }
 
 export async function actionListPendingLocalImages(
@@ -377,7 +392,7 @@ export async function actionListPendingLocalImages(
     [userId, limit],
   );
 
-  return rows.map(mapLocalImageRow);
+  return rows.map((row) => mapLocalImageRow(row, userId));
 }
 
 export async function actionSoftDeleteLocalImage(id: string, userId: string) {

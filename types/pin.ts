@@ -1,6 +1,12 @@
 import { colors } from "@/constants/theme";
 import { type User } from "./user";
 
+export type Creator = {
+  userId: string;
+  username: string | null;
+  isCurrentUser: boolean;
+};
+
 export const CURRENCIES = [
   "EUR",
   "USD",
@@ -36,6 +42,7 @@ export type Image = {
   caption?: string;
   width: number;
   height: number;
+  creator?: Creator;
 };
 
 export type ReferenceLink = {
@@ -43,6 +50,7 @@ export type ReferenceLink = {
   title: string;
   url: string;
   caption?: string;
+  creator?: Creator;
 };
 
 export type Document = {
@@ -51,6 +59,7 @@ export type Document = {
   mimeType: string;
   url: string;
   caption?: string;
+  creator?: Creator;
 };
 
 export type Expense = {
@@ -60,6 +69,7 @@ export type Expense = {
   amount: number;
   currency: Currency;
   paidBy: User;
+  creator?: Creator;
 };
 
 export type Note = {
@@ -84,6 +94,7 @@ export type Pin = {
   expenses: Expense[];
   images: Image[];
   notes: Note[];
+  creator?: Creator;
 };
 
 export type PinCategory = {

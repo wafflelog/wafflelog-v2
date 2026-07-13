@@ -1,5 +1,6 @@
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
+import { getCreatorDisplayName } from "@/lib/creator";
 import { type Expense } from "@/types/pin";
 import {
   DollarSign as DollarSignIcon,
@@ -33,6 +34,9 @@ export function CardExpenseRegular({
           {[expense.context, `Paid by ${expense.paidBy.fullname}`]
             .filter(Boolean)
             .join(" · ")}
+        </TitleRegular>
+        <TitleRegular size="xs" color={colors.textLightGrey}>
+          {getCreatorDisplayName(expense.creator)}
         </TitleRegular>
       </View>
 
