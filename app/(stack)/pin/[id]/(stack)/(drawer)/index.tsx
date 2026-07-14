@@ -107,6 +107,9 @@ export default function PinIndexScreen() {
     enabled: Boolean(id && session?.user.id),
   });
 
+  const canEditPin = Boolean(
+    localPin && session?.user.id && localPin.userId === session.user.id,
+  );
   const noteCount = localNotes.length;
   const noteBadgeText = noteCount > 99 ? "99+" : String(noteCount);
 
@@ -315,14 +318,18 @@ export default function PinIndexScreen() {
             </View>
             <CardPinLocationRegular
               pin={pin}
-              onPress={() => {
-                router.push({
-                  pathname: "/place-search",
-                  params: {
-                    pinId: pin.id,
-                  },
-                });
-              }}
+              onPress={
+                canEditPin
+                  ? () => {
+                      router.push({
+                        pathname: "/place-search",
+                        params: {
+                          pinId: pin.id,
+                        },
+                      });
+                    }
+                  : undefined
+              }
             />
           </View>
 
@@ -355,34 +362,38 @@ export default function PinIndexScreen() {
             }
           />
 
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => {
-              if (!localTrip) {
-                showMessage("Trip details are still loading", "error");
-                return;
-              }
+          {canEditPin && (
+            <>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => {
+                  if (!localTrip) {
+                    showMessage("Trip details are still loading", "error");
+                    return;
+                  }
 
-              setIsEditPinDialogVisible(true);
-            }}
-            activeOpacity={0.8}
-          >
-            <SquarePenIcon size={18} color={getColor(colors.purple)} />
-            <TitleRegular size="sm" weight="600" color={colors.purple}>
-              Edit Pin
-            </TitleRegular>
-          </TouchableOpacity>
+                  setIsEditPinDialogVisible(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <SquarePenIcon size={18} color={getColor(colors.purple)} />
+                <TitleRegular size="sm" weight="600" color={colors.purple}>
+                  Edit Pin
+                </TitleRegular>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => setIsDeleteDialogVisible(true)}
-            activeOpacity={0.8}
-          >
-            <Trash2Icon size={18} color={getColor(colors.red)} />
-            <TitleRegular size="sm" weight="600" color={colors.red}>
-              Delete Pin
-            </TitleRegular>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => setIsDeleteDialogVisible(true)}
+                activeOpacity={0.8}
+              >
+                <Trash2Icon size={18} color={getColor(colors.red)} />
+                <TitleRegular size="sm" weight="600" color={colors.red}>
+                  Delete Pin
+                </TitleRegular>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </ScrollView>
       <TouchableOpacity
@@ -421,7 +432,7 @@ export default function PinIndexScreen() {
         isPending={softDeletePinMutation.isPending}
         confirmVariant="danger"
       />
-      {localTrip ? (
+      {localTrip && canEditPin ? (
         <DialogNewPin
           tripId={localPin.tripId}
           tripStartDate={localTrip.startDate}

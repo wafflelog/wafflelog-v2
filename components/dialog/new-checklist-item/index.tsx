@@ -3,7 +3,10 @@ import { UIInputText } from "@/components/ui/input/text";
 import { gaps } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { actionCreateLocalChecklistItem } from "@/lib/sqlite/model/checklist-item";
+import {
+  actionCreateLocalChecklistItem,
+  type LocalChecklistItem,
+} from "@/lib/sqlite/model/checklist-item";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -26,8 +29,18 @@ export const DialogNewChecklistItem = ({
   const [checklistItemTitle, setChecklistItemTitle] = useState("");
   const createChecklistItemMutation = useMutation({
     mutationFn: actionCreateLocalChecklistItem,
-    onSuccess: () => {
+    onSuccess: (checklistItem) => {
       if (session?.user.id) {
+        queryClient.setQueryData<LocalChecklistItem[]>(
+          ["local-checklist-items", tripId, session.user.id],
+          (items = []) => {
+            if (items.some((item) => item.id === checklistItem.id)) {
+              return items;
+            }
+
+            return [...items, checklistItem];
+          },
+        );
         queryClient.invalidateQueries({
           queryKey: ["local-checklist-items", tripId, session.user.id],
         });

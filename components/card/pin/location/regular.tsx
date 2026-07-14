@@ -6,7 +6,7 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 type CardPinLocationRegularProps = {
   pin: Pin;
-  onPress: () => void;
+  onPress?: () => void;
 };
 
 export function CardPinLocationRegular({
@@ -21,12 +21,14 @@ export function CardPinLocationRegular({
       <TitleRegular size="xs">
         {pin.location.address || "Save a location for this pin"}
       </TitleRegular>
-      <TouchableOpacity style={styles.button} onPress={onPress}>
-        <MapIcon size={16} color={getColor(colors.pineGreen)} />
-        <TitleRegular size="xs" weight="600">
-          Change Place
-        </TitleRegular>
-      </TouchableOpacity>
+      {onPress && (
+        <TouchableOpacity style={styles.button} onPress={onPress}>
+          <MapIcon size={16} color={getColor(colors.pineGreen)} />
+          <TitleRegular size="xs" weight="600">
+            Change Place
+          </TitleRegular>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }

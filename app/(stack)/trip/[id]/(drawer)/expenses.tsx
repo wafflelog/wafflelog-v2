@@ -8,7 +8,10 @@ import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { getPinTitle } from "@/lib/pin";
-import { actionListLocalExpensesByTrip } from "@/lib/sqlite/model/expense";
+import {
+  actionListLocalExpensesByTrip,
+  getLocalExpensePayerDisplayName,
+} from "@/lib/sqlite/model/expense";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { type Currency } from "@/types/pin";
 import { useQuery } from "@tanstack/react-query";
@@ -133,7 +136,10 @@ export default function TripExpensesScreen() {
                   currency: item.currency as Currency,
                   paidBy: {
                     id: item.paidByUserId,
-                    fullname: item.paidByName,
+                    fullname: getLocalExpensePayerDisplayName(
+                      item,
+                      session!.user.id,
+                    ),
                   },
                   creator: item.creator,
                 }}

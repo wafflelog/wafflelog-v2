@@ -1,6 +1,9 @@
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionSyncPendingLocalChecklistItems } from "@/lib/sqlite/model/checklist-item";
-import { actionPullActiveCompanionTrips } from "@/lib/sqlite/model/companion-trip-sync";
+import {
+  actionPullActiveCompanionTrips,
+  actionPullOwnedTrips,
+} from "@/lib/sqlite/model/companion-trip-sync";
 import { actionSyncPendingLocalDocuments } from "@/lib/sqlite/model/document";
 import { actionSyncPendingLocalExpenses } from "@/lib/sqlite/model/expense";
 import { actionSyncPendingLocalImages } from "@/lib/sqlite/model/image";
@@ -117,6 +120,56 @@ async function runCompanionPullSync() {
   }
 }
 
+async function runOwnedTripPullSync(userId: string) {
+  let offset = 0;
+
+  while (true) {
+    const ownedTripResult = await actionPullOwnedTrips(
+      userId,
+      SYNC_BATCH_SIZE,
+      offset,
+    );
+
+    if (ownedTripResult.processed === 0 || !ownedTripResult.hasMore) {
+      break;
+    }
+
+    offset = ownedTripResult.nextOffset;
+  }
+}
+
+async function invalidateLocalSyncQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  userId: string,
+) {
+  const queryKeys = [
+    ["local-trips", userId],
+    ["local-trip"],
+    ["local-pins"],
+    ["local-pin"],
+    ["local-pin-locations"],
+    ["local-pin-location"],
+    ["local-checklist-items"],
+    ["local-notes"],
+    ["local-reference-links"],
+    ["local-trip-reference-links"],
+    ["local-trip-expenses"],
+    ["local-pin-expenses"],
+    ["local-trip-documents"],
+    ["local-pin-documents"],
+    ["local-trip-images"],
+    ["local-pin-images"],
+  ];
+
+  await Promise.all(
+    queryKeys.map((queryKey) =>
+      queryClient.invalidateQueries({
+        queryKey,
+      }),
+    ),
+  );
+}
+
 export const GlobalDbSync = () => {
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
@@ -130,12 +183,9 @@ export const GlobalDbSync = () => {
     isSyncRunningRef.current = true;
 
     void runPendingUploadSync(session.user.id)
+      .then(() => runOwnedTripPullSync(session.user.id))
       .then(runCompanionPullSync)
-      .then(() =>
-        queryClient.invalidateQueries({
-          queryKey: ["local-trips", session.user.id],
-        }),
-      )
+      .then(() => invalidateLocalSyncQueries(queryClient, session.user.id))
       .catch((error) => {
         console.error("Error running pending upload sync:", error);
       })

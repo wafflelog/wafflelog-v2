@@ -354,10 +354,7 @@ async function actionPullCompanionTrip(membership: {
   createdAt: string;
   updatedAt: string;
 }) {
-  const bundle = await actionGetRemoteTripSyncBundle(membership.tripId);
-
-  await actionUpsertLocalUserProfilesFromRemote(bundle.userProfiles);
-  await actionUpsertLocalTripFromRemote(bundle.trip);
+  await actionPullTripBundle(membership.tripId);
   await actionUpsertLocalTripMembershipFromRemote({
     tripId: membership.tripId,
     userId: membership.userId,
@@ -367,6 +364,13 @@ async function actionPullCompanionTrip(membership: {
     createdAt: membership.createdAt,
     updatedAt: membership.updatedAt,
   });
+}
+
+async function actionPullTripBundle(tripId: string) {
+  const bundle = await actionGetRemoteTripSyncBundle(tripId);
+
+  await actionUpsertLocalUserProfilesFromRemote(bundle.userProfiles);
+  await actionUpsertLocalTripFromRemote(bundle.trip);
 
   for (const pin of bundle.pins) {
     await actionUpsertLocalPinFromRemote(pin);
@@ -395,6 +399,33 @@ async function actionPullCompanionTrip(membership: {
   for (const image of bundle.images) {
     await upsertImageFromRemote(image);
   }
+}
+
+export async function actionPullOwnedTrips(
+  userId: string,
+  limit = DEFAULT_SYNC_BATCH_SIZE,
+  offset = 0,
+) {
+  const trips = await sqlite.getAllAsync<{ id: string }>(
+    `
+      select id
+      from trip
+      where user_id = ? and deleted_at is null
+      order by updated_at desc
+      limit ? offset ?
+    `,
+    [userId, limit, offset],
+  );
+
+  for (const trip of trips) {
+    await actionPullTripBundle(trip.id);
+  }
+
+  return {
+    processed: trips.length,
+    nextOffset: offset + trips.length,
+    hasMore: trips.length === limit,
+  };
 }
 
 export async function actionPullActiveCompanionTrips(

@@ -95,6 +95,7 @@ export default function TripChecklistScreen() {
       <FlatList
         contentContainerStyle={styles.checklist}
         data={checklistData}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <CardTripChecklistItem
             checklistItem={item}

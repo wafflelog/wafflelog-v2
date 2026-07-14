@@ -7,6 +7,7 @@ import { CardExpenseRegular } from "@/components/card/expense/regular";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { colors, getColor } from "@/constants/theme";
 import {
+  getLocalExpensePayerDisplayName,
   actionListLocalExpensesByPin,
   actionSoftDeleteLocalExpense,
 } from "@/lib/sqlite/model/expense";
@@ -43,7 +44,7 @@ export const PinExpenses = ({
     currency: expense.currency as Pin["expenses"][number]["currency"],
     paidBy: {
       id: expense.paidByUserId,
-      fullname: expense.paidByName,
+      fullname: getLocalExpensePayerDisplayName(expense, userId),
     },
     creator: expense.creator,
   }));

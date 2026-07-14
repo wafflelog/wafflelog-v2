@@ -27,6 +27,7 @@ export type LocalExpense = {
   currency: string;
   paidByUserId: string;
   paidByName: string;
+  paidByUsername: string | null;
   createdAt: string;
   updatedAt: string;
   syncStatus: string;
@@ -49,6 +50,21 @@ export type CreateLocalExpenseInput = {
 };
 
 const DEFAULT_SYNC_BATCH_SIZE = 25;
+
+export function getLocalExpensePayerDisplayName(
+  expense: Pick<LocalExpense, "paidByUserId" | "paidByName" | "paidByUsername">,
+  currentUserId: string,
+) {
+  if (expense.paidByUserId === currentUserId) {
+    return "You";
+  }
+
+  if (expense.paidByUsername) {
+    return `@${expense.paidByUsername}`;
+  }
+
+  return expense.paidByName === "You" ? "Unknown payer" : expense.paidByName;
+}
 
 function parsePinMetadata(metadata: string | null): PinMetadata {
   if (!metadata) {
@@ -77,6 +93,7 @@ function mapLocalExpenseRow(row: {
   currency: string;
   paid_by_user_id: string;
   paid_by_name: string;
+  payer_username?: string | null;
   created_at: string;
   updated_at: string;
   sync_status: string;
@@ -99,6 +116,7 @@ function mapLocalExpenseRow(row: {
     currency: row.currency,
     paidByUserId: row.paid_by_user_id,
     paidByName: row.paid_by_name,
+    paidByUsername: row.payer_username ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     syncStatus: row.sync_status,
@@ -201,6 +219,7 @@ export async function actionListLocalExpensesByPin(
     currency: string;
     paid_by_user_id: string;
     paid_by_name: string;
+    payer_username: string | null;
     created_at: string;
     updated_at: string;
     sync_status: string;
@@ -219,6 +238,7 @@ export async function actionListLocalExpensesByPin(
         expense.currency,
         expense.paid_by_user_id,
         expense.paid_by_name,
+        payer_profile.username as payer_username,
         expense.created_at,
         expense.updated_at,
         expense.sync_status,
@@ -229,6 +249,8 @@ export async function actionListLocalExpensesByPin(
       from expense
       left join user_profile
         on user_profile.id = expense.user_id
+      left join user_profile as payer_profile
+        on payer_profile.id = expense.paid_by_user_id
       where expense.pin_id = ? and expense.deleted_at is null
       order by expense.created_at desc
     `,
@@ -252,6 +274,7 @@ export async function actionListLocalExpensesByTrip(
     currency: string;
     paid_by_user_id: string;
     paid_by_name: string;
+    payer_username: string | null;
     created_at: string;
     updated_at: string;
     sync_status: string;
@@ -275,6 +298,7 @@ export async function actionListLocalExpensesByTrip(
         expense.currency,
         expense.paid_by_user_id,
         expense.paid_by_name,
+        payer_profile.username as payer_username,
         expense.created_at,
         expense.updated_at,
         expense.sync_status,
@@ -289,6 +313,8 @@ export async function actionListLocalExpensesByTrip(
       from expense
       left join user_profile
         on user_profile.id = expense.user_id
+      left join user_profile as payer_profile
+        on payer_profile.id = expense.paid_by_user_id
       left join pin
         on pin.id = expense.pin_id
       left join pin_location
