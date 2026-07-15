@@ -6,8 +6,8 @@ import { Wallet as WalletIcon } from "lucide-react-native";
 import { CardExpenseRegular } from "@/components/card/expense/regular";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { colors, getColor } from "@/constants/theme";
+import { getExpensePayerDisplayName } from "@/lib/helper/expense";
 import {
-  getLocalExpensePayerDisplayName,
   actionListLocalExpensesByPin,
   actionSoftDeleteLocalExpense,
 } from "@/lib/sqlite/model/expense";
@@ -44,7 +44,10 @@ export const PinExpenses = ({
     currency: expense.currency as Pin["expenses"][number]["currency"],
     paidBy: {
       id: expense.paidByUserId,
-      fullname: getLocalExpensePayerDisplayName(expense, userId),
+      fullname: getExpensePayerDisplayName({
+        ...expense,
+        currentUserId: userId,
+      }),
     },
     creator: expense.creator,
   }));

@@ -51,21 +51,6 @@ export type CreateLocalExpenseInput = {
 
 const DEFAULT_SYNC_BATCH_SIZE = 25;
 
-export function getLocalExpensePayerDisplayName(
-  expense: Pick<LocalExpense, "paidByUserId" | "paidByName" | "paidByUsername">,
-  currentUserId: string,
-) {
-  if (expense.paidByUserId === currentUserId) {
-    return "You";
-  }
-
-  if (expense.paidByUsername) {
-    return `@${expense.paidByUsername}`;
-  }
-
-  return expense.paidByName === "You" ? "Unknown payer" : expense.paidByName;
-}
-
 function parsePinMetadata(metadata: string | null): PinMetadata {
   if (!metadata) {
     return { version: 1 };

@@ -1,5 +1,5 @@
 import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/helper/utils";
 import { TripDay } from "@/types/trip";
 import { ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 import { TitleRegular } from "../title/regular";

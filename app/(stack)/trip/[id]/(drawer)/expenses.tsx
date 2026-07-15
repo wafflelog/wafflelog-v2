@@ -7,11 +7,9 @@ import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { getPinTitle } from "@/lib/pin";
-import {
-  actionListLocalExpensesByTrip,
-  getLocalExpensePayerDisplayName,
-} from "@/lib/sqlite/model/expense";
+import { getExpensePayerDisplayName } from "@/lib/helper/expense";
+import { getPinTitle } from "@/lib/helper/pin";
+import { actionListLocalExpensesByTrip } from "@/lib/sqlite/model/expense";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { type Currency } from "@/types/pin";
 import { useQuery } from "@tanstack/react-query";
@@ -74,9 +72,14 @@ export default function TripExpensesScreen() {
     ? localExpenses.filter((expense) => expense.currency === activeCurrency)
     : localExpenses;
 
-  const total = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const total = filteredExpenses.reduce(
+    (sum, expense) => sum + expense.amount,
+    0,
+  );
   const youPaid = filteredExpenses.reduce((sum, expense) => {
-    return expense.paidByUserId === session?.user.id ? sum + expense.amount : sum;
+    return expense.paidByUserId === session?.user.id
+      ? sum + expense.amount
+      : sum;
   }, 0);
   const youAreOwed = 0;
 
@@ -131,15 +134,17 @@ export default function TripExpensesScreen() {
                 expense={{
                   id: item.id,
                   description: item.description,
-                  context: item.pin ? `For ${getPinTitle(item.pin)}` : undefined,
+                  context: item.pin
+                    ? `For ${getPinTitle(item.pin)}`
+                    : undefined,
                   amount: item.amount,
                   currency: item.currency as Currency,
                   paidBy: {
                     id: item.paidByUserId,
-                    fullname: getLocalExpensePayerDisplayName(
-                      item,
-                      session!.user.id,
-                    ),
+                    fullname: getExpensePayerDisplayName({
+                      ...item,
+                      currentUserId: session!.user.id,
+                    }),
                   },
                   creator: item.creator,
                 }}

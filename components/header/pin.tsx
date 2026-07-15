@@ -1,5 +1,5 @@
 import { colors, getColor } from "@/constants/theme";
-import { getPinHeaderTimeLabel, getPinTitle } from "@/lib/pin";
+import { getPinHeaderTimeLabel, getPinTitle } from "@/lib/helper/pin";
 import { type Pin } from "@/types/pin";
 import {
   HeaderBackButton,
@@ -19,13 +19,15 @@ type HeaderDefaultProps = {
 };
 
 type HeaderPinTitleProps = {
-  pin?: Pick<Pin, "name" | "startDate" | "endDate" | "time" | "endTime"> & {
-    categoryId?: string;
-    metadataJson?: {
-      departure?: string;
-      destination?: string;
-    };
-  } | null;
+  pin?:
+    | (Pick<Pin, "name" | "startDate" | "endDate" | "time" | "endTime"> & {
+        categoryId?: string;
+        metadataJson?: {
+          departure?: string;
+          destination?: string;
+        };
+      })
+    | null;
 } & Partial<HeaderTitleProps>;
 
 type HeaderPinButtonProps = {

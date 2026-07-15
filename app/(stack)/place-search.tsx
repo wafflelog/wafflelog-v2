@@ -1,6 +1,7 @@
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { persistLocalPlaceImage } from "@/lib/media/place";
+import { canEditPinLocation } from "@/lib/helper/permissions";
 import { actionGetLocalPin } from "@/lib/sqlite/model/pin";
 import { actionUpsertLocalPinLocation } from "@/lib/sqlite/model/pin-location";
 import { Ionicons } from "@expo/vector-icons";
@@ -173,7 +174,12 @@ export default function PlaceSearchScreen() {
       setIsSaving(true);
       const localPin = await actionGetLocalPin(pinId, session.user.id);
 
-      if (!localPin || localPin.userId !== session.user.id) {
+      if (
+        !canEditPinLocation({
+          currentUserId: session.user.id,
+          entityUserId: localPin?.userId,
+        })
+      ) {
         showMessage("Only the pin creator can change its location", "error");
         return;
       }

@@ -38,7 +38,8 @@ import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { getPinHeaderTimeLabel } from "@/lib/pin";
+import { canEditPin } from "@/lib/helper/permissions";
+import { getPinHeaderTimeLabel } from "@/lib/helper/pin";
 import { actionGetLocalPinLocation } from "@/lib/sqlite/model/pin-location";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import {
@@ -107,8 +108,16 @@ export default function PinIndexScreen() {
     enabled: Boolean(id && session?.user.id),
   });
 
-  const canEditPin = Boolean(
-    localPin && session?.user.id && localPin.userId === session.user.id,
+  const isPinEditable = canEditPin(
+    localPin
+      ? {
+          currentUserId: session?.user.id,
+          entityUserId: localPin.userId,
+        }
+      : {
+          currentUserId: session?.user.id,
+          entityUserId: null,
+        },
   );
   const noteCount = localNotes.length;
   const noteBadgeText = noteCount > 99 ? "99+" : String(noteCount);
@@ -240,9 +249,9 @@ export default function PinIndexScreen() {
           <Pressable
             onPress={() => {
               router.push({
-                  pathname: "/trip/[id]/map",
-                  params: {
-                    id: localPin.tripId,
+                pathname: "/trip/[id]/map",
+                params: {
+                  id: localPin.tripId,
                   date: localPin.startDate,
                   pinId: localPin.id,
                 },
@@ -319,7 +328,7 @@ export default function PinIndexScreen() {
             <CardPinLocationRegular
               pin={pin}
               onPress={
-                canEditPin
+                isPinEditable
                   ? () => {
                       router.push({
                         pathname: "/place-search",
@@ -362,7 +371,7 @@ export default function PinIndexScreen() {
             }
           />
 
-          {canEditPin && (
+          {isPinEditable && (
             <>
               <TouchableOpacity
                 style={styles.editButton}
@@ -432,7 +441,7 @@ export default function PinIndexScreen() {
         isPending={softDeletePinMutation.isPending}
         confirmVariant="danger"
       />
-      {localTrip && canEditPin ? (
+      {localTrip && isPinEditable ? (
         <DialogNewPin
           tripId={localPin.tripId}
           tripStartDate={localTrip.startDate}

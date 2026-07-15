@@ -6,7 +6,7 @@ import {
   gaps,
   getColor,
 } from "@/constants/theme";
-import { getFontFamily } from "@/lib/utils";
+import { getFontFamily } from "@/lib/helper/utils";
 import {
   KeyboardType,
   StyleProp,

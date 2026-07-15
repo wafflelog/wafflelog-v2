@@ -1,5 +1,5 @@
+import { getCreatorDisplayName } from "@/lib/helper/creator";
 import { sqlite } from "@/lib/sqlite/client";
-import { getCreatorDisplayName } from "@/lib/creator";
 
 export type CreatorAttribution = {
   userId: string;
@@ -30,7 +30,11 @@ export async function actionUpsertLocalUserProfilesFromRemote(
           username = excluded.username,
           updated_at = excluded.updated_at
       `,
-      [profile.id, profile.username, profile.updatedAt ?? new Date().toISOString()],
+      [
+        profile.id,
+        profile.username,
+        profile.updatedAt ?? new Date().toISOString(),
+      ],
     );
   }
 }

@@ -1,12 +1,12 @@
-import { CardDocument } from "@/components/card/document";
 import { ButtonFab } from "@/components/button/fab";
+import { CardDocument } from "@/components/card/document";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { DialogNewDocument } from "@/components/dialog/new-document";
 import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { getPinTitle } from "@/lib/pin";
+import { getPinTitle } from "@/lib/helper/pin";
 import {
   actionListLocalDocumentsByTrip,
   actionSoftDeleteLocalDocument,
@@ -78,7 +78,9 @@ export default function TripDocumentsScreen() {
   }) => {
     try {
       if (!document.localUri) {
-        throw new Error("This document is not available offline on this device");
+        throw new Error(
+          "This document is not available offline on this device",
+        );
       }
 
       router.push({

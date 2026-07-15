@@ -1,7 +1,7 @@
 import { ListUsersHorizontalIcons } from "@/components/list/users/horizontal-icons";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/helper/utils";
 import { type Trip } from "@/types/trip";
 
 import {

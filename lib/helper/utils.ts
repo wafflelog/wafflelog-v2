@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { type ConfigType } from "dayjs";
 import { Platform } from "react-native";
 
 import { match } from "ts-pattern";
@@ -18,17 +19,20 @@ export function formatTime(time: string) {
   return dayjs(time).format("HH:mm");
 }
 
-export function formatCreatedAt(dateTime: string) {
-  const now = dayjs();
+export function formatCreatedAt(
+  dateTime: string,
+  referenceDateTime: ConfigType = dayjs(),
+) {
+  const referenceDate = dayjs(referenceDateTime);
   const date = dayjs(dateTime);
 
   // If it's today, show hours and minutes
-  if (date.isSame(now, "day")) {
+  if (date.isSame(referenceDate, "day")) {
     return date.format("HH:mm");
   }
 
   // If it's not today but same month, show date and month
-  if (date.isSame(now, "month")) {
+  if (date.isSame(referenceDate, "month")) {
     return date.format("DD MMM");
   }
 

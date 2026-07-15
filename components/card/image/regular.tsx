@@ -1,6 +1,6 @@
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
-import { getCreatorDisplayName } from "@/lib/creator";
+import { getCreatorDisplayName } from "@/lib/helper/creator";
 import { type Image } from "@/types/pin";
 import { Image as ExpoImage } from "expo-image";
 import { Trash2 as Trash2Icon } from "lucide-react-native";

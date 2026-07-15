@@ -1,5 +1,5 @@
 import { CATEGORIES } from "@/constants/pin-categories";
-import { isRangePinCategory } from "@/lib/pin";
+import { isRangePinCategory } from "@/lib/helper/pin";
 import { iso, z } from "zod";
 
 const categoryIds: string[] = CATEGORIES.map((category) => category.id);
@@ -24,7 +24,11 @@ export const newPinFormSchema = z
     const isRangePin = isRangePinCategory(value.pinCategoryId);
 
     if (isRangePin) {
-      const endDate = z.string().min(1).pipe(iso.date()).safeParse(value.pinEndDate);
+      const endDate = z
+        .string()
+        .min(1)
+        .pipe(iso.date())
+        .safeParse(value.pinEndDate);
 
       if (!endDate.success) {
         context.addIssue({

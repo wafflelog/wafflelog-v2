@@ -29,13 +29,13 @@ type DialogProps = {
   overlay?: React.ReactNode;
 };
 
-const sizes = {
-  xs: "30%",
-  sm: "50%",
-  md: "70%",
-  lg: "80%",
-  xl: "100%",
-} as const;
+// const sizes = {
+//   xs: "30%",
+//   sm: "50%",
+//   md: "70%",
+//   lg: "80%",
+//   xl: "100%",
+// } as const;
 
 export function Dialog({
   title,

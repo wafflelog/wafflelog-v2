@@ -1,7 +1,7 @@
 import { CardUserIcon } from "@/components/card/user/icon";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
-import { formatCreatedAt } from "@/lib/utils";
+import { formatCreatedAt } from "@/lib/helper/utils";
 import { type Note } from "@/types/pin";
 import { Trash2 as Trash2Icon } from "lucide-react-native";
 import {

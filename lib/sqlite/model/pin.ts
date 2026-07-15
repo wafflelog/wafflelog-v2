@@ -1,4 +1,4 @@
-import { isRangePinCategory } from "@/lib/pin";
+import { isRangePinCategory } from "@/lib/helper/pin";
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
 import {

@@ -1,8 +1,8 @@
 import { IconPinCategory } from "@/components/icon/pin-category";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
-import { getCreatorDisplayName } from "@/lib/creator";
-import { getPinSubtitle, getPinTimeLabelForDate, getPinTitle } from "@/lib/pin";
+import { getCreatorDisplayName } from "@/lib/helper/creator";
+import { getPinSubtitle, getPinTimeLabelForDate, getPinTitle } from "@/lib/helper/pin";
 import { type Pin } from "@/types/pin";
 
 import { ChevronRight as ChevronRightIcon } from "lucide-react-native";

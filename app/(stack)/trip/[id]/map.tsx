@@ -1,13 +1,13 @@
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
-import { getPinTimeLabelForDate, getPinTitle } from "@/lib/pin";
+import { formatDate } from "@/lib/helper/utils";
+import { getPinTimeLabelForDate, getPinTitle } from "@/lib/helper/pin";
 import {
   actionListLocalPinLocationsByTripAndDate,
   type LocalPinWithLocation,
 } from "@/lib/sqlite/model/pin-location";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
-import { formatDate } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";

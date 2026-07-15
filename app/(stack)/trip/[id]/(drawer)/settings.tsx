@@ -4,11 +4,11 @@ import { TitleRegular } from "@/components/title/regular";
 import { UIText } from "@/components/ui/text";
 import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { formatDateRange } from "@/lib/helper/utils";
 import {
   actionGetLocalTrip,
   actionSoftDeleteLocalTrip,
 } from "@/lib/sqlite/model/trip";
-import { formatDateRange } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {

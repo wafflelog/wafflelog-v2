@@ -5,7 +5,7 @@ import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { getPinTitle } from "@/lib/pin";
+import { getPinTitle } from "@/lib/helper/pin";
 import { actionListLocalImagesByTrip } from "@/lib/sqlite/model/image";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { useQuery } from "@tanstack/react-query";

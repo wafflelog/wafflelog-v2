@@ -13,6 +13,9 @@
     "eas:android:preview": "eas build --platform android --profile preview",
     "lint": "expo lint",
     "ts": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run unit.test",
+    "test:watch": "vitest",
     "sb:gen": "supabase gen types typescript --project-id shscucanawhrjahqokvn --schema public > ./lib/supabase/types.ts"
   },
   "dependencies": {
@@ -66,7 +69,8 @@
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "supabase": "^2.92.1",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "vitest": "^4.1.10"
   },
   "private": true
 }

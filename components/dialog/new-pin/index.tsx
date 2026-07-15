@@ -12,13 +12,13 @@ import {
   buildTransportMetadata,
   EMPTY_PIN_METADATA,
   isRangePinCategory,
-} from "@/lib/pin";
+} from "@/lib/helper/pin";
+import { formatDate } from "@/lib/helper/utils";
 import {
   actionCreateLocalPin,
   actionSyncLocalPin,
   actionUpdateLocalPin,
 } from "@/lib/sqlite/model/pin";
-import { formatDate } from "@/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
@@ -309,11 +309,7 @@ export const DialogNewPin = ({
         title={isEditMode ? "Edit Pin" : "New Pin"}
         size="md"
         confirmText={
-          step === "category"
-            ? "Next"
-            : isEditMode
-              ? "Save"
-              : "Create"
+          step === "category" ? "Next" : isEditMode ? "Save" : "Create"
         }
         onConfirm={handleConfirm}
       >

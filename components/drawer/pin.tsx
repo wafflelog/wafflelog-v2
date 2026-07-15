@@ -12,13 +12,13 @@ import { DrawerItemRegular } from "@/components/drawer/item/regular";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
-import { getPinTitle } from "@/lib/pin";
+import { formatDate } from "@/lib/helper/utils";
+import { getPinTitle } from "@/lib/helper/pin";
 import {
   actionGetLocalPin,
   actionListLocalPinsByTripAndDate,
 } from "@/lib/sqlite/model/pin";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
-import { formatDate } from "@/lib/utils";
 
 interface DrawerPinProps extends DrawerContentComponentProps {
   id?: string;

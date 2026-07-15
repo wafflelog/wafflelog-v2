@@ -5,7 +5,7 @@ import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { getPinTitle } from "@/lib/pin";
+import { getPinTitle } from "@/lib/helper/pin";
 import { actionListLocalReferenceLinksByTrip } from "@/lib/sqlite/model/reference-link";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { useQuery } from "@tanstack/react-query";
@@ -29,7 +29,8 @@ export default function TripLinksScreen() {
 
   const { data: localReferenceLinks = [] } = useQuery({
     queryKey: ["local-trip-reference-links", String(id), session?.user.id],
-    queryFn: () => actionListLocalReferenceLinksByTrip(String(id), session!.user.id),
+    queryFn: () =>
+      actionListLocalReferenceLinksByTrip(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
   });
 
@@ -58,7 +59,9 @@ export default function TripLinksScreen() {
     const linkedPinLabel = referenceLink.pin
       ? `For ${getPinTitle(referenceLink.pin)}`
       : null;
-    const captionParts = [linkedPinLabel, referenceLink.caption].filter(Boolean);
+    const captionParts = [linkedPinLabel, referenceLink.caption].filter(
+      Boolean,
+    );
 
     return {
       id: referenceLink.id,

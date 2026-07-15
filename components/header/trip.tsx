@@ -1,5 +1,5 @@
 import { colors, getColor } from "@/constants/theme";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/helper/utils";
 import { type Trip } from "@/types/trip";
 import {
   HeaderBackButton,

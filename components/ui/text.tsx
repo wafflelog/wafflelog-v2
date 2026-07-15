@@ -1,4 +1,4 @@
-import { type FontWeight, getFontFamily } from "@/lib/utils";
+import { type FontWeight, getFontFamily } from "@/lib/helper/utils";
 import { StyleProp, StyleSheet, Text, TextStyle } from "react-native";
 
 type UITextProps = {
