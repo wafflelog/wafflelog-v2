@@ -19,6 +19,12 @@ export const adminClient = createClient<Database>(url, secretKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+export function createPublicClient() {
+  return createClient<Database>(url, publishableKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
 export function createUserClient(accessToken: string) {
   return createClient<Database>(url, publishableKey, {
     auth: { autoRefreshToken: false, persistSession: false },

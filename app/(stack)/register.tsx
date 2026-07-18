@@ -25,7 +25,8 @@ export default function RegisterScreen() {
   const [username, setUsername] = useState("");
 
   const signUpMutation = useMutation({
-    mutationFn: actionSignUpWithEmail,
+    mutationFn: (input: Parameters<typeof actionSignUpWithEmail>[0]) =>
+      actionSignUpWithEmail(input),
     onSuccess: (data) => {
       setPassword("");
 

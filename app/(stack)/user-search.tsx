@@ -54,7 +54,8 @@ export default function UserSearchScreen() {
   });
 
   const inviteMutation = useMutation({
-    mutationFn: actionCreateTripInvitation,
+    mutationFn: (input: Parameters<typeof actionCreateTripInvitation>[0]) =>
+      actionCreateTripInvitation(input),
     onSuccess: (_, variables) => {
       const invitedUser = availableUsers.find(
         (user) => user.id === variables.inviteeUserId,

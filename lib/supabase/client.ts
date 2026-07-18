@@ -4,7 +4,6 @@ import { Database } from "./types";
 
 const ExpoSecureStoreAdapter = {
   getItem: (key: string) => {
-    console.debug("getItem", { key, getItemAsync });
     return getItemAsync(key);
   },
   setItem: (key: string, value: string) => {

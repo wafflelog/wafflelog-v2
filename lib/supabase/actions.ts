@@ -1,6 +1,7 @@
 import { type PinMetadata } from "@/types/pin";
+import { type SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "./client";
-import { type Json, type Tables, type TablesInsert } from "./types";
+import { type Database, type Json, type Tables, type TablesInsert } from "./types";
 
 export type CreateTripInput = {
   id?: string;
@@ -374,11 +375,14 @@ const mapTripInvitationStatus = (status: string) => {
   }
 };
 
-export async function actionCreateTrip(input: CreateTripInput) {
+export async function actionCreateTrip(
+  input: CreateTripInput,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -396,7 +400,7 @@ export async function actionCreateTrip(input: CreateTripInput) {
     user_id: user.id,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("trip")
     .insert(payload)
     .select()
@@ -409,11 +413,14 @@ export async function actionCreateTrip(input: CreateTripInput) {
   return mapTripRow(data);
 }
 
-export async function actionUpsertRemoteTripFromLocal(input: CreateTripInput) {
+export async function actionUpsertRemoteTripFromLocal(
+  input: CreateTripInput,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -431,7 +438,7 @@ export async function actionUpsertRemoteTripFromLocal(input: CreateTripInput) {
     user_id: user.id,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("trip")
     .upsert(payload)
     .select()
@@ -444,11 +451,14 @@ export async function actionUpsertRemoteTripFromLocal(input: CreateTripInput) {
   return mapTripRow(data);
 }
 
-export async function actionSoftDeleteRemoteTrip(tripId: string) {
+export async function actionSoftDeleteRemoteTrip(
+  tripId: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -460,7 +470,7 @@ export async function actionSoftDeleteRemoteTrip(tripId: string) {
 
   const deletedAt = new Date().toISOString();
 
-  const { error } = await supabase
+  const { error } = await client
     .from("trip")
     .update({ deleted_at: deletedAt, updated_at: deletedAt })
     .eq("id", tripId)
@@ -471,11 +481,14 @@ export async function actionSoftDeleteRemoteTrip(tripId: string) {
   }
 }
 
-export async function actionUpsertRemotePinFromLocal(input: CreatePinInput) {
+export async function actionUpsertRemotePinFromLocal(
+  input: CreatePinInput,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -498,7 +511,7 @@ export async function actionUpsertRemotePinFromLocal(input: CreatePinInput) {
     metadata_json: input.metadataJson,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("pin")
     .upsert(payload)
     .select(
@@ -513,11 +526,14 @@ export async function actionUpsertRemotePinFromLocal(input: CreatePinInput) {
   return mapPinRow(data);
 }
 
-export async function actionSoftDeleteRemotePin(pinId: string) {
+export async function actionSoftDeleteRemotePin(
+  pinId: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -529,7 +545,7 @@ export async function actionSoftDeleteRemotePin(pinId: string) {
 
   const deletedAt = new Date().toISOString();
 
-  const { error } = await supabase
+  const { error } = await client
     .from("pin")
     .update({ deleted_at: deletedAt, updated_at: deletedAt })
     .eq("id", pinId)
@@ -542,11 +558,12 @@ export async function actionSoftDeleteRemotePin(pinId: string) {
 
 export async function actionUpsertRemoteChecklistItemFromLocal(
   input: CreateChecklistItemInput,
+  client: SupabaseClient<Database> = supabase,
 ) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -564,7 +581,7 @@ export async function actionUpsertRemoteChecklistItemFromLocal(
     completed: input.completed,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("checklist_item")
     .upsert(payload)
     .select(
@@ -581,11 +598,12 @@ export async function actionUpsertRemoteChecklistItemFromLocal(
 
 export async function actionUpdateRemoteChecklistItemFromLocal(
   input: CreateChecklistItemInput,
+  client: SupabaseClient<Database> = supabase,
 ) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -595,7 +613,7 @@ export async function actionUpdateRemoteChecklistItemFromLocal(
     throw new Error("You must be signed in to sync a checklist item");
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("checklist_item")
     .update({
       title: input.title.trim(),
@@ -615,11 +633,14 @@ export async function actionUpdateRemoteChecklistItemFromLocal(
   return mapChecklistItemRow(data);
 }
 
-export async function actionSoftDeleteRemoteChecklistItem(id: string) {
+export async function actionSoftDeleteRemoteChecklistItem(
+  id: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -631,7 +652,7 @@ export async function actionSoftDeleteRemoteChecklistItem(id: string) {
 
   const deletedAt = new Date().toISOString();
 
-  const { error } = await supabase
+  const { error } = await client
     .from("checklist_item")
     .update({ deleted_at: deletedAt, updated_at: deletedAt })
     .eq("id", id);
@@ -641,11 +662,14 @@ export async function actionSoftDeleteRemoteChecklistItem(id: string) {
   }
 }
 
-export async function actionUpsertRemoteNoteFromLocal(input: CreateNoteInput) {
+export async function actionUpsertRemoteNoteFromLocal(
+  input: CreateNoteInput,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -669,7 +693,7 @@ export async function actionUpsertRemoteNoteFromLocal(input: CreateNoteInput) {
     text: normalizedText,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("note")
     .upsert(payload)
     .select(
@@ -684,11 +708,14 @@ export async function actionUpsertRemoteNoteFromLocal(input: CreateNoteInput) {
   return mapNoteRow(data);
 }
 
-export async function actionSoftDeleteRemoteNote(id: string) {
+export async function actionSoftDeleteRemoteNote(
+  id: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -700,7 +727,7 @@ export async function actionSoftDeleteRemoteNote(id: string) {
 
   const deletedAt = new Date().toISOString();
 
-  const { error } = await supabase
+  const { error } = await client
     .from("note")
     .update({ deleted_at: deletedAt, updated_at: deletedAt })
     .eq("id", id);
@@ -712,11 +739,12 @@ export async function actionSoftDeleteRemoteNote(id: string) {
 
 export async function actionUpsertRemoteReferenceLinkFromLocal(
   input: CreateReferenceLinkInput,
+  client: SupabaseClient<Database> = supabase,
 ) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -736,7 +764,7 @@ export async function actionUpsertRemoteReferenceLinkFromLocal(
     caption: input.caption,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("reference_link")
     .upsert(payload)
     .select(
@@ -751,11 +779,14 @@ export async function actionUpsertRemoteReferenceLinkFromLocal(
   return mapReferenceLinkRow(data);
 }
 
-export async function actionSoftDeleteRemoteReferenceLink(id: string) {
+export async function actionSoftDeleteRemoteReferenceLink(
+  id: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -767,7 +798,7 @@ export async function actionSoftDeleteRemoteReferenceLink(id: string) {
 
   const deletedAt = new Date().toISOString();
 
-  const { error } = await supabase
+  const { error } = await client
     .from("reference_link")
     .update({ deleted_at: deletedAt, updated_at: deletedAt })
     .eq("id", id);
@@ -779,11 +810,12 @@ export async function actionSoftDeleteRemoteReferenceLink(id: string) {
 
 export async function actionUpsertRemoteExpenseFromLocal(
   input: CreateExpenseInput,
+  client: SupabaseClient<Database> = supabase,
 ) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -805,7 +837,7 @@ export async function actionUpsertRemoteExpenseFromLocal(
     paid_by_name: input.paidByName.trim(),
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("expense")
     .upsert(payload)
     .select(
@@ -820,11 +852,14 @@ export async function actionUpsertRemoteExpenseFromLocal(
   return mapExpenseRow(data);
 }
 
-export async function actionSoftDeleteRemoteExpense(id: string) {
+export async function actionSoftDeleteRemoteExpense(
+  id: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -836,7 +871,7 @@ export async function actionSoftDeleteRemoteExpense(id: string) {
 
   const deletedAt = new Date().toISOString();
 
-  const { error } = await supabase
+  const { error } = await client
     .from("expense")
     .update({ deleted_at: deletedAt, updated_at: deletedAt })
     .eq("id", id);
@@ -848,11 +883,12 @@ export async function actionSoftDeleteRemoteExpense(id: string) {
 
 export async function actionUpsertRemoteDocumentFromLocal(
   input: CreateDocumentInput,
+  client: SupabaseClient<Database> = supabase,
 ) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -874,7 +910,7 @@ export async function actionUpsertRemoteDocumentFromLocal(
     caption: input.caption,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("document")
     .upsert(payload)
     .select(
@@ -889,11 +925,14 @@ export async function actionUpsertRemoteDocumentFromLocal(
   return mapDocumentRow(data);
 }
 
-export async function actionSoftDeleteRemoteDocument(id: string) {
+export async function actionSoftDeleteRemoteDocument(
+  id: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -905,7 +944,7 @@ export async function actionSoftDeleteRemoteDocument(id: string) {
 
   const deletedAt = new Date().toISOString();
 
-  const { error } = await supabase
+  const { error } = await client
     .from("document")
     .update({ deleted_at: deletedAt, updated_at: deletedAt })
     .eq("id", id);
@@ -917,11 +956,12 @@ export async function actionSoftDeleteRemoteDocument(id: string) {
 
 export async function actionUpsertRemoteImageFromLocal(
   input: CreateImageInput,
+  client: SupabaseClient<Database> = supabase,
 ) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -944,7 +984,7 @@ export async function actionUpsertRemoteImageFromLocal(
     caption: input.caption,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("image")
     .upsert(payload)
     .select(
@@ -959,11 +999,14 @@ export async function actionUpsertRemoteImageFromLocal(
   return mapImageRow(data);
 }
 
-export async function actionSoftDeleteRemoteImage(id: string) {
+export async function actionSoftDeleteRemoteImage(
+  id: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -975,7 +1018,7 @@ export async function actionSoftDeleteRemoteImage(id: string) {
 
   const deletedAt = new Date().toISOString();
 
-  const { error } = await supabase
+  const { error } = await client
     .from("image")
     .update({ deleted_at: deletedAt, updated_at: deletedAt })
     .eq("id", id);
@@ -985,8 +1028,11 @@ export async function actionSoftDeleteRemoteImage(id: string) {
   }
 }
 
-export async function actionSignUpWithEmail(input: SignUpInput) {
-  const { data, error } = await supabase.auth.signUp({
+export async function actionSignUpWithEmail(
+  input: SignUpInput,
+  client: SupabaseClient<Database> = supabase,
+) {
+  const { data, error } = await client.auth.signUp({
     email: input.email.trim(),
     password: input.password,
     options: {
@@ -1003,11 +1049,14 @@ export async function actionSignUpWithEmail(input: SignUpInput) {
   return data;
 }
 
-export async function actionListPublicUsers(searchQuery: string) {
+export async function actionListPublicUsers(
+  searchQuery: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -1018,7 +1067,7 @@ export async function actionListPublicUsers(searchQuery: string) {
   }
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
-  let query = supabase
+  let query = client
     .from("user")
     .select("id, username, created_at, updated_at")
     .order("username", { ascending: true })
@@ -1039,11 +1088,12 @@ export async function actionListPublicUsers(searchQuery: string) {
 
 export async function actionCreateTripInvitation(
   input: CreateTripInvitationInput,
+  client: SupabaseClient<Database> = supabase,
 ) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -1053,7 +1103,7 @@ export async function actionCreateTripInvitation(
     throw new Error("You must be signed in to invite a companion");
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("trip_invitation")
     .insert({
       trip_id: input.tripId,
@@ -1071,11 +1121,13 @@ export async function actionCreateTripInvitation(
   return data;
 }
 
-export async function actionListAppNotifications(): Promise<AppNotification[]> {
+export async function actionListAppNotifications(
+  client: SupabaseClient<Database> = supabase,
+): Promise<AppNotification[]> {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -1085,7 +1137,7 @@ export async function actionListAppNotifications(): Promise<AppNotification[]> {
     throw new Error("You must be signed in to view notifications");
   }
 
-  const { data: notifications, error } = await supabase
+  const { data: notifications, error } = await client
     .from("app_notification")
     .select(
       "id, user_id, actor_user_id, trip_id, trip_invitation_id, type, title, body, read_at, created_at",
@@ -1115,7 +1167,7 @@ export async function actionListAppNotifications(): Promise<AppNotification[]> {
     }));
   }
 
-  const { data: invitations, error: invitationsError } = await supabase
+  const { data: invitations, error: invitationsError } = await client
     .from("trip_invitation")
     .select("id, status")
     .in("id", invitationIds);
@@ -1136,11 +1188,14 @@ export async function actionListAppNotifications(): Promise<AppNotification[]> {
   }));
 }
 
-export async function actionMarkNotificationRead(notificationId: string) {
+export async function actionMarkNotificationRead(
+  notificationId: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -1150,7 +1205,7 @@ export async function actionMarkNotificationRead(notificationId: string) {
     throw new Error("You must be signed in to update notifications");
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("app_notification")
     .update({
       read_at: new Date().toISOString(),
@@ -1167,11 +1222,14 @@ export async function actionMarkNotificationRead(notificationId: string) {
   return data;
 }
 
-export async function actionListTripInvitationsByTrip(tripId: string) {
+export async function actionListTripInvitationsByTrip(
+  tripId: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -1181,7 +1239,7 @@ export async function actionListTripInvitationsByTrip(tripId: string) {
     throw new Error("You must be signed in to view trip invitations");
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("trip_invitation")
     .select(
       "id, trip_id, inviter_user_id, invitee_user_id, status, created_at, updated_at, responded_at",
@@ -1201,7 +1259,7 @@ export async function actionListTripInvitationsByTrip(tripId: string) {
     return [];
   }
 
-  const { data: invitees, error: inviteesError } = await supabase
+  const { data: invitees, error: inviteesError } = await client
     .from("user")
     .select("id, username, created_at, updated_at")
     .in("id", inviteeIds);
@@ -1234,11 +1292,12 @@ export async function actionListTripInvitationsByTrip(tripId: string) {
 
 export async function actionListTripCompanions(
   tripId: string,
+  client: SupabaseClient<Database> = supabase,
 ): Promise<TripCompanionListItem[]> {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -1248,7 +1307,7 @@ export async function actionListTripCompanions(
     throw new Error("You must be signed in to view companions");
   }
 
-  const { data: members, error: membersError } = await supabase
+  const { data: members, error: membersError } = await client
     .from("trip_member")
     .select("id, trip_id, user_id, status, created_at")
     .eq("trip_id", tripId)
@@ -1259,7 +1318,7 @@ export async function actionListTripCompanions(
     throw membersError;
   }
 
-  const { data: invitations, error: invitationsError } = await supabase
+  const { data: invitations, error: invitationsError } = await client
     .from("trip_invitation")
     .select("id, trip_id, invitee_user_id, status, created_at")
     .eq("trip_id", tripId)
@@ -1281,7 +1340,7 @@ export async function actionListTripCompanions(
     return [];
   }
 
-  const { data: users, error: usersError } = await supabase
+  const { data: users, error: usersError } = await client
     .from("user")
     .select("id, username")
     .in("id", userIds);
@@ -1341,11 +1400,14 @@ export async function actionListTripCompanions(
   return [...mappedInvitations, ...mappedMembers];
 }
 
-export async function actionAcceptTripInvitation(invitationId: string) {
+export async function actionAcceptTripInvitation(
+  invitationId: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -1355,7 +1417,7 @@ export async function actionAcceptTripInvitation(invitationId: string) {
     throw new Error("You must be signed in to accept an invitation");
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("trip_invitation")
     .update({
       status: "accepted",
@@ -1373,11 +1435,14 @@ export async function actionAcceptTripInvitation(invitationId: string) {
   return data;
 }
 
-export async function actionRejectTripInvitation(invitationId: string) {
+export async function actionRejectTripInvitation(
+  invitationId: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -1387,7 +1452,7 @@ export async function actionRejectTripInvitation(invitationId: string) {
     throw new Error("You must be signed in to reject an invitation");
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("trip_invitation")
     .update({
       status: "rejected",
@@ -1405,11 +1470,14 @@ export async function actionRejectTripInvitation(invitationId: string) {
   return data;
 }
 
-export async function actionWithdrawTripInvitation(invitationId: string) {
+export async function actionWithdrawTripInvitation(
+  invitationId: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -1419,7 +1487,7 @@ export async function actionWithdrawTripInvitation(invitationId: string) {
     throw new Error("You must be signed in to withdraw an invitation");
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("trip_invitation")
     .update({
       status: "withdrawn",
@@ -1437,11 +1505,14 @@ export async function actionWithdrawTripInvitation(invitationId: string) {
   return data;
 }
 
-export async function actionDisableCompanionAccess(tripMemberId: string) {
+export async function actionDisableCompanionAccess(
+  tripMemberId: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -1451,7 +1522,7 @@ export async function actionDisableCompanionAccess(tripMemberId: string) {
     throw new Error("You must be signed in to disable companion access");
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("trip_member")
     .update({
       status: "disabled",
@@ -1469,11 +1540,14 @@ export async function actionDisableCompanionAccess(tripMemberId: string) {
   return data;
 }
 
-export async function actionRestoreCompanionAccess(tripMemberId: string) {
+export async function actionRestoreCompanionAccess(
+  tripMemberId: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -1483,7 +1557,7 @@ export async function actionRestoreCompanionAccess(tripMemberId: string) {
     throw new Error("You must be signed in to restore companion access");
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("trip_member")
     .update({
       status: "active",
@@ -1501,13 +1575,15 @@ export async function actionRestoreCompanionAccess(tripMemberId: string) {
   return data;
 }
 
-export async function actionListActiveCompanionMemberships(): Promise<
+export async function actionListActiveCompanionMemberships(
+  client: SupabaseClient<Database> = supabase,
+): Promise<
   ActiveCompanionMembership[]
 > {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -1517,7 +1593,7 @@ export async function actionListActiveCompanionMemberships(): Promise<
     throw new Error("You must be signed in to sync shared trips");
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("trip_member")
     .select("id, trip_id, user_id, role, status, created_at, updated_at")
     .eq("user_id", user.id)
@@ -1541,8 +1617,9 @@ export async function actionListActiveCompanionMemberships(): Promise<
 
 export async function actionGetRemoteTripSyncBundle(
   tripId: string,
+  client: SupabaseClient<Database> = supabase,
 ): Promise<RemoteTripSyncBundle> {
-  const trip = await actionGetRemoteTripById(tripId);
+  const trip = await actionGetRemoteTripById(tripId, client);
 
   const [
     pinsResult,
@@ -1553,47 +1630,47 @@ export async function actionGetRemoteTripSyncBundle(
     documentsResult,
     imagesResult,
   ] = await Promise.all([
-    supabase
+    client
       .from("pin")
       .select(
         "id, trip_id, user_id, name, start_date, end_date, time, end_time, category_id, metadata_json, created_at, updated_at, deleted_at",
       )
       .eq("trip_id", tripId)
       .is("deleted_at", null),
-    supabase
+    client
       .from("checklist_item")
       .select(
         "id, trip_id, user_id, title, completed, created_at, updated_at, deleted_at",
       )
       .eq("trip_id", tripId)
       .is("deleted_at", null),
-    supabase
+    client
       .from("note")
       .select("id, trip_id, pin_id, user_id, text, created_at, updated_at, deleted_at")
       .eq("trip_id", tripId)
       .is("deleted_at", null),
-    supabase
+    client
       .from("reference_link")
       .select(
         "id, trip_id, pin_id, user_id, title, url, caption, created_at, updated_at, deleted_at",
       )
       .eq("trip_id", tripId)
       .is("deleted_at", null),
-    supabase
+    client
       .from("expense")
       .select(
         "id, pin_id, trip_id, user_id, description, amount, currency, paid_by_user_id, paid_by_name, created_at, updated_at, deleted_at",
       )
       .eq("trip_id", tripId)
       .is("deleted_at", null),
-    supabase
+    client
       .from("document")
       .select(
         "id, trip_id, pin_id, user_id, file_name, mime_type, storage_bucket, storage_path, caption, created_at, updated_at, deleted_at",
       )
       .eq("trip_id", tripId)
       .is("deleted_at", null),
-    supabase
+    client
       .from("image")
       .select(
         "id, pin_id, trip_id, user_id, storage_bucket, storage_path, mime_type, width, height, caption, created_at, updated_at, deleted_at",
@@ -1634,7 +1711,7 @@ export async function actionGetRemoteTripSyncBundle(
   );
 
   const { data: userProfiles, error: userProfilesError } = creatorUserIds.length
-    ? await supabase
+    ? await client
         .from("user")
         .select("id, username, updated_at")
         .in("id", creatorUserIds)
@@ -1661,11 +1738,14 @@ export async function actionGetRemoteTripSyncBundle(
   };
 }
 
-export async function actionGetRemoteTripById(tripId: string) {
+export async function actionGetRemoteTripById(
+  tripId: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -1675,7 +1755,7 @@ export async function actionGetRemoteTripById(tripId: string) {
     throw new Error("You must be signed in to view a trip");
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("trip")
     .select(
       "id, user_id, title, start_date, end_date, created_at, updated_at, deleted_at",
@@ -1700,11 +1780,14 @@ export async function actionGetRemoteTripById(tripId: string) {
   };
 }
 
-export async function actionGetRemotePinById(pinId: string) {
+export async function actionGetRemotePinById(
+  pinId: string,
+  client: SupabaseClient<Database> = supabase,
+) {
   const {
     data: { user },
     error: authError,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
 
   if (authError) {
     throw authError;
@@ -1714,7 +1797,7 @@ export async function actionGetRemotePinById(pinId: string) {
     throw new Error("You must be signed in to view a pin");
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("pin")
     .select(
       "id, trip_id, user_id, name, start_date, end_date, time, end_time, category_id, metadata_json, created_at, updated_at, deleted_at",
@@ -1730,8 +1813,11 @@ export async function actionGetRemotePinById(pinId: string) {
   return mapPinRow(data);
 }
 
-export async function actionSignInWithEmail(input: SignInInput) {
-  const { data, error } = await supabase.auth.signInWithPassword({
+export async function actionSignInWithEmail(
+  input: SignInInput,
+  client: SupabaseClient<Database> = supabase,
+) {
+  const { data, error } = await client.auth.signInWithPassword({
     email: input.email.trim(),
     password: input.password,
   });

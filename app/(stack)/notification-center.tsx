@@ -72,7 +72,7 @@ export default function NotificationCenterScreen() {
 
   const notificationsQuery = useQuery({
     queryKey: ["app-notifications", session?.user.id],
-    queryFn: actionListAppNotifications,
+    queryFn: () => actionListAppNotifications(),
     enabled: Boolean(session?.user.id),
   });
 

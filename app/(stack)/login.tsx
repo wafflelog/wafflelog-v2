@@ -22,7 +22,8 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
 
   const signInMutation = useMutation({
-    mutationFn: actionSignInWithEmail,
+    mutationFn: (input: Parameters<typeof actionSignInWithEmail>[0]) =>
+      actionSignInWithEmail(input),
     onSuccess: () => {
       setPassword("");
       showMessage("Welcome back", "info");

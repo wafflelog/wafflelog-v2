@@ -46,7 +46,8 @@ export default function TripCompanionsScreen() {
   });
 
   const withdrawInvitationMutation = useMutation({
-    mutationFn: actionWithdrawTripInvitation,
+    mutationFn: (invitationId: string) =>
+      actionWithdrawTripInvitation(invitationId),
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ["trip-companions", tripId, session?.user.id],
@@ -61,7 +62,8 @@ export default function TripCompanionsScreen() {
   });
 
   const disableCompanionMutation = useMutation({
-    mutationFn: actionDisableCompanionAccess,
+    mutationFn: (tripMemberId: string) =>
+      actionDisableCompanionAccess(tripMemberId),
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ["trip-companions", tripId, session?.user.id],
