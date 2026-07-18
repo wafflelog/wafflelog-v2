@@ -15,6 +15,7 @@
     "ts": "tsc --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run unit.test",
+    "test:integration": "vitest run integration.test",
     "test:watch": "vitest",
     "sb:gen": "supabase gen types typescript --project-id shscucanawhrjahqokvn --schema public > ./lib/supabase/types.ts"
   },
@@ -66,6 +67,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "better-sqlite3": "^12.11.1",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "supabase": "^2.92.1",

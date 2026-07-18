@@ -2,217 +2,116 @@
 
 ## Goal
 
-Add a small but useful test suite that protects the companion-trip business rules without making the Expo/React Native setup painful to work with.
+Build useful, layered coverage across Wafflelog without making the Expo/React Native setup painful to work with. Work from fast, deterministic tests outward:
 
-The test strategy has three levels:
+1. Unit tests for pure helpers and schemas
+2. Real in-memory SQLite integration tests for local persistence
+3. Supabase service tests for remote data, sync, and RLS
+4. Component tests for focused UI contracts
+5. A small Maestro E2E smoke suite for critical journeys
 
-1. Unit tests
-2. Integration tests
-3. Service / end-to-end tests
+## Current Baseline
+
+Completed and verified:
+
+- Vitest is configured with `@` path aliases.
+- Unit coverage: 70 tests across 6 files, covering helper functions and dialog schemas.
+- SQLite integration coverage: 7 tests across 4 files, using a real `better-sqlite3` in-memory database through the Expo-like adapter in `test/integration/sqlite/test-db.ts`.
+- `npm run test:unit`, `npm run test:integration`, `npm run ts`, and `npm run lint` pass.
+
+Current SQLite integration files:
+
+```txt
+test/integration/sqlite/init.integration.test.ts
+test/integration/sqlite/checklist-item.integration.test.ts
+test/integration/sqlite/trip.integration.test.ts
+test/integration/sqlite/expense.integration.test.ts
+```
 
 ## 1. Unit Tests
 
-Unit tests should be fast, pure, and easy to run. They should not require Expo runtime, SQLite, Supabase, React Native rendering, or network access.
+Unit tests should remain fast and pure. They should not require Expo runtime, SQLite, Supabase, React Native rendering, or network access.
 
 Use unit tests for:
 
-- display helpers
-- permission helpers
-- mapping helpers
-- form validation schemas
-- sync decision logic
+- display, permission, and mapping helpers
+- form-validation schemas
+- sync decision logic extracted into pure functions
 
-Good first targets:
+Continue adding unit tests as pure helpers are introduced or changed.
 
-- `lib/creator.ts`
-  - current user renders `You`
-  - known other user renders `@username`
-  - missing profile renders `Unknown creator`
-- `getLocalExpensePayerDisplayName`
-  - payer is current user renders `You`
-  - payer is another user with profile renders `@username`
-  - old synced `paid_by_name = "You"` from another user renders `Unknown payer`
-- permission helpers, once extracted
-  - can edit own pin
-  - cannot edit another user's pin
-  - can delete own entity
-  - cannot delete another user's pin/image/document/reference link/expense
-  - active trip member can toggle checklist item
-- form schemas
-  - checklist item title is required
-  - expense amount/currency/description validation
+## 2. SQLite Integration Tests
 
-Suggested tooling:
+SQLite integration tests exercise local model actions against a fresh, real in-memory SQLite database. The production SQLite client remains unchanged; test-only adapter code belongs under `test/integration/sqlite/`.
 
-```sh
-npm install -D vitest
-```
+### Completed
 
-Suggested files:
+- database initialization, schema shape, and idempotency
+- checklist-item creation, list filtering/order, soft-delete exclusion, and creator profile attribution
+- trip ownership and active-companion access, filtering, and ordering
+- expense creator/payer profile joins, pin/location mapping, ordering, and soft-delete exclusion
 
-```txt
-lib/creator.unit.test.ts
-lib/permissions.unit.test.ts
-lib/sqlite/model/expense.unit.test.ts
-components/dialog/new-checklist-item/schema.unit.test.ts
-components/dialog/new-expense/schema.unit.test.ts
-```
+### Next: Local Lifecycle Coverage
 
-## 2. Integration Tests
+Add focused coverage for each model's local lifecycle before testing remote sync orchestration:
 
-Integration tests should exercise app code at an adapter boundary. They should verify how local model actions, sync orchestration, and Supabase actions behave when connected to a fake or controlled boundary.
+1. Checklist items: toggle completion; soft/hard deletion; pending-item batch selection and limit.
+2. Trips: get-by-ID access rules; update/delete lifecycle; pending-trip batch selection.
+3. Expenses: update/delete/sync-state transitions; pending batch selection and limit.
+4. Pins, notes, reference links, documents, and images: repeat the same creation/listing/lifecycle pattern.
 
-Boundaries in this app:
+### Later: Sync Orchestration
 
-- SQLite model layer
-- Supabase action layer
-- sync orchestration
-- React Query cache behavior
-- notification accept/decline actions
+Use the same real SQLite adapter while mocking only Supabase actions. Cover pull-bundle upserts, pending-row pushes, retry/error state, and creator/payer profile hydration.
 
-Good integration tests:
+## 3. Supabase Service Tests
 
-- `actionCreateLocalChecklistItem` inserts a pending local row.
-- `actionListLocalTrips` returns owned trips plus active companion memberships.
-- companion pull bundle upserts trip, child rows, and `user_profile`.
-- owner pull bundle receives companion-created rows and profile data.
-- expense list joins creator profile and payer profile correctly.
-- pending checklist sync uses update for existing synced rows, not creator-changing upsert.
-- invite accept creates `trip_member`.
-- disabled companion membership removes local trip access after sync.
+Service tests prove the real remote data model, database policies, and sync boundaries. Run them against local Supabase or a dedicated isolated test project/branch, never shared production data.
 
-Suggested approach:
+Companion invitation coverage belongs primarily here:
 
-- Use `vitest`.
-- Mock the Supabase client for most tests.
-- Start with a mocked SQLite adapter rather than a real Expo SQLite database.
-- Add a real test database adapter later only if the mocked tests become too limited.
+- owner creates a trip and invites a companion
+- only the invitee can read and accept the invitation
+- acceptance creates an active `trip_member` record
+- active companions can read the trip and permitted child content
+- unrelated users and disabled companions cannot access that data
+- ownership restrictions prevent companions from changing another creator's content
 
-Suggested files:
+## 4. React Component Tests
 
-```txt
-lib/sqlite/model/__tests__/checklist-item.integration.test.ts
-lib/sqlite/model/__tests__/expense.integration.test.ts
-lib/sqlite/model/__tests__/companion-trip-sync.integration.test.ts
-lib/supabase/__tests__/actions.integration.test.ts
-components/dialog/__tests__/new-checklist-item.integration.test.tsx
-```
+Component tests cover small UI contracts with the service layer mocked. They do not replace service or E2E coverage.
 
-## 3. Service / End-To-End Tests
+Good targets include invite form validation/submission states, creator/payer labels, permission-dependent actions, and checklist event handlers. Prefer leaf components over full Expo Router screens.
 
-Use this level to prove the real companion-trip feature works across real boundaries.
+## 5. E2E UI Tests
 
-In this project, distinguish between:
+Use Maestro for a small set of high-value, user-visible smoke flows once service behavior is covered.
 
-- Service tests: hit Supabase/local sync directly, but do not drive the UI.
-- End-to-end tests: drive the app UI like a user.
+First companion flow:
 
-### Service Tests
+1. Owner creates a trip and invites a companion.
+2. Companion accepts from the notification center.
+3. Companion creates a checklist item.
+4. Owner sees it after sync with the companion's attribution.
 
-Service tests should run against local Supabase or a dedicated test Supabase project.
+Start with local Maestro runs. Expo's EAS Maestro job is currently alpha, so cloud runs should initially be manual or label-triggered rather than required on every pull request.
 
-Good service tests:
+## Scripts and Gates
 
-- owner creates trip, invites companion, companion accepts, `trip_member` exists.
-- companion creates checklist item, owner pull sync sees it.
-- companion creates pin/image/document/reference link/expense, owner pull sync sees it.
-- owner creates content, companion pull sync sees it.
-- companion cannot update/delete another user's pin.
-- companion cannot update/delete another companion's pin.
-- active companion can toggle checklist item.
-- disabled companion loses access.
-- creator and payer usernames hydrate correctly from `public.user`.
-
-### End-To-End UI Tests
-
-Use E2E tests for full user flows, not tiny component states.
-
-Recommended tooling for Expo/React Native:
-
-- Maestro for user-flow E2E tests.
-
-High-value E2E flows:
-
-- owner creates a trip
-- owner invites companion
-- companion accepts invite from notification center
-- companion creates checklist item
-- owner syncs and sees checklist item with companion username
-- owner creates checklist item
-- companion toggles checklist item
-- owner syncs and sees toggled state
-- companion opens owner-created pin and does not see:
-  - `Edit Pin`
-  - `Delete Pin`
-  - `Change Place`
-- owner sees companion expense as `Paid by @companion`
-- companion sees owner expense as `Paid by @owner`
-
-## React Component Tests
-
-React component tests sit between unit tests and E2E tests. They are useful for small UI contracts but should not replace full feature E2E tests.
-
-Recommended tooling:
-
-```sh
-npm install -D jest-expo jest @testing-library/react-native @testing-library/jest-native
-```
-
-Good component tests:
-
-- `CardPinLocationRegular`
-  - shows `Change Place` when `onPress` is provided
-  - hides `Change Place` when `onPress` is not provided
-- `CardExpenseRegular`
-  - shows `Paid by You`
-  - shows `Paid by @username`
-- `CardTripChecklistItem`
-  - shows creator label
-  - calls toggle handler on card press
-  - calls delete handler on delete press
-
-Avoid starting with full screen component tests. Screens using Expo Router, auth hooks, React Query, SQLite, Supabase, and native maps require a lot of mocking. Start with small leaf components first.
-
-## Suggested Scripts
-
-When `vitest` is added:
+Current scripts:
 
 ```json
 {
   "test": "vitest run",
-  "test:unit": "vitest run \"**/*.unit.test.ts\" \"**/*.unit.test.tsx\"",
-  "test:integration": "vitest run \"**/*.integration.test.ts\" \"**/*.integration.test.tsx\"",
-  "test:service": "vitest run \"**/*.service.test.ts\" \"**/*.service.test.tsx\"",
+  "test:unit": "vitest run unit.test",
+  "test:integration": "vitest run integration.test",
   "test:watch": "vitest"
 }
 ```
 
-When React Native component tests are added with Jest:
+Add service, component, and E2E scripts only with their corresponding test layers.
 
-```json
-{
-  "test:components": "jest"
-}
-```
-
-## First Milestone
-
-Start with a focused unit-test milestone:
-
-- add `vitest`
-- add `lib/permissions.ts`
-- test creator display logic
-- test expense payer display logic
-- test pin ownership permissions
-- test own-entity update/delete permissions
-- test checklist shared-toggle permission
-
-This gives the companion-trip feature a meaningful safety net before adding slower adapter and UI tests.
-
-## Suggested Gate Policy
-
-- Run unit tests on every commit.
-- Run integration tests before merging.
-- Run service/E2E tests before release and after Supabase RLS changes.
+- Run unit and SQLite integration tests before merging relevant work.
+- Run service tests after Supabase schema/RLS changes and before releases.
+- Run Maestro smoke flows before releases and for critical navigation/auth changes.
 - Always run `npm run ts` and `npm run lint` alongside the relevant test level.
-

@@ -135,17 +135,17 @@ export async function actionListLocalChecklistItems(
   }>(
     `
       select
-        id,
-        trip_id,
-        user_id,
-        title,
-        completed,
-        created_at,
-        updated_at,
-        sync_status,
-        last_synced_at,
-        sync_error,
-        deleted_at,
+        checklist_item.id,
+        checklist_item.trip_id,
+        checklist_item.user_id,
+        checklist_item.title,
+        checklist_item.completed,
+        checklist_item.created_at,
+        checklist_item.updated_at,
+        checklist_item.sync_status,
+        checklist_item.last_synced_at,
+        checklist_item.sync_error,
+        checklist_item.deleted_at,
         user_profile.username as creator_username
       from checklist_item
       left join user_profile
