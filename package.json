@@ -16,6 +16,9 @@
     "test": "vitest run",
     "test:unit": "vitest run unit.test",
     "test:integration": "vitest run integration.test",
+    "supabase:prepare": "set -a && . ./supabase/.env && set +a && npx supabase stop && npx supabase start && npx supabase db reset --local",
+    "test:service": "npm run supabase:prepare && set -a && . ./supabase/.env && set +a && vitest run service.test",
+    "test:service:fast": "set -a && . ./supabase/.env && set +a && vitest run service.test",
     "test:watch": "vitest",
     "sb:gen": "supabase gen types typescript --project-id shscucanawhrjahqokvn --schema public > ./lib/supabase/types.ts"
   },
