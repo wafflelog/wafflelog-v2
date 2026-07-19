@@ -53,6 +53,7 @@ describe("initializeDatabase", () => {
         "checklist_item",
         "document",
         "expense",
+        "expense_participant",
         "image",
         "note",
         "pin",
@@ -133,6 +134,15 @@ describe("initializeDatabase", () => {
         "deleted_at",
       ]),
     );
+    expect(await listColumnNames("expense_participant")).toEqual(
+      expect.arrayContaining([
+        "expense_id",
+        "user_id",
+        "split_amount",
+        "created_at",
+        "updated_at",
+      ]),
+    );
   });
 
   it("is idempotent on an already initialized database", async () => {
@@ -146,4 +156,3 @@ describe("initializeDatabase", () => {
     );
   });
 });
-

@@ -173,6 +173,18 @@ export async function initializeDatabase() {
       deleted_at text
     );
 
+    create table if not exists expense_participant (
+      expense_id text not null,
+      user_id text not null,
+      split_amount text not null,
+      created_at text not null,
+      updated_at text not null,
+      primary key (expense_id, user_id)
+    );
+
+    create index if not exists expense_participant_user_id_idx
+    on expense_participant (user_id);
+
     create table if not exists pin_location (
       pin_id text primary key not null,
       user_id text not null,
@@ -306,6 +318,38 @@ export async function initializeDatabase() {
       name: string;
       notnull: number;
     }>(`pragma table_info(expense);`);
+  }
+
+  const expenseParticipantTableColumns = await sqlite.getAllAsync<{
+    name: string;
+  }>(`pragma table_info(expense_participant);`);
+
+  const hasCurrentExpenseParticipantSchema = [
+    "expense_id",
+    "user_id",
+    "split_amount",
+    "created_at",
+    "updated_at",
+  ].every((column) =>
+    expenseParticipantTableColumns.some((tableColumn) => tableColumn.name === column),
+  );
+
+  if (!hasCurrentExpenseParticipantSchema) {
+    await sqlite.execAsync(`
+      drop table if exists expense_participant;
+
+      create table expense_participant (
+        expense_id text not null,
+        user_id text not null,
+        split_amount text not null,
+        created_at text not null,
+        updated_at text not null,
+        primary key (expense_id, user_id)
+      );
+
+      create index if not exists expense_participant_user_id_idx
+      on expense_participant (user_id);
+    `);
   }
 
   let imageTableColumns = await sqlite.getAllAsync<{
