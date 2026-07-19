@@ -1,4 +1,5 @@
 import { sqlite } from "@/lib/sqlite/client";
+import { calculateSharedExpenseLedger } from "@/lib/helper/expense";
 import { buildUUID } from "@/lib/sqlite/utils";
 import {
   actionSoftDeleteRemoteExpense,
@@ -36,6 +37,23 @@ export type LocalExpense = {
   deletedAt: string | null;
   creator: CreatorAttribution;
   pin: LocalExpensePinSummary | null;
+  participants: LocalExpenseParticipant[];
+};
+
+export type LocalExpenseParticipant = {
+  userId: string;
+  username: string | null;
+  splitAmount: string;
+};
+
+export type LocalExpenseSplitParticipantInput = {
+  userId: string;
+  splitAmount: string;
+};
+
+export type LocalExpenseSplitParticipant = {
+  userId: string;
+  username: string | null;
 };
 
 export type CreateLocalExpenseInput = {
@@ -43,10 +61,11 @@ export type CreateLocalExpenseInput = {
   tripId: string;
   userId: string;
   description: string;
-  amount: number;
+  amount: string | number;
   currency: string;
   paidByUserId: string;
   paidByName: string;
+  participants?: LocalExpenseSplitParticipantInput[];
 };
 
 const DEFAULT_SYNC_BATCH_SIZE = 25;
@@ -74,7 +93,7 @@ function mapLocalExpenseRow(row: {
   trip_id: string;
   user_id: string;
   description: string;
-  amount: number;
+  amount: string;
   currency: string;
   paid_by_user_id: string;
   paid_by_name: string;
@@ -90,14 +109,14 @@ function mapLocalExpenseRow(row: {
   pin_metadata_json?: string | null;
   pin_display_name?: string | null;
   creator_username?: string | null;
-}, currentUserId?: string): LocalExpense {
+}, currentUserId?: string, participants: LocalExpenseParticipant[] = []): LocalExpense {
   return {
     id: row.id,
     pinId: row.pin_id,
     tripId: row.trip_id,
     userId: row.user_id,
     description: row.description,
-    amount: row.amount,
+    amount: Number(row.amount),
     currency: row.currency,
     paidByUserId: row.paid_by_user_id,
     paidByName: row.paid_by_name,
@@ -125,18 +144,122 @@ function mapLocalExpenseRow(row: {
             },
           }
         : null,
+    participants,
   };
+}
+
+function normalizeParticipants(input: CreateLocalExpenseInput) {
+  const amount = String(input.amount).trim();
+  const participants = input.participants ?? [
+    { userId: input.paidByUserId, splitAmount: amount },
+  ];
+
+  calculateSharedExpenseLedger([
+    {
+      id: "local-expense-validation",
+      currency: input.currency,
+      amount,
+      paidByUserId: input.paidByUserId,
+      participants,
+    },
+  ]);
+
+  return { amount, participants };
+}
+
+async function listExpenseParticipants(expenseIds: string[]) {
+  if (expenseIds.length === 0) {
+    return new Map<string, LocalExpenseParticipant[]>();
+  }
+
+  const placeholders = expenseIds.map(() => "?").join(", ");
+  const rows = await sqlite.getAllAsync<{
+    expense_id: string;
+    user_id: string;
+    split_amount: string;
+    username: string | null;
+  }>(
+    `
+      select
+        expense_participant.expense_id,
+        expense_participant.user_id,
+        expense_participant.split_amount,
+        user_profile.username
+      from expense_participant
+      left join user_profile
+        on user_profile.id = expense_participant.user_id
+      where expense_participant.expense_id in (${placeholders})
+      order by expense_participant.expense_id asc, expense_participant.user_id asc
+    `,
+    expenseIds,
+  );
+
+  return rows.reduce((participantsByExpenseId, row) => {
+    const participants = participantsByExpenseId.get(row.expense_id) ?? [];
+    participants.push({
+      userId: row.user_id,
+      username: row.username,
+      splitAmount: row.split_amount,
+    });
+    participantsByExpenseId.set(row.expense_id, participants);
+    return participantsByExpenseId;
+  }, new Map<string, LocalExpenseParticipant[]>());
+}
+
+async function hydrateExpenseRows(
+  rows: Parameters<typeof mapLocalExpenseRow>[0][],
+  userId: string,
+) {
+  const participantsByExpenseId = await listExpenseParticipants(
+    rows.map((row) => row.id),
+  );
+
+  return rows.map((row) =>
+    mapLocalExpenseRow(row, userId, participantsByExpenseId.get(row.id) ?? []),
+  );
+}
+
+export async function actionListLocalExpenseSplitParticipants(tripId: string) {
+  const rows = await sqlite.getAllAsync<{
+    user_id: string;
+    username: string | null;
+  }>(
+    `
+      select participant.user_id, user_profile.username
+      from (
+        select user_id
+        from trip
+        where id = ? and deleted_at is null
+
+        union
+
+        select user_id
+        from trip_membership
+        where trip_id = ? and status = 'active'
+      ) as participant
+      left join user_profile
+        on user_profile.id = participant.user_id
+      order by user_profile.username asc, participant.user_id asc
+    `,
+    [tripId, tripId],
+  );
+
+  return rows.map((row) => ({
+    userId: row.user_id,
+    username: row.username,
+  }));
 }
 
 export async function actionCreateLocalExpense(input: CreateLocalExpenseInput) {
   const now = new Date().toISOString();
+  const { amount, participants } = normalizeParticipants(input);
   const localExpense = {
     id: buildUUID(),
     pin_id: input.pinId ?? null,
     trip_id: input.tripId,
     user_id: input.userId,
     description: input.description.trim(),
-    amount: input.amount,
+    amount,
     currency: input.currency.trim(),
     paid_by_user_id: input.paidByUserId,
     paid_by_name: input.paidByName.trim(),
@@ -148,8 +271,9 @@ export async function actionCreateLocalExpense(input: CreateLocalExpenseInput) {
     deleted_at: null,
   };
 
-  await sqlite.runAsync(
-    `
+  await sqlite.withTransactionAsync(async () => {
+    await sqlite.runAsync(
+      `
       insert into expense (
         id,
         pin_id,
@@ -167,27 +291,57 @@ export async function actionCreateLocalExpense(input: CreateLocalExpenseInput) {
         sync_error,
         deleted_at
       ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-    [
-      localExpense.id,
-      localExpense.pin_id,
-      localExpense.trip_id,
-      localExpense.user_id,
-      localExpense.description,
-      localExpense.amount,
-      localExpense.currency,
-      localExpense.paid_by_user_id,
-      localExpense.paid_by_name,
-      localExpense.created_at,
-      localExpense.updated_at,
-      localExpense.sync_status,
-      localExpense.last_synced_at,
-      localExpense.sync_error,
-      localExpense.deleted_at,
-    ],
-  );
+      `,
+      [
+        localExpense.id,
+        localExpense.pin_id,
+        localExpense.trip_id,
+        localExpense.user_id,
+        localExpense.description,
+        localExpense.amount,
+        localExpense.currency,
+        localExpense.paid_by_user_id,
+        localExpense.paid_by_name,
+        localExpense.created_at,
+        localExpense.updated_at,
+        localExpense.sync_status,
+        localExpense.last_synced_at,
+        localExpense.sync_error,
+        localExpense.deleted_at,
+      ],
+    );
 
-  return mapLocalExpenseRow(localExpense, input.userId);
+    for (const participant of participants) {
+      await sqlite.runAsync(
+        `
+          insert into expense_participant (
+            expense_id,
+            user_id,
+            split_amount,
+            created_at,
+            updated_at
+          ) values (?, ?, ?, ?, ?)
+        `,
+        [
+          localExpense.id,
+          participant.userId,
+          participant.splitAmount,
+          now,
+          now,
+        ],
+      );
+    }
+  });
+
+  return mapLocalExpenseRow(
+    localExpense,
+    input.userId,
+    participants.map((participant) => ({
+      userId: participant.userId,
+      username: null,
+      splitAmount: participant.splitAmount,
+    })),
+  );
 }
 
 export async function actionListLocalExpensesByPin(
@@ -200,7 +354,7 @@ export async function actionListLocalExpensesByPin(
     trip_id: string;
     user_id: string;
     description: string;
-    amount: number;
+    amount: string;
     currency: string;
     paid_by_user_id: string;
     paid_by_name: string;
@@ -242,7 +396,7 @@ export async function actionListLocalExpensesByPin(
     [pinId],
   );
 
-  return rows.map((row) => mapLocalExpenseRow(row, userId));
+  return hydrateExpenseRows(rows, userId);
 }
 
 export async function actionListLocalExpensesByTrip(
@@ -255,7 +409,7 @@ export async function actionListLocalExpensesByTrip(
     trip_id: string;
     user_id: string;
     description: string;
-    amount: number;
+    amount: string;
     currency: string;
     paid_by_user_id: string;
     paid_by_name: string;
@@ -310,7 +464,7 @@ export async function actionListLocalExpensesByTrip(
     [tripId],
   );
 
-  return rows.map((row) => mapLocalExpenseRow(row, userId));
+  return hydrateExpenseRows(rows, userId);
 }
 
 export async function actionListPendingLocalExpenses(
@@ -323,7 +477,7 @@ export async function actionListPendingLocalExpenses(
     trip_id: string;
     user_id: string;
     description: string;
-    amount: number;
+    amount: string;
     currency: string;
     paid_by_user_id: string;
     paid_by_name: string;
@@ -359,7 +513,7 @@ export async function actionListPendingLocalExpenses(
     [userId, limit],
   );
 
-  return rows.map((row) => mapLocalExpenseRow(row, userId));
+  return hydrateExpenseRows(rows, userId);
 }
 
 export async function actionSoftDeleteLocalExpense(id: string, userId: string) {
@@ -380,13 +534,28 @@ export async function actionSoftDeleteLocalExpense(id: string, userId: string) {
 }
 
 export async function actionHardDeleteLocalExpense(id: string, userId: string) {
-  await sqlite.runAsync(
-    `
+  await sqlite.withTransactionAsync(async () => {
+    await sqlite.runAsync(
+      `
+        delete from expense_participant
+        where expense_id = ?
+          and exists (
+            select 1
+            from expense
+            where expense.id = expense_participant.expense_id
+              and expense.user_id = ?
+          )
+      `,
+      [id, userId],
+    );
+    await sqlite.runAsync(
+      `
       delete from expense
       where id = ? and user_id = ?
-    `,
-    [id, userId],
-  );
+      `,
+      [id, userId],
+    );
+  });
 }
 
 export async function actionMarkLocalExpenseSyncing(id: string, userId: string) {
@@ -475,6 +644,10 @@ export async function actionSyncLocalExpense(localExpense: LocalExpense) {
       currency: localExpense.currency,
       paidByUserId: localExpense.paidByUserId,
       paidByName: localExpense.paidByName,
+      participants: localExpense.participants.map((participant) => ({
+        userId: participant.userId,
+        splitAmount: Number(participant.splitAmount),
+      })),
     });
 
     await actionMarkLocalExpenseSynced(localExpense.id, localExpense.userId);

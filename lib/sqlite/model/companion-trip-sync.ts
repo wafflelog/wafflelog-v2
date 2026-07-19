@@ -163,10 +163,12 @@ async function upsertReferenceLinkFromRemote(
 
 async function upsertExpenseFromRemote(
   expense: RemoteTripSyncBundle["expenses"][number],
+  participants: RemoteTripSyncBundle["expenseParticipants"],
 ) {
   const now = new Date().toISOString();
 
-  await sqlite.runAsync(
+  await sqlite.withTransactionAsync(async () => {
+    await sqlite.runAsync(
     `
       insert into expense (
         id,
@@ -218,7 +220,34 @@ async function upsertExpenseFromRemote(
       null,
       expense.deletedAt,
     ],
-  );
+    );
+
+    await sqlite.runAsync(
+      "delete from expense_participant where expense_id = ?",
+      [expense.id],
+    );
+
+    for (const participant of participants) {
+      await sqlite.runAsync(
+        `
+          insert into expense_participant (
+            expense_id,
+            user_id,
+            split_amount,
+            created_at,
+            updated_at
+          ) values (?, ?, ?, ?, ?)
+        `,
+        [
+          expense.id,
+          participant.userId,
+          participant.splitAmount,
+          expense.createdAt,
+          expense.updatedAt,
+        ],
+      );
+    }
+  });
 }
 
 async function upsertDocumentFromRemote(
@@ -389,7 +418,12 @@ async function actionPullTripBundle(tripId: string) {
   }
 
   for (const expense of bundle.expenses) {
-    await upsertExpenseFromRemote(expense);
+    await upsertExpenseFromRemote(
+      expense,
+      bundle.expenseParticipants.filter(
+        (participant) => participant.expenseId === expense.id,
+      ),
+    );
   }
 
   for (const document of bundle.documents) {

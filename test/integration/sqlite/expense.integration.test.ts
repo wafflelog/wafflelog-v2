@@ -100,6 +100,10 @@ describe("local expenses", () => {
       currency: " GBP ",
       paidByUserId: "user-b",
       paidByName: "  Bob  ",
+      participants: [
+        { userId: "user-a", splitAmount: "12.25" },
+        { userId: "user-b", splitAmount: "12.25" },
+      ],
     });
     const newer = await actionCreateLocalExpense({
       tripId: "trip-a",
@@ -157,6 +161,10 @@ describe("local expenses", () => {
           metadataJson: { version: 1, destination: "Restaurant" },
           location: { displayName: "The Bistro" },
         },
+        participants: [
+          { userId: "user-a", username: "alice", splitAmount: "12.25" },
+          { userId: "user-b", username: "bob", splitAmount: "12.25" },
+        ],
       }),
     ]);
     await expect(actionListLocalExpensesByPin("pin-a", "user-a")).resolves.toEqual([
@@ -201,6 +209,127 @@ describe("local expenses", () => {
         [expense.id],
       ),
     ).resolves.toBeNull();
+    await expect(
+      testDb.getFirstAsync<{ expense_id: string }>(
+        "select expense_id from expense_participant where expense_id = ?",
+        [expense.id],
+      ),
+    ).resolves.toBeNull();
+  });
+
+  it("creates expense allocations atomically and lists only active split participants", async () => {
+    const {
+      actionCreateLocalExpense,
+      actionListLocalExpenseSplitParticipants,
+    } = await import("@/lib/sqlite/model/expense");
+
+    await testDb.runAsync(
+      `insert into trip
+        (id, user_id, title, start_date, end_date, created_at, updated_at, sync_status, last_synced_at, sync_error, deleted_at)
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "trip-ledger",
+        "owner",
+        "Ledger trip",
+        "2026-05-01",
+        "2026-05-04",
+        "2026-01-01T00:00:00.000Z",
+        "2026-01-01T00:00:00.000Z",
+        "synced",
+        null,
+        null,
+        null,
+      ],
+    );
+    await testDb.runAsync(
+      "insert into user_profile (id, username, updated_at) values (?, ?, ?), (?, ?, ?), (?, ?, ?)",
+      [
+        "owner",
+        "owner",
+        "2026-01-01T00:00:00.000Z",
+        "active",
+        "active_friend",
+        "2026-01-01T00:00:00.000Z",
+        "disabled",
+        "former_friend",
+        "2026-01-01T00:00:00.000Z",
+      ],
+    );
+    await testDb.runAsync(
+      `insert into trip_membership
+        (trip_id, user_id, role, status, source, created_at, updated_at, last_synced_at)
+       values (?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        "trip-ledger",
+        "active",
+        "companion",
+        "active",
+        "remote",
+        "2026-01-01T00:00:00.000Z",
+        "2026-01-01T00:00:00.000Z",
+        null,
+        "trip-ledger",
+        "disabled",
+        "companion",
+        "disabled",
+        "remote",
+        "2026-01-01T00:00:00.000Z",
+        "2026-01-01T00:00:00.000Z",
+        null,
+      ],
+    );
+
+    await expect(actionListLocalExpenseSplitParticipants("trip-ledger")).resolves.toEqual([
+      { userId: "active", username: "active_friend" },
+      { userId: "owner", username: "owner" },
+    ]);
+
+    const expense = await actionCreateLocalExpense({
+      tripId: "trip-ledger",
+      userId: "owner",
+      description: "Dinner",
+      amount: "10.00",
+      currency: "GBP",
+      paidByUserId: "owner",
+      paidByName: "Owner",
+      participants: [
+        { userId: "owner", splitAmount: "5.00" },
+        { userId: "active", splitAmount: "5.00" },
+      ],
+    });
+    expect(expense.amount).toBe(10);
+    expect(expense.participants).toEqual([
+      { userId: "owner", username: null, splitAmount: "5.00" },
+      { userId: "active", username: null, splitAmount: "5.00" },
+    ]);
+
+    await expect(
+      testDb.getAllAsync<{ user_id: string; split_amount: string }>(
+        "select user_id, split_amount from expense_participant where expense_id = ? order by user_id",
+        [expense.id],
+      ),
+    ).resolves.toEqual([
+      { user_id: "active", split_amount: "5.00" },
+      { user_id: "owner", split_amount: "5.00" },
+    ]);
+
+    await expect(
+      actionCreateLocalExpense({
+        tripId: "trip-ledger",
+        userId: "owner",
+        description: "Invalid split",
+        amount: "10.00",
+        currency: "GBP",
+        paidByUserId: "owner",
+        paidByName: "Owner",
+        participants: [{ userId: "owner", splitAmount: "9.99" }],
+      }),
+    ).rejects.toThrow("Participant split amounts must equal the expense amount");
+    await expect(
+      testDb.getAllAsync("select id from expense where description = ?", [
+        "Invalid split",
+      ]),
+    ).resolves.toEqual([]);
   });
 
   it("persists local expense sync state transitions", async () => {

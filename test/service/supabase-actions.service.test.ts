@@ -47,6 +47,81 @@ vi.mock("expo-secure-store", () => ({
 }));
 
 describe("Supabase actions", () => {
+  it("syncs expense allocations atomically", async () => {
+    const owner = await createTestUser("shared_expense");
+    const tripId = crypto.randomUUID();
+    const validExpenseId = crypto.randomUUID();
+    const invalidExpenseId = crypto.randomUUID();
+
+    await actionCreateTrip(
+      {
+        id: tripId,
+        title: "Shared expense action trip",
+        startDate: "2026-05-01",
+        endDate: "2026-05-04",
+      },
+      owner.client,
+    );
+
+    await actionUpsertRemoteExpenseFromLocal(
+      {
+        id: validExpenseId,
+        tripId,
+        pinId: null,
+        description: "Dinner",
+        amount: 12.5,
+        currency: "GBP",
+        paidByUserId: owner.id,
+        paidByName: "Owner",
+        participants: [{ userId: owner.id, splitAmount: 12.5 }],
+      },
+      owner.client,
+    );
+
+    await expect(
+      owner.client
+        .from("expense_participant")
+        .select("expense_id, user_id, split_amount")
+        .eq("expense_id", validExpenseId),
+    ).resolves.toMatchObject({
+      data: [
+        {
+          expense_id: validExpenseId,
+          user_id: owner.id,
+          split_amount: 12.5,
+        },
+      ],
+      error: null,
+    });
+
+    await expect(
+      actionUpsertRemoteExpenseFromLocal(
+        {
+          id: invalidExpenseId,
+          tripId,
+          pinId: null,
+          description: "Invalid dinner",
+          amount: 12.5,
+          currency: "GBP",
+          paidByUserId: owner.id,
+          paidByName: "Owner",
+          participants: [{ userId: owner.id, splitAmount: 10 }],
+        },
+        owner.client,
+      ),
+    ).rejects.toThrow("Participant split amounts must equal the expense amount");
+
+    await expect(
+      owner.client.from("expense").select("id").eq("id", invalidExpenseId),
+    ).resolves.toMatchObject({ data: [], error: null });
+    await expect(
+      owner.client
+        .from("expense_participant")
+        .select("expense_id")
+        .eq("expense_id", invalidExpenseId),
+    ).resolves.toMatchObject({ data: [], error: null });
+  });
+
   it("maps trip and checklist inputs through the real authenticated Supabase client", async () => {
     const owner = await createTestUser("owner");
     const tripId = crypto.randomUUID();
@@ -228,6 +303,7 @@ describe("Supabase actions", () => {
         currency: " eur ",
         paidByUserId: owner.id,
         paidByName: "  Owner  ",
+        participants: [{ userId: owner.id, splitAmount: 19.5 }],
       },
       owner.client,
     );
@@ -492,6 +568,7 @@ describe("Supabase actions", () => {
         currency: "GBP",
         paidByUserId: owner.id,
         paidByName: "Bundle owner",
+        participants: [{ userId: owner.id, splitAmount: 42 }],
       },
       owner.client,
     );
@@ -534,6 +611,9 @@ describe("Supabase actions", () => {
     expect(bundle.notes).toHaveLength(1);
     expect(bundle.referenceLinks).toHaveLength(1);
     expect(bundle.expenses).toHaveLength(1);
+    expect(bundle.expenseParticipants).toEqual([
+      expect.objectContaining({ expenseId: bundle.expenses[0].id, userId: owner.id, splitAmount: 42 }),
+    ]);
     expect(bundle.documents).toHaveLength(1);
     expect(bundle.images).toHaveLength(1);
     expect(bundle.userProfiles).toContainEqual(

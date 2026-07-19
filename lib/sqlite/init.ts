@@ -161,7 +161,7 @@ export async function initializeDatabase() {
       trip_id text not null,
       user_id text not null,
       description text not null,
-      amount real not null,
+      amount text not null,
       currency text not null,
       paid_by_user_id text not null,
       paid_by_name text not null,
@@ -285,14 +285,20 @@ export async function initializeDatabase() {
   let expenseTableColumns = await sqlite.getAllAsync<{
     name: string;
     notnull: number;
+    type: string;
   }>(`pragma table_info(expense);`);
 
-  const hasCurrentExpenseSchema = expenseTableColumns.some(
-    (column) => column.name === "pin_id" && column.notnull === 0,
-  );
+  const hasCurrentExpenseSchema =
+    expenseTableColumns.some(
+      (column) => column.name === "pin_id" && column.notnull === 0,
+    ) &&
+    expenseTableColumns.some(
+      (column) => column.name === "amount" && column.type.toLowerCase() === "text",
+    );
 
   if (!hasCurrentExpenseSchema) {
     await sqlite.execAsync(`
+      drop table if exists expense_participant;
       drop table if exists expense;
 
       create table expense (
@@ -301,7 +307,7 @@ export async function initializeDatabase() {
         trip_id text not null,
         user_id text not null,
         description text not null,
-        amount real not null,
+        amount text not null,
         currency text not null,
         paid_by_user_id text not null,
         paid_by_name text not null,
@@ -317,6 +323,7 @@ export async function initializeDatabase() {
     expenseTableColumns = await sqlite.getAllAsync<{
       name: string;
       notnull: number;
+      type: string;
     }>(`pragma table_info(expense);`);
   }
 

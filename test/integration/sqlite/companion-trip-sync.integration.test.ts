@@ -83,6 +83,14 @@ function createBundle(title = "Companion trip") {
         deletedAt: null,
       },
     ],
+    expenseParticipants: [
+      { expenseId: "expense-a", userId: "owner-a", splitAmount: 6.25 },
+      {
+        expenseId: "expense-a",
+        userId: "companion-a",
+        splitAmount: 6.25,
+      },
+    ],
     documents: [],
     images: [],
     userProfiles: [
@@ -171,6 +179,15 @@ describe("companion trip pull sync", () => {
         "expense-a",
       ]),
     ).resolves.toEqual({ paid_by_user_id: "companion-a", sync_status: "synced" });
+    await expect(
+      testDb.getAllAsync<{ user_id: string; split_amount: string }>(
+        "select user_id, split_amount from expense_participant where expense_id = ? order by user_id",
+        ["expense-a"],
+      ),
+    ).resolves.toEqual([
+      { user_id: "companion-a", split_amount: "6.25" },
+      { user_id: "owner-a", split_amount: "6.25" },
+    ]);
   });
 
   it("uses paging and updates existing local rows instead of duplicating them", async () => {

@@ -54,6 +54,10 @@ export type CreateExpenseInput = {
   currency: string;
   paidByUserId: string;
   paidByName: string;
+  participants: {
+    userId: string;
+    splitAmount: number;
+  }[];
 };
 
 export type CreateDocumentInput = {
@@ -140,6 +144,11 @@ export type RemoteTripSyncBundle = {
   notes: ReturnType<typeof mapNoteRow>[];
   referenceLinks: ReturnType<typeof mapReferenceLinkRow>[];
   expenses: ReturnType<typeof mapExpenseRow>[];
+  expenseParticipants: {
+    expenseId: string;
+    userId: string;
+    splitAmount: number;
+  }[];
   documents: ReturnType<typeof mapDocumentRow>[];
   images: ReturnType<typeof mapImageRow>[];
   userProfiles: {
@@ -825,25 +834,20 @@ export async function actionUpsertRemoteExpenseFromLocal(
     throw new Error("You must be signed in to sync an expense");
   }
 
-  const payload: TablesInsert<"expense"> = {
-    id: input.id,
-    pin_id: input.pinId,
-    trip_id: input.tripId,
-    user_id: user.id,
-    description: input.description.trim(),
-    amount: input.amount,
-    currency: input.currency.trim(),
-    paid_by_user_id: input.paidByUserId,
-    paid_by_name: input.paidByName.trim(),
-  };
-
-  const { data, error } = await client
-    .from("expense")
-    .upsert(payload)
-    .select(
-      "id, pin_id, trip_id, user_id, description, amount, currency, paid_by_user_id, paid_by_name, created_at, updated_at, deleted_at",
-    )
-    .single();
+  const { data, error } = await client.rpc("upsert_expense_with_participants", {
+    p_id: input.id,
+    ...(input.pinId ? { p_pin_id: input.pinId } : {}),
+    p_trip_id: input.tripId,
+    p_description: input.description.trim(),
+    p_amount: input.amount,
+    p_currency: input.currency.trim(),
+    p_paid_by_user_id: input.paidByUserId,
+    p_paid_by_name: input.paidByName.trim(),
+    p_participants: input.participants.map((participant) => ({
+      user_id: participant.userId,
+      split_amount: participant.splitAmount,
+    })),
+  }).single();
 
   if (error) {
     throw error;
@@ -1694,6 +1698,18 @@ export async function actionGetRemoteTripSyncBundle(
     throw firstError;
   }
 
+  const expenseIds = (expensesResult.data ?? []).map((expense) => expense.id);
+  const { data: expenseParticipants, error: expenseParticipantsError } = expenseIds.length
+    ? await client
+        .from("expense_participant")
+        .select("expense_id, user_id, split_amount")
+        .in("expense_id", expenseIds)
+    : { data: [], error: null };
+
+  if (expenseParticipantsError) {
+    throw expenseParticipantsError;
+  }
+
   const creatorUserIds = Array.from(
     new Set([
       trip.userId,
@@ -1705,6 +1721,7 @@ export async function actionGetRemoteTripSyncBundle(
         expense.user_id,
         expense.paid_by_user_id,
       ]),
+      ...(expenseParticipants ?? []).map((participant) => participant.user_id),
       ...(documentsResult.data ?? []).map((document) => document.user_id),
       ...(imagesResult.data ?? []).map((image) => image.user_id),
     ]),
@@ -1728,6 +1745,11 @@ export async function actionGetRemoteTripSyncBundle(
     notes: (notesResult.data ?? []).map(mapNoteRow),
     referenceLinks: (referenceLinksResult.data ?? []).map(mapReferenceLinkRow),
     expenses: (expensesResult.data ?? []).map(mapExpenseRow),
+    expenseParticipants: (expenseParticipants ?? []).map((participant) => ({
+      expenseId: participant.expense_id,
+      userId: participant.user_id,
+      splitAmount: participant.split_amount,
+    })),
     documents: (documentsResult.data ?? []).map(mapDocumentRow),
     images: (imagesResult.data ?? []).map(mapImageRow),
     userProfiles: (userProfiles ?? []).map((profile) => ({

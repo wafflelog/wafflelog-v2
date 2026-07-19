@@ -17,6 +17,7 @@
 | `document` | `id` | Document metadata and its remote Storage location. |
 | `image` | `id` | Image metadata, local URI, and remote Storage location. |
 | `expense` | `id` | A trip expense, optionally attached to a pin, with payer attribution. |
+| `expense_participant` | `(expense_id, user_id)` | A participant's exact share of an expense. |
 
 ## Shared record fields
 
@@ -126,6 +127,15 @@ Expense associated with a trip or pin.
 - Payer attribution: `paid_by_user_id`, `paid_by_name`
 - Shared record fields
 
+### `expense_participant`
+
+Participant allocation for a shared expense.
+
+- Composite key: `expense_id`, `user_id`
+- Allocation: `split_amount` stored as a two-decimal string
+- Timestamps: `created_at`, `updated_at`
+- Historical rows remain after a companion is disabled; they are ignored when the parent expense is soft-deleted.
+
 ## Relationships
 
 ```text
@@ -139,6 +149,7 @@ trip
 ├── document
 ├── image
 └── expense
+    └── expense_participant
 
 user_profile supplies display attribution for user_id / paid_by_user_id values.
 ```

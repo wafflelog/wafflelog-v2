@@ -730,7 +730,39 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      upsert_expense_with_participants: {
+        Args: {
+          p_amount: number
+          p_currency: string
+          p_description: string
+          p_id: string
+          p_paid_by_name: string
+          p_paid_by_user_id: string
+          p_participants: Json
+          p_pin_id?: string
+          p_trip_id: string
+        }
+        Returns: {
+          amount: number
+          created_at: string
+          currency: string
+          deleted_at: string | null
+          description: string
+          id: string
+          paid_by_name: string
+          paid_by_user_id: string
+          pin_id: string | null
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "expense"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
       [_ in never]: never
