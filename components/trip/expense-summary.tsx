@@ -5,36 +5,33 @@ import { StyleSheet, View } from "react-native";
 
 type TripExpenseSummaryProps = {
   currency: string;
-  total: number;
-  youPaid: number;
-  youAreOwed: number;
+  total: string;
+  youPaid: string;
+  yourBalance: string;
 };
-
-function formatAmount(amount: number) {
-  return amount.toFixed(2);
-}
 
 export function TripExpenseSummary({
   currency,
   total,
   youPaid,
-  youAreOwed,
+  yourBalance,
 }: TripExpenseSummaryProps) {
+  const isOwed = !yourBalance.startsWith("-");
   const columns = [
     {
       label: "Total",
-      amount: formatAmount(total),
+      amount: total,
       color: colors.textDarkGrey,
     },
     {
       label: "You paid",
-      amount: formatAmount(youPaid),
+      amount: youPaid,
       color: colors.turquoise,
     },
     {
-      label: "You are owed",
-      amount: formatAmount(youAreOwed),
-      color: colors.red,
+      label: isOwed ? "You are owed" : "You owe",
+      amount: yourBalance.replace("-", ""),
+      color: isOwed ? colors.turquoise : colors.red,
     },
   ];
 

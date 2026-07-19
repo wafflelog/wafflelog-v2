@@ -31,7 +31,13 @@ export function CardExpenseRegular({
         </TitleRegular>
 
         <TitleRegular size="xs">
-          {[expense.context, `Paid by ${expense.paidBy.fullname}`]
+          {[
+            expense.context,
+            `Paid by ${expense.paidBy.fullname}`,
+            expense.participantNames?.length
+              ? `Split between ${expense.participantNames.join(", ")}`
+              : null,
+          ]
             .filter(Boolean)
             .join(" · ")}
         </TitleRegular>
@@ -42,7 +48,7 @@ export function CardExpenseRegular({
 
       <View style={styles.right}>
         <TitleRegular size="sm" weight="600">
-          {expense.amount} {expense.currency.toUpperCase()}
+          {expense.amount.toFixed(2)} {expense.currency.toUpperCase()}
         </TitleRegular>
         {onDeletePress && (
           <TouchableOpacity

@@ -1,13 +1,17 @@
 import { ButtonFab } from "@/components/button/fab";
 import { CardExpenseRegular } from "@/components/card/expense/regular";
 import { DialogNewExpense } from "@/components/dialog/new-expense";
+import { TitleRegular } from "@/components/title/regular";
 import { TripExpenseSummary } from "@/components/trip/expense-summary";
 import { UITab } from "@/components/ui/tab";
 import { UIText } from "@/components/ui/text";
 import { gaps, getCardBasicStyle } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { getExpensePayerDisplayName } from "@/lib/helper/expense";
+import {
+  calculateSharedExpenseLedger,
+  getExpensePayerDisplayName,
+} from "@/lib/helper/expense";
 import { getPinTitle } from "@/lib/helper/pin";
 import { actionListLocalExpensesByTrip } from "@/lib/sqlite/model/expense";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
@@ -72,16 +76,55 @@ export default function TripExpensesScreen() {
     ? localExpenses.filter((expense) => expense.currency === activeCurrency)
     : localExpenses;
 
-  const total = filteredExpenses.reduce(
-    (sum, expense) => sum + expense.amount,
-    0,
+  const ledgers = useMemo(
+    () =>
+      calculateSharedExpenseLedger(
+        localExpenses.map((expense) => ({
+          id: expense.id,
+          currency: expense.currency,
+          amount: expense.amount.toFixed(2),
+          paidByUserId: expense.paidByUserId,
+          participants: expense.participants.map((participant) => ({
+            userId: participant.userId,
+            splitAmount: participant.splitAmount,
+          })),
+        })),
+      ),
+    [localExpenses],
   );
-  const youPaid = filteredExpenses.reduce((sum, expense) => {
-    return expense.paidByUserId === session?.user.id
-      ? sum + expense.amount
-      : sum;
-  }, 0);
-  const youAreOwed = 0;
+  const activeLedger = ledgers.find(
+    (ledger) => ledger.currency === activeCurrency,
+  );
+  const total = activeLedger
+    ? activeLedger.balances
+        .reduce((sum, balance) => sum + Number(balance.paid), 0)
+        .toFixed(2)
+    : "0.00";
+  const currentUserBalance =
+    activeLedger?.balances.find((balance) => balance.userId === session?.user.id)
+      ?.net ?? "0.00";
+  const currentUserPaid =
+    activeLedger?.balances.find((balance) => balance.userId === session?.user.id)
+      ?.paid ?? "0.00";
+  const displayNameByUserId = localExpenses.reduce(
+    (names, expense) => {
+      names.set(
+        expense.paidByUserId,
+        expense.paidByUsername ?? expense.paidByName,
+      );
+      for (const participant of expense.participants) {
+        if (participant.username) {
+          names.set(participant.userId, participant.username);
+        }
+      }
+      return names;
+    },
+    new Map<string, string>(),
+  );
+  const getUserDisplayName = (userId: string) =>
+    userId === session?.user.id
+      ? "You"
+      : `@${displayNameByUserId.get(userId) ?? "unknown"}`;
 
   const tabs = availableCurrencies.map((currency) => ({
     id: currency,
@@ -114,10 +157,46 @@ export default function TripExpensesScreen() {
           <TripExpenseSummary
             currency={activeCurrency ?? "N/A"}
             total={total}
-            youPaid={youPaid}
-            youAreOwed={youAreOwed}
+            youPaid={currentUserPaid}
+            yourBalance={currentUserBalance}
           />
         </View>
+
+        {activeLedger && (
+          <View style={styles.ledger}>
+            <TitleRegular size="sm" weight="600">
+              Balances
+            </TitleRegular>
+            {activeLedger.balances.map((balance) => (
+              <View key={balance.userId} style={styles.ledgerRow}>
+                <UIText>{getUserDisplayName(balance.userId)}</UIText>
+                <UIText>
+                  {Number(balance.net) > 0
+                    ? `is owed ${balance.net}`
+                    : Number(balance.net) < 0
+                      ? `owes ${balance.net.slice(1)}`
+                      : "settled up"} {activeLedger.currency}
+                </UIText>
+              </View>
+            ))}
+            {activeLedger.settlements.length > 0 && (
+              <>
+                <TitleRegular size="sm" weight="600" style={styles.settlementTitle}>
+                  Settle up
+                </TitleRegular>
+                {activeLedger.settlements.map((settlement) => (
+                  <UIText
+                    key={`${settlement.fromUserId}-${settlement.toUserId}`}
+                  >
+                    {getUserDisplayName(settlement.fromUserId)} pays{" "}
+                    {getUserDisplayName(settlement.toUserId)} {settlement.amount}{" "}
+                    {activeLedger.currency}
+                  </UIText>
+                ))}
+              </>
+            )}
+          </View>
+        )}
 
         <FlatList
           contentContainerStyle={styles.checklist}
@@ -146,6 +225,11 @@ export default function TripExpensesScreen() {
                       currentUserId: session!.user.id,
                     }),
                   },
+                  participantNames: item.participants.map((participant) =>
+                    participant.userId === session?.user.id
+                      ? "You"
+                      : `@${participant.username ?? "unknown"}`,
+                  ),
                   creator: item.creator,
                 }}
                 onPress={() => {}}
@@ -191,6 +275,18 @@ const styles = StyleSheet.create({
     ...getCardBasicStyle("sm"),
   },
   summary: {},
+  ledger: {
+    ...getCardBasicStyle("sm"),
+    gap: gaps.xs,
+  },
+  ledgerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: gaps.sm,
+  },
+  settlementTitle: {
+    marginTop: gaps.xs,
+  },
   checklist: {
     gap: gaps.md,
   },

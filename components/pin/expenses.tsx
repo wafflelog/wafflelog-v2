@@ -49,6 +49,11 @@ export const PinExpenses = ({
         currentUserId: userId,
       }),
     },
+    participantNames: expense.participants.map((participant) =>
+      participant.userId === userId
+        ? "You"
+        : `@${participant.username ?? "unknown"}`,
+    ),
     creator: expense.creator,
   }));
 
