@@ -4,7 +4,7 @@ import { type Trip } from "@/types/trip";
 import {
   HeaderBackButton,
   type HeaderBackButtonProps,
-} from "@react-navigation/elements";
+} from "expo-router/elements";
 import {
   ChevronLeft as ChevronLeftIcon,
   Menu as MenuIcon,

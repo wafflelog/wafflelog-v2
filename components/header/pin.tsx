@@ -5,7 +5,7 @@ import {
   HeaderBackButton,
   type HeaderBackButtonProps,
   type HeaderTitleProps,
-} from "@react-navigation/elements";
+} from "expo-router/elements";
 import {
   ChevronLeft as ChevronLeftIcon,
   Menu as MenuIcon,

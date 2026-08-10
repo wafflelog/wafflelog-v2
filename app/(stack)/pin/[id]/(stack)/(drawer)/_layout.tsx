@@ -2,10 +2,9 @@ import { DrawerPin } from "@/components/drawer/pin";
 import { HeaderPinBackButton, HeaderPinTitle } from "@/components/header/pin";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionGetLocalPin } from "@/lib/sqlite/model/pin";
-import { DrawerToggleButton } from "@react-navigation/drawer";
 import { useQuery } from "@tanstack/react-query";
 import { useGlobalSearchParams, useRouter } from "expo-router";
-import { Drawer } from "expo-router/drawer";
+import { Drawer, DrawerToggleButton } from "expo-router/drawer";
 
 export default function Layout() {
   const { id } = useGlobalSearchParams<{ id: string }>();
