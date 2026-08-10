@@ -20,7 +20,8 @@
     "test:service": "npm run supabase:prepare && set -a && . ./supabase/.env && set +a && vitest run service.test",
     "test:service:fast": "set -a && . ./supabase/.env && set +a && vitest run service.test",
     "test:watch": "vitest",
-    "sb:gen": "supabase gen types typescript --project-id shscucanawhrjahqokvn --schema public > ./lib/supabase/types.ts"
+    "sb:gen": "supabase gen types typescript --project-id shscucanawhrjahqokvn --schema public > ./lib/supabase/types.ts",
+    "api:types": "openapi-typescript https://api.wafflelog.co.uk/openapi.json -o ./lib/ai-trip-planning/generated.ts"
   },
   "dependencies": {
     "@expo-google-fonts/montserrat": "^0.4.2",
@@ -74,6 +75,7 @@
     "better-sqlite3": "^12.11.1",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "openapi-typescript": "^7.13.0",
     "supabase": "^2.92.1",
     "typescript": "~5.9.2",
     "vitest": "^4.1.10"
