@@ -8,6 +8,7 @@ import type {
   PlanningApiResponse,
   PlanningJob,
 } from "@/lib/ai-trip-planning/types";
+import type { UpdateLocalAiPlanningSessionJobInput } from "@/lib/sqlite/model/ai-planning-session";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
@@ -23,14 +24,24 @@ export const aiTripPlanningQueryKeys = {
   jobs: () => [...aiTripPlanningQueryKeys.all, "jobs"] as const,
   job: (jobId: string) =>
     [...aiTripPlanningQueryKeys.jobs(), jobId] as const,
+  localSessions: (userId: string) =>
+    [...aiTripPlanningQueryKeys.all, "local-sessions", userId] as const,
+  localSession: (sessionId: string, userId: string) =>
+    [
+      ...aiTripPlanningQueryKeys.localSessions(userId),
+      sessionId,
+    ] as const,
 };
 
 export type CreatePlanningSessionVariables = {
+  userId: string;
+  startDate: string;
   request: CreatePlanningSessionRequest;
   idempotencyKey: string;
 };
 
 export type CreatePlanningRefinementVariables = {
+  userId: string;
   sessionId: string;
   request: CreatePlanningRefinementRequest;
   idempotencyKey: string;
@@ -64,9 +75,65 @@ export function getPlanningJobPollInterval(
   );
 }
 
+export function buildLocalPlanningJobUpdate(
+  job: PlanningJob,
+  userId: string,
+): UpdateLocalAiPlanningSessionJobInput {
+  return {
+    id: job.sessionId,
+    userId,
+    activeJobId: job.id,
+    status: job.status,
+    progressStage: "progress" in job ? job.progress.stage : null,
+    progressMessage: "progress" in job ? job.progress.message : null,
+  };
+}
+
+export function useLocalAiPlanningSessions(
+  userId: string | null | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: aiTripPlanningQueryKeys.localSessions(userId ?? ""),
+    queryFn: async () => {
+      const { actionListLocalAiPlanningSessions } = await import(
+        "@/lib/sqlite/model/ai-planning-session"
+      );
+
+      return actionListLocalAiPlanningSessions(userId!);
+    },
+    enabled: Boolean(userId) && enabled,
+  });
+}
+
+export function useLocalAiPlanningSession(
+  sessionId: string | null | undefined,
+  userId: string | null | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: aiTripPlanningQueryKeys.localSession(
+      sessionId ?? "",
+      userId ?? "",
+    ),
+    queryFn: async () => {
+      const { actionGetLocalAiPlanningSession } = await import(
+        "@/lib/sqlite/model/ai-planning-session"
+      );
+
+      return actionGetLocalAiPlanningSession(sessionId!, userId!);
+    },
+    enabled: Boolean(sessionId) && Boolean(userId) && enabled,
+  });
+}
+
 export function useCreatePlanningSession() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({
+      userId,
+      startDate,
       request,
       idempotencyKey,
     }: CreatePlanningSessionVariables) => {
@@ -74,15 +141,42 @@ export function useCreatePlanningSession() {
         request,
         idempotencyKey,
       );
+      const { actionUpsertLocalAiPlanningSession } = await import(
+        "@/lib/sqlite/model/ai-planning-session"
+      );
+      const localSession = await actionUpsertLocalAiPlanningSession({
+        id: response.data.id,
+        userId,
+        destination: request.destination,
+        durationDays: request.durationDays,
+        startDate,
+        activeJobId: response.data.job.id,
+        status: response.data.job.status,
+      });
 
-      return response.data;
+      return { planningSession: response.data, localSession };
+    },
+    onSuccess: ({ localSession }) => {
+      queryClient.setQueryData(
+        aiTripPlanningQueryKeys.localSession(
+          localSession.id,
+          localSession.userId,
+        ),
+        localSession,
+      );
+      void queryClient.invalidateQueries({
+        queryKey: aiTripPlanningQueryKeys.localSessions(localSession.userId),
+      });
     },
   });
 }
 
 export function useCreatePlanningRefinement() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({
+      userId,
       sessionId,
       request,
       idempotencyKey,
@@ -92,8 +186,29 @@ export function useCreatePlanningRefinement() {
         request,
         idempotencyKey,
       );
+      const { actionUpdateLocalAiPlanningSessionJob } = await import(
+        "@/lib/sqlite/model/ai-planning-session"
+      );
+      const localSession = await actionUpdateLocalAiPlanningSessionJob({
+        id: response.data.sessionId,
+        userId,
+        activeJobId: response.data.job.id,
+        status: response.data.job.status,
+      });
 
-      return response.data;
+      return { refinement: response.data, localSession };
+    },
+    onSuccess: ({ localSession }) => {
+      queryClient.setQueryData(
+        aiTripPlanningQueryKeys.localSession(
+          localSession.id,
+          localSession.userId,
+        ),
+        localSession,
+      );
+      void queryClient.invalidateQueries({
+        queryKey: aiTripPlanningQueryKeys.localSessions(localSession.userId),
+      });
     },
   });
 }
@@ -112,13 +227,14 @@ export function usePlanningSession(
 
 export function usePlanningJob(
   jobId: string | null | undefined,
+  userId: string | null | undefined,
   enabled = true,
 ) {
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: aiTripPlanningQueryKeys.job(jobId ?? ""),
     queryFn: () => planningApiClient.getPlanningJob(jobId!),
-    enabled: Boolean(jobId) && enabled,
+    enabled: Boolean(jobId) && Boolean(userId) && enabled,
     select: (response) => response.data,
     refetchInterval: (jobQuery) =>
       getPlanningJobPollInterval(jobQuery.state.data),
@@ -126,6 +242,37 @@ export function usePlanningJob(
 
   const sessionId = query.data?.sessionId;
   const status = query.data?.status;
+  const updatedAt = query.data?.updatedAt;
+
+  useEffect(() => {
+    if (!query.data || !userId) {
+      return;
+    }
+
+    const job = query.data;
+
+    void import("@/lib/sqlite/model/ai-planning-session")
+      .then(({ actionUpdateLocalAiPlanningSessionJob }) =>
+        actionUpdateLocalAiPlanningSessionJob(
+          buildLocalPlanningJobUpdate(job, userId),
+        ),
+      )
+      .then((localSession) => {
+        queryClient.setQueryData(
+          aiTripPlanningQueryKeys.localSession(
+            localSession.id,
+            localSession.userId,
+          ),
+          localSession,
+        );
+        void queryClient.invalidateQueries({
+          queryKey: aiTripPlanningQueryKeys.localSessions(localSession.userId),
+        });
+      })
+      .catch((error) => {
+        console.error("Failed to persist AI planning job progress", error);
+      });
+  }, [query.data, queryClient, updatedAt, userId]);
 
   useEffect(() => {
     if (
@@ -145,25 +292,42 @@ export function usePlanningJob(
   return query;
 }
 
-export function useCancelPlanningJob() {
+export function useCancelPlanningJob(userId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (jobId: string) => {
       const response = await planningApiClient.cancelPlanningJob(jobId);
+      const { actionUpdateLocalAiPlanningSessionJob } = await import(
+        "@/lib/sqlite/model/ai-planning-session"
+      );
+      const localSession = await actionUpdateLocalAiPlanningSessionJob(
+        buildLocalPlanningJobUpdate(response.data, userId),
+      );
 
-      return response.data;
+      return { job: response.data, localSession };
     },
-    onSuccess: (job) => {
+    onSuccess: ({ job, localSession }) => {
       queryClient.setQueryData(aiTripPlanningQueryKeys.job(job.id), {
         data: job,
         retryAfterMs: null,
       } satisfies PlanningApiResponse<PlanningJob>);
+      queryClient.setQueryData(
+        aiTripPlanningQueryKeys.localSession(
+          localSession.id,
+          localSession.userId,
+        ),
+        localSession,
+      );
 
-      void queryClient.invalidateQueries({
-        queryKey: aiTripPlanningQueryKeys.session(job.sessionId),
-      });
+      void Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: aiTripPlanningQueryKeys.session(job.sessionId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: aiTripPlanningQueryKeys.localSessions(localSession.userId),
+        }),
+      ]);
     },
   });
 }
-

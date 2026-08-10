@@ -5,6 +5,7 @@ import type {
 import { describe, expect, it } from "vitest";
 import {
   aiTripPlanningQueryKeys,
+  buildLocalPlanningJobUpdate,
   getPlanningJobPollInterval,
   isTerminalPlanningJob,
 } from "./use-ai-trip-planning";
@@ -83,6 +84,37 @@ describe("AI trip planning query keys", () => {
       "jobs",
       "job-1",
     ]);
+    expect(
+      aiTripPlanningQueryKeys.localSession("session-1", "user-a"),
+    ).toEqual([
+      "ai-trip-planning",
+      "local-sessions",
+      "user-a",
+      "session-1",
+    ]);
+  });
+
+  it("maps public running progress into the local recovery record", () => {
+    expect(
+      buildLocalPlanningJobUpdate(runningJob("researching"), "user-a"),
+    ).toEqual({
+      id: "session-1",
+      userId: "user-a",
+      activeJobId: "job-1",
+      status: "researching",
+      progressStage: "research",
+      progressMessage: "Researching the destination",
+    });
+  });
+
+  it("clears public progress for a terminal job", () => {
+    expect(
+      buildLocalPlanningJobUpdate(terminalJob("completed"), "user-a"),
+    ).toMatchObject({
+      status: "completed",
+      progressStage: null,
+      progressMessage: null,
+    });
   });
 });
 
