@@ -50,6 +50,7 @@ describe("initializeDatabase", () => {
 
     expect(await listTableNames()).toEqual(
       expect.arrayContaining([
+        "ai_planning_session",
         "checklist_item",
         "document",
         "expense",
@@ -62,6 +63,29 @@ describe("initializeDatabase", () => {
         "trip",
         "trip_membership",
         "user_profile",
+      ]),
+    );
+  });
+
+  it("creates the local-only AI planning session table", async () => {
+    const { initializeDatabase } = await import("@/lib/sqlite/init");
+
+    await initializeDatabase();
+
+    expect(await listColumnNames("ai_planning_session")).toEqual(
+      expect.arrayContaining([
+        "id",
+        "user_id",
+        "destination",
+        "duration_days",
+        "start_date",
+        "active_job_id",
+        "status",
+        "progress_stage",
+        "progress_message",
+        "imported_trip_id",
+        "created_at",
+        "updated_at",
       ]),
     );
   });

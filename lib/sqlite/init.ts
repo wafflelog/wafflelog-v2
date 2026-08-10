@@ -54,6 +54,24 @@ export async function initializeDatabase() {
       updated_at text not null
     );
 
+    create table if not exists ai_planning_session (
+      id text primary key not null,
+      user_id text not null,
+      destination text not null,
+      duration_days integer not null,
+      start_date text not null,
+      active_job_id text,
+      status text not null,
+      progress_stage text,
+      progress_message text,
+      imported_trip_id text,
+      created_at text not null,
+      updated_at text not null
+    );
+
+    create index if not exists ai_planning_session_user_updated_at_idx
+    on ai_planning_session (user_id, updated_at desc);
+
     create table if not exists checklist_item (
       id text primary key not null,
       trip_id text not null,
