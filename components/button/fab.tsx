@@ -6,17 +6,27 @@ import {
   getCardBasicStyle,
   getColor,
 } from "@/constants/theme";
-import { StyleSheet, TouchableOpacity } from "react-native";
+import {
+  type StyleProp,
+  StyleSheet,
+  TouchableOpacity,
+  type ViewStyle,
+} from "react-native";
 
 type ButtonFabProps = {
   onPress: () => void;
   text: string;
   icon: (color: string) => React.ReactNode;
+  style?: StyleProp<ViewStyle>;
 };
 
-export function ButtonFab({ onPress, text, icon }: ButtonFabProps) {
+export function ButtonFab({ onPress, text, icon, style }: ButtonFabProps) {
   return (
-    <TouchableOpacity style={styles.fab} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity
+      style={[styles.fab, style]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
       {icon(getColor(colors.white))}
       <TitleRegular size="sm" weight="600" color={colors.white}>
         {text}

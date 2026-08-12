@@ -24,6 +24,14 @@ export default function Layout() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
+          name="ai-trip-planner"
+          options={{
+            headerShown: false,
+            presentation: "fullScreenModal",
+            animation: "slide_from_bottom",
+          }}
+        />
+        <Stack.Screen
           name="user-search"
           options={{ headerShown: false, presentation: "modal" }}
         />

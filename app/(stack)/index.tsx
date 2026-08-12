@@ -16,6 +16,7 @@ import {
   MapPin as MapPinIcon,
   Plane as PlaneIcon,
   Plus as PlusIcon,
+  Sparkles as SparklesIcon,
 } from "lucide-react-native";
 import { useState } from "react";
 import {
@@ -283,6 +284,12 @@ export default function IndexScreen() {
         text="New Trip"
         icon={(color) => <PlusIcon size={20} color={color} />}
       />
+      <ButtonFab
+        onPress={() => router.push("/ai-trip-planner")}
+        text="Plan with AI"
+        icon={(color) => <SparklesIcon size={20} color={color} />}
+        style={styles.aiPlannerFab}
+      />
       <DialogNewTrip
         visible={isDialogNewTripOpen}
         onDismiss={() => setIsDialogNewTripOpen(false)}
@@ -295,6 +302,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F5F7FA",
+  },
+  aiPlannerFab: {
+    bottom: gaps.xl + 64,
+    backgroundColor: getColor(colors.turquoise),
   },
   loadingContainer: {
     flex: 1,
