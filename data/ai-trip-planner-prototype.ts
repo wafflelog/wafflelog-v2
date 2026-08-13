@@ -1,45 +1,7 @@
-export type AiPlannerPrototypeSource = {
-  title: string;
-  url: string;
-};
-
-export type AiPlannerPrototypeItem = {
-  id: string;
-  time: string;
-  title: string;
-  description: string;
-  category: "attraction" | "food" | "nature" | "other" | "transport";
-  reason: string;
-  sources: AiPlannerPrototypeSource[];
-};
-
-export type AiPlannerPrototypeDay = {
-  id: string;
-  label: string;
-  title: string;
-  summary: string;
-  items: AiPlannerPrototypeItem[];
-};
-
-export type AiPlannerPrototypePlan = {
-  revision: number;
-  title: string;
-  destination: string;
-  dateRange: string;
-  summary: string;
-  assumptions: string[];
-  warnings: string[];
-  checklist: string[];
-  days: AiPlannerPrototypeDay[];
-};
-
-export type AiPlannerPrototypeMessage = {
-  id: string;
-  role: "assistant" | "user";
-  body: string;
-  time: string;
-  draftRevision?: number;
-};
+import {
+  type AiPlannerConversationMessage,
+  type AiPlannerPlanViewModel,
+} from "@/types/ai-trip-planner";
 
 export const AI_PLANNER_PROMPT_SUGGESTIONS = [
   "A relaxed food weekend",
@@ -47,7 +9,7 @@ export const AI_PLANNER_PROMPT_SUGGESTIONS = [
   "Family-friendly city break",
 ];
 
-export const AI_PLANNER_INITIAL_MESSAGES: AiPlannerPrototypeMessage[] = [
+export const AI_PLANNER_INITIAL_MESSAGES: AiPlannerConversationMessage[] = [
   {
     id: "welcome",
     role: "assistant",
@@ -69,7 +31,7 @@ export const AI_PLANNER_INITIAL_MESSAGES: AiPlannerPrototypeMessage[] = [
   },
 ];
 
-export const AI_PLANNER_PROTOTYPE_PLAN: AiPlannerPrototypePlan = {
+export const AI_PLANNER_PROTOTYPE_PLAN: AiPlannerPlanViewModel = {
   revision: 2,
   title: "Osaka, one neighbourhood at a time",
   destination: "Osaka, Japan",

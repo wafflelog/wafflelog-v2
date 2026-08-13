@@ -1,4 +1,5 @@
 import { AiPlannerConversation } from "@/components/ai-trip-planner/conversation";
+import { AiPlannerIntakeConversation } from "@/components/ai-trip-planner/intake-conversation";
 import { AiPlannerPlanPreview } from "@/components/ai-trip-planner/plan-preview";
 import { TitleRegular } from "@/components/title/regular";
 import { Dialog } from "@/components/ui/dialog";
@@ -11,8 +12,8 @@ import {
 import {
   AI_PLANNER_INITIAL_MESSAGES,
   AI_PLANNER_PROTOTYPE_PLAN,
-  type AiPlannerPrototypeMessage,
 } from "@/data/ai-trip-planner-prototype";
+import { type AiPlannerConversationMessage } from "@/types/ai-trip-planner";
 import { useRouter } from "expo-router";
 import { CalendarDays, MessageCircle, X } from "lucide-react-native";
 import { useState } from "react";
@@ -26,11 +27,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type PlannerView = "chat" | "draft";
+type PlannerChatMode = "intake" | "sample";
 
 export default function AiTripPlannerPrototypeScreen() {
   const router = useRouter();
   const [activeView, setActiveView] = useState<PlannerView>("chat");
-  const [messages, setMessages] = useState<AiPlannerPrototypeMessage[]>(
+  const [chatMode, setChatMode] = useState<PlannerChatMode>("intake");
+  const [messages, setMessages] = useState<AiPlannerConversationMessage[]>(
     AI_PLANNER_INITIAL_MESSAGES,
   );
   const [prompt, setPrompt] = useState("");
@@ -68,8 +71,11 @@ export default function AiTripPlannerPrototypeScreen() {
 
   const handleAskForChanges = () => {
     setPrompt("Could you make day two a little less busy? ");
+    setChatMode("sample");
     setActiveView("chat");
   };
+
+  const isShowingSample = activeView === "draft" || chatMode === "sample";
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
@@ -91,12 +97,14 @@ export default function AiTripPlannerPrototypeScreen() {
                 Plan with AI
               </TitleRegular>
               <TitleRegular size="xxs" color={colors.textLightGrey}>
-                Osaka planning session
+                {isShowingSample
+                  ? "Osaka planning session"
+                  : "New planning session"}
               </TitleRegular>
             </View>
             <View style={styles.revisionBadge}>
               <TitleRegular size="xxs" weight="600" color={colors.purple}>
-                Draft #2
+                {isShowingSample ? "Draft #2" : "Prototype"}
               </TitleRegular>
             </View>
           </View>
@@ -167,14 +175,18 @@ export default function AiTripPlannerPrototypeScreen() {
 
           <View style={styles.body}>
             {activeView === "chat" ? (
-              <AiPlannerConversation
-                messages={messages}
-                prompt={prompt}
-                onPromptChange={setPrompt}
-                onSend={handleSend}
-                onUseSuggestion={setPrompt}
-                onOpenDraft={() => setActiveView("draft")}
-              />
+              chatMode === "intake" ? (
+                <AiPlannerIntakeConversation />
+              ) : (
+                <AiPlannerConversation
+                  messages={messages}
+                  prompt={prompt}
+                  onPromptChange={setPrompt}
+                  onSend={handleSend}
+                  onUseSuggestion={setPrompt}
+                  onOpenDraft={() => setActiveView("draft")}
+                />
+              )
             ) : (
               <AiPlannerPlanPreview
                 plan={AI_PLANNER_PROTOTYPE_PLAN}

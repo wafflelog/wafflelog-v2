@@ -5,7 +5,7 @@ import {
   gaps,
   getColor,
 } from "@/constants/theme";
-import { type AiPlannerPrototypeItem } from "@/data/ai-trip-planner-prototype";
+import { type AiPlannerItemViewModel } from "@/types/ai-trip-planner";
 import {
   Bus,
   CheckCircle2,
@@ -21,7 +21,7 @@ import {
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 type ItineraryItemProps = {
-  item: AiPlannerPrototypeItem;
+  item: AiPlannerItemViewModel;
   isCustomizing: boolean;
   isIncluded: boolean;
   isResearchExpanded: boolean;
@@ -29,7 +29,7 @@ type ItineraryItemProps = {
   onToggleResearch: () => void;
 };
 
-const categoryLabels: Record<AiPlannerPrototypeItem["category"], string> = {
+const categoryLabels: Record<AiPlannerItemViewModel["category"], string> = {
   attraction: "Culture",
   food: "Food",
   nature: "Nature",
@@ -37,7 +37,7 @@ const categoryLabels: Record<AiPlannerPrototypeItem["category"], string> = {
   transport: "Travel",
 };
 
-function ItemCategoryIcon({ item }: { item: AiPlannerPrototypeItem }) {
+function ItemCategoryIcon({ item }: { item: AiPlannerItemViewModel }) {
   const props = { size: 14, color: getColor(colors.purple) };
 
   switch (item.category) {

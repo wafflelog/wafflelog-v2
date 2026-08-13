@@ -1,10 +1,10 @@
-import { type AiPlannerPrototypePlan } from "@/data/ai-trip-planner-prototype";
+import { type AiPlannerPlanViewModel } from "@/types/ai-trip-planner";
 import dayjs from "dayjs";
 
 import { type PlanningResult } from "./types";
 
 type PlanPreviewCategory =
-  AiPlannerPrototypePlan["days"][number]["items"][number]["category"];
+  AiPlannerPlanViewModel["days"][number]["items"][number]["category"];
 
 export type PlanningResultPreviewInput = {
   result: PlanningResult;
@@ -109,7 +109,7 @@ export function adaptPlanningResultToPlanPreview({
   result,
   revisionNumber,
   startDate,
-}: PlanningResultPreviewInput): AiPlannerPrototypePlan {
+}: PlanningResultPreviewInput): AiPlannerPlanViewModel {
   return {
     revision: revisionNumber,
     title: result.title,

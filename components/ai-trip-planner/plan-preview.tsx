@@ -6,13 +6,13 @@ import { TripDayAccordion } from "@/components/ai-trip-planner/draft/trip-day-ac
 import { TripSummary } from "@/components/ai-trip-planner/draft/trip-summary";
 import { TitleRegular } from "@/components/title/regular";
 import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
-import { type AiPlannerPrototypePlan } from "@/data/ai-trip-planner-prototype";
+import { type AiPlannerPlanViewModel } from "@/types/ai-trip-planner";
 import { Check } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
 type AiPlannerPlanPreviewProps = {
-  plan: AiPlannerPrototypePlan;
+  plan: AiPlannerPlanViewModel;
   onAskForChanges: () => void;
   onReview: (selection: {
     itineraryItemCount: number;

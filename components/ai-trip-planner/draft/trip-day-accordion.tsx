@@ -5,14 +5,14 @@ import {
   gaps,
   getColor,
 } from "@/constants/theme";
-import { type AiPlannerPrototypeDay } from "@/data/ai-trip-planner-prototype";
+import { type AiPlannerDayViewModel } from "@/types/ai-trip-planner";
 import { ChevronDown, ChevronUp } from "lucide-react-native";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { ItineraryItem } from "./itinerary-item";
 
 type TripDayAccordionProps = {
-  day: AiPlannerPrototypeDay;
+  day: AiPlannerDayViewModel;
   dayNumber: number;
   isExpanded: boolean;
   isCustomizing: boolean;

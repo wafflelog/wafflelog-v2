@@ -6,12 +6,12 @@ import {
   getColor,
   getShadowStyle,
 } from "@/constants/theme";
-import { type AiPlannerPrototypePlan } from "@/data/ai-trip-planner-prototype";
+import { type AiPlannerPlanViewModel } from "@/types/ai-trip-planner";
 import { MapPin, Sparkles } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 
 type TripSummaryProps = {
-  plan: AiPlannerPrototypePlan;
+  plan: AiPlannerPlanViewModel;
 };
 
 export function TripSummary({ plan }: TripSummaryProps) {

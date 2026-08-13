@@ -6,11 +6,9 @@ import {
   gaps,
   getColor,
 } from "@/constants/theme";
-import {
-  AI_PLANNER_PROMPT_SUGGESTIONS,
-  type AiPlannerPrototypeMessage,
-} from "@/data/ai-trip-planner-prototype";
+import { AI_PLANNER_PROMPT_SUGGESTIONS } from "@/data/ai-trip-planner-prototype";
 import { getFontFamily } from "@/lib/helper/utils";
+import { type AiPlannerConversationMessage } from "@/types/ai-trip-planner";
 import { ArrowUp, CalendarDays, Sparkles } from "lucide-react-native";
 import { useEffect, useRef } from "react";
 import {
@@ -22,7 +20,7 @@ import {
 } from "react-native";
 
 type AiPlannerConversationProps = {
-  messages: AiPlannerPrototypeMessage[];
+  messages: AiPlannerConversationMessage[];
   prompt: string;
   onPromptChange: (value: string) => void;
   onSend: () => void;
