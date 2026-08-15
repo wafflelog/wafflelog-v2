@@ -6,7 +6,10 @@ import { TripSummary } from "@/components/ai-trip-planner/draft/trip-summary";
 import { WorthChecking } from "@/components/ai-trip-planner/draft/worth-checking";
 import { TitleRegular } from "@/components/title/regular";
 import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
-import { type AiPlannerPlanViewModel } from "@/types/ai-trip-planner";
+import {
+  type AiPlannerDraftSelection,
+  type AiPlannerPlanViewModel,
+} from "@/types/ai-trip-planner";
 import { Check } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -14,10 +17,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 type AiPlannerPlanPreviewProps = {
   plan: AiPlannerPlanViewModel;
   onAskForChanges: () => void;
-  onReview: (selection: {
-    itineraryItemCount: number;
-    checklistItemCount: number;
-  }) => void;
+  onReview: (selection: AiPlannerDraftSelection) => void;
 };
 
 export function AiPlannerPlanPreview({
@@ -146,8 +146,8 @@ export function AiPlannerPlanPreview({
         onBackToDraft={handleBackToDraft}
         onReviewSelection={() =>
           onReview({
-            itineraryItemCount: includedItemIds.size,
-            checklistItemCount: includedChecklistItems.size,
+            itineraryItemIds: [...includedItemIds],
+            checklistItems: [...includedChecklistItems],
           })
         }
       />

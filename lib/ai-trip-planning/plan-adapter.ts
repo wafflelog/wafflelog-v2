@@ -33,7 +33,7 @@ const CATEGORY_ALIASES: Record<string, PlanPreviewCategory> = {
   travel: "transport",
 };
 
-function getPreviewCategory(
+export function getPlanningItemCategory(
   type: PlanningResult["days"][number]["items"][number]["type"],
   category: string | null,
 ): PlanPreviewCategory {
@@ -131,7 +131,7 @@ export function adaptPlanningResultToPlanPreview({
         time: item.suggestedStartTime?.trim() || "Flexible",
         title: item.title,
         description: item.description,
-        category: getPreviewCategory(item.type, item.category),
+        category: getPlanningItemCategory(item.type, item.category),
         reason: item.reason,
         sources: item.sources.map((source) => ({ ...source })),
       })),

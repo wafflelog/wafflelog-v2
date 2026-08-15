@@ -24,14 +24,23 @@ import { useAuthSession } from "@/hook/use-auth-session";
 import { isPlanningApiError } from "@/lib/ai-trip-planning/errors";
 import { adaptPlanningResultToPlanPreview } from "@/lib/ai-trip-planning/plan-adapter";
 import { buildCreatePlanningSessionRequest } from "@/lib/ai-trip-planning/session-request";
-import { type CreatePlanningRefinementRequest } from "@/lib/ai-trip-planning/types";
 import {
+  actionImportAiPlanningResult,
+  actionSyncImportedAiTrip,
+} from "@/lib/ai-trip-planning/trip-import";
+import {
+  type CreatePlanningRefinementRequest,
+  type PlanningResult,
+} from "@/lib/ai-trip-planning/types";
+import {
+  type AiPlannerDraftSelection,
   type AiPlannerIntakeAnswers,
   type AiPlannerPlanViewModel,
 } from "@/types/ai-trip-planner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { CalendarDays, MessageCircle, X } from "lucide-react-native";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -76,6 +85,7 @@ function getPlanningErrorMessage(error: unknown) {
 
 export default function AiTripPlannerScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { session } = useAuthSession();
   const userId = session?.user.id ?? null;
   const createPlanningSession = useCreatePlanningSession();
@@ -96,11 +106,16 @@ export default function AiTripPlannerScreen() {
   >(null);
   const [latestPlan, setLatestPlan] =
     useState<AiPlannerPlanViewModel | null>(null);
+  const [latestPlanningResult, setLatestPlanningResult] =
+    useState<PlanningResult | null>(null);
   const [reviewVisible, setReviewVisible] = useState(false);
-  const [reviewSelection, setReviewSelection] = useState({
-    itineraryItemCount: 0,
-    checklistItemCount: 0,
-  });
+  const [reviewSelection, setReviewSelection] =
+    useState<AiPlannerDraftSelection>({
+      itineraryItemIds: [],
+      checklistItems: [],
+    });
+  const [localImportError, setLocalImportError] = useState<string | null>(null);
+  const isImportingRef = useRef(false);
   const [openedDraftJobId, setOpenedDraftJobId] = useState<string | null>(null);
   const planningJob = usePlanningJob(planningContext?.jobId, userId, {
     enabled: Boolean(planningContext),
@@ -139,12 +154,68 @@ export default function AiTripPlannerScreen() {
 
   const resolvedPlan = completedJobPlan ?? sessionPlan;
   const livePlan = resolvedPlan ?? latestPlan;
+  const resolvedPlanningResult =
+    job?.status === "completed"
+      ? job.result
+      : planningSession.data?.currentRevision?.result ?? null;
+  const planningResult = resolvedPlanningResult ?? latestPlanningResult;
 
   useEffect(() => {
-    if (resolvedPlan) {
+    if (resolvedPlan && resolvedPlanningResult) {
       setLatestPlan(resolvedPlan);
+      setLatestPlanningResult(resolvedPlanningResult);
     }
-  }, [resolvedPlan]);
+  }, [resolvedPlan, resolvedPlanningResult]);
+
+  const importTrip = useMutation({
+    mutationFn: actionImportAiPlanningResult,
+    onSuccess: (imported) => {
+      setReviewVisible(false);
+      queryClient.setQueryData(
+        ["local-trip", imported.trip.id, imported.trip.userId],
+        imported.trip,
+      );
+      void queryClient.invalidateQueries({
+        queryKey: ["local-trips", imported.trip.userId],
+      });
+      router.replace(`/trip/${imported.trip.id}`);
+
+      void actionSyncImportedAiTrip(imported)
+        .catch((error) => {
+          console.error("AI trip saved locally; background sync failed", error);
+        })
+        .finally(() => {
+          void Promise.all([
+            queryClient.invalidateQueries({
+              queryKey: ["local-trip", imported.trip.id, imported.trip.userId],
+            }),
+            queryClient.invalidateQueries({
+              queryKey: ["local-trips", imported.trip.userId],
+            }),
+            queryClient.invalidateQueries({ queryKey: ["local-pins"] }),
+            queryClient.invalidateQueries({
+              queryKey: ["local-pin-locations"],
+            }),
+            queryClient.invalidateQueries({
+              queryKey: ["local-checklist-items"],
+            }),
+            queryClient.invalidateQueries({ queryKey: ["local-notes"] }),
+            queryClient.invalidateQueries({
+              queryKey: ["local-reference-links"],
+            }),
+            queryClient.invalidateQueries({
+              queryKey: ["local-trip-reference-links"],
+            }),
+          ]);
+        });
+    },
+    onError: (error) => {
+      console.error("AI trip import failed", error);
+    },
+    onSettled: () => {
+      isImportingRef.current = false;
+    },
+  });
 
   const itineraryItemCount = useMemo(
     () =>
@@ -239,8 +310,12 @@ export default function AiTripPlannerScreen() {
       setPlanningContext(null);
       setRefinementAttempt(null);
       setLatestPlan(null);
+      setLatestPlanningResult(null);
       setOpenedDraftJobId(null);
       setLocalRefinementError(null);
+      setLocalImportError(null);
+      isImportingRef.current = false;
+      importTrip.reset();
       createPlanningRefinement.reset();
       cancelPlanningJob.reset();
       void executeSubmission(attempt);
@@ -270,9 +345,13 @@ export default function AiTripPlannerScreen() {
     setPlanningContext(null);
     setRefinementAttempt(null);
     setLatestPlan(null);
+    setLatestPlanningResult(null);
     setOpenedDraftJobId(null);
     setLocalSubmissionError(null);
     setLocalRefinementError(null);
+    setLocalImportError(null);
+    isImportingRef.current = false;
+    importTrip.reset();
     createPlanningSession.reset();
     createPlanningRefinement.reset();
     cancelPlanningJob.reset();
@@ -366,6 +445,45 @@ export default function AiTripPlannerScreen() {
     cancelPlanningJob.mutate(planningContext.jobId);
   };
 
+  const handleReviewDraft = (selection: AiPlannerDraftSelection) => {
+    setReviewSelection(selection);
+    setLocalImportError(null);
+    isImportingRef.current = false;
+    importTrip.reset();
+    setReviewVisible(true);
+  };
+
+  const handleDismissReview = () => {
+    if (!importTrip.isPending) {
+      setReviewVisible(false);
+    }
+  };
+
+  const handleImportTrip = () => {
+    if (isImportingRef.current || importTrip.isPending) {
+      return;
+    }
+
+    if (!userId || !planningContext || !planningResult) {
+      setLocalImportError(
+        userId
+          ? "This completed draft is no longer available."
+          : "You must be signed in to create this trip.",
+      );
+      return;
+    }
+
+    setLocalImportError(null);
+    isImportingRef.current = true;
+    importTrip.mutate({
+      userId,
+      sessionId: planningContext.sessionId,
+      startDate: planningContext.answers.startDate,
+      result: planningResult,
+      selection: reviewSelection,
+    });
+  };
+
   const submissionError =
     localSubmissionError ||
     (createPlanningSession.error
@@ -376,6 +494,9 @@ export default function AiTripPlannerScreen() {
     (createPlanningRefinement.error
       ? getPlanningErrorMessage(createPlanningRefinement.error)
       : null);
+  const importError =
+    localImportError ||
+    (importTrip.error ? getPlanningErrorMessage(importTrip.error) : null);
   const canEdit =
     !planningContext || job?.status === "failed" || job?.status === "cancelled";
   const isPlanningStarted =
@@ -712,10 +833,7 @@ export default function AiTripPlannerScreen() {
                   key={`draft-${livePlan.revision}`}
                   plan={livePlan}
                   onAskForChanges={() => setActiveView("chat")}
-                  onReview={(selection) => {
-                    setReviewSelection(selection);
-                    setReviewVisible(true);
-                  }}
+                  onReview={handleReviewDraft}
                 />
               </View>
             ) : null}
@@ -726,10 +844,11 @@ export default function AiTripPlannerScreen() {
       <Dialog
         title="Review your trip"
         visible={reviewVisible}
-        onDismiss={() => setReviewVisible(false)}
-        onConfirm={() => setReviewVisible(false)}
+        onDismiss={handleDismissReview}
+        onConfirm={handleImportTrip}
+        dismissible={!importTrip.isPending}
         cancelText="Keep editing"
-        confirmText="Looks good"
+        confirmText={importTrip.isPending ? "Creating trip…" : "Looks good"}
       >
         <View style={styles.reviewContent}>
           <View style={styles.reviewRow}>
@@ -745,7 +864,7 @@ export default function AiTripPlannerScreen() {
               Selected
             </TitleRegular>
             <TitleRegular size="sm" weight="600" color={colors.textDarkGrey}>
-              {reviewSelection.itineraryItemCount} itinerary items
+              {reviewSelection.itineraryItemIds.length} itinerary items
             </TitleRegular>
           </View>
           <View style={styles.reviewRow}>
@@ -753,15 +872,22 @@ export default function AiTripPlannerScreen() {
               Checklist
             </TitleRegular>
             <TitleRegular size="sm" weight="600" color={colors.textDarkGrey}>
-              {reviewSelection.checklistItemCount} preparation items
+              {reviewSelection.checklistItems.length} preparation items
             </TitleRegular>
           </View>
-          <View style={styles.prototypeReviewNotice}>
-            <TitleRegular size="xs" color={colors.orange}>
-              Draft review only—creating Wafflelog records is the next
-              milestone.
+          <View style={styles.importReviewNotice}>
+            <TitleRegular size="xs" color={colors.pineGreen}>
+              Your selections will be saved locally first, then synced in the
+              background.
             </TitleRegular>
           </View>
+          {importError ? (
+            <View style={styles.importError}>
+              <TitleRegular size="xs" color={colors.red}>
+                {importError}
+              </TitleRegular>
+            </View>
+          ) : null}
         </View>
       </Dialog>
     </SafeAreaView>
@@ -848,10 +974,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: gaps.md,
   },
-  prototypeReviewNotice: {
+  importReviewNotice: {
     marginTop: gaps.xs,
     padding: gaps.sm,
     borderRadius: borderRadiuses.sm,
-    backgroundColor: getColor(colors.orange, 0.09),
+    backgroundColor: getColor(colors.pineGreen, 0.09),
+  },
+  importError: {
+    padding: gaps.sm,
+    borderRadius: borderRadiuses.sm,
+    backgroundColor: getColor(colors.red, 0.08),
   },
 });

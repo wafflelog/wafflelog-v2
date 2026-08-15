@@ -47,3 +47,8 @@ export type AiPlannerIntakeAnswers = {
   durationDays: number;
   tripBrief: string;
 };
+
+export type AiPlannerDraftSelection = {
+  itineraryItemIds: string[];
+  checklistItems: string[];
+};
