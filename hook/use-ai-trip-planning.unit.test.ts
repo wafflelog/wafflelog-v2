@@ -2,14 +2,37 @@ import type {
   PlanningApiResponse,
   PlanningJob,
 } from "@/lib/ai-trip-planning/types";
+import type { LocalAiPlanningSession } from "@/lib/sqlite/model/ai-planning-session";
 import { describe, expect, it } from "vitest";
 import {
   aiTripPlanningQueryKeys,
   buildLocalPlanningJobUpdate,
   getPlanningJobPollInterval,
   hasPlanningWaitTimedOut,
+  inferRecoveredPlanningOperation,
   isTerminalPlanningJob,
+  selectLatestRecoverableAiPlanningSession,
 } from "./use-ai-trip-planning";
+
+function localSession(
+  id: string,
+  status: LocalAiPlanningSession["status"],
+): LocalAiPlanningSession {
+  return {
+    id,
+    userId: "user-a",
+    destination: "Kyoto",
+    durationDays: 3,
+    startDate: "2026-10-12",
+    activeJobId: status === "imported" ? null : `job-${id}`,
+    status,
+    progressStage: null,
+    progressMessage: null,
+    importedTripId: status === "imported" ? `trip-${id}` : null,
+    createdAt: "2026-08-10T12:00:00.000Z",
+    updatedAt: "2026-08-10T12:00:00.000Z",
+  };
+}
 
 function runningJob(
   status: "queued" | "researching" | "drafting" | "validating" = "queued",
@@ -116,6 +139,36 @@ describe("AI trip planning query keys", () => {
       progressStage: null,
       progressMessage: null,
     });
+  });
+});
+
+describe("AI trip planning recovery", () => {
+  it("selects the newest non-imported session from the ordered local result", () => {
+    const imported = localSession("imported", "imported");
+    const recoverable = localSession("recoverable", "drafting");
+
+    expect(
+      selectLatestRecoverableAiPlanningSession([imported, recoverable]),
+    ).toEqual(recoverable);
+  });
+
+  it("returns null when there is no recoverable local session", () => {
+    expect(
+      selectLatestRecoverableAiPlanningSession([
+        localSession("imported", "imported"),
+      ]),
+    ).toBeNull();
+  });
+
+  it("identifies whether the active recovered job belongs to a refinement", () => {
+    const messages = [{ jobId: "job-refinement" }];
+
+    expect(
+      inferRecoveredPlanningOperation("job-refinement", messages),
+    ).toBe("refinement");
+    expect(inferRecoveredPlanningOperation("job-initial", messages)).toBe(
+      "initial",
+    );
   });
 });
 

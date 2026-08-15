@@ -8,7 +8,10 @@ import type {
   PlanningApiResponse,
   PlanningJob,
 } from "@/lib/ai-trip-planning/types";
-import type { UpdateLocalAiPlanningSessionJobInput } from "@/lib/sqlite/model/ai-planning-session";
+import type {
+  LocalAiPlanningSession,
+  UpdateLocalAiPlanningSessionJobInput,
+} from "@/lib/sqlite/model/ai-planning-session";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 
@@ -91,6 +94,35 @@ export function buildLocalPlanningJobUpdate(
     progressStage: "progress" in job ? job.progress.stage : null,
     progressMessage: "progress" in job ? job.progress.message : null,
   };
+}
+
+export type RecoverableLocalAiPlanningSession = Omit<
+  LocalAiPlanningSession,
+  "importedTripId" | "status"
+> & {
+  importedTripId: null;
+  status: Exclude<LocalAiPlanningSession["status"], "imported">;
+};
+
+function isRecoverableLocalAiPlanningSession(
+  session: LocalAiPlanningSession,
+): session is RecoverableLocalAiPlanningSession {
+  return session.status !== "imported" && session.importedTripId === null;
+}
+
+export function selectLatestRecoverableAiPlanningSession(
+  sessions: readonly LocalAiPlanningSession[],
+) {
+  return sessions.find(isRecoverableLocalAiPlanningSession) ?? null;
+}
+
+export function inferRecoveredPlanningOperation(
+  activeJobId: string,
+  messages: readonly { jobId: string }[],
+): "initial" | "refinement" {
+  return messages.some((message) => message.jobId === activeJobId)
+    ? "refinement"
+    : "initial";
 }
 
 export function useLocalAiPlanningSessions(

@@ -4,6 +4,7 @@ import {
   AiPlannerPlanningProgress,
   type PlanningProgressVariant,
 } from "@/components/ai-trip-planner/planning-progress";
+import { AiPlannerPlanningSessionRecovery } from "@/components/ai-trip-planner/planning-session-recovery";
 import {
   AiPlannerRefinementConversation,
   type AiPlannerRefinementMessage,
@@ -12,11 +13,15 @@ import { TitleRegular } from "@/components/title/regular";
 import { Dialog } from "@/components/ui/dialog";
 import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
 import {
+  aiTripPlanningQueryKeys,
   buildPlanningMutationId,
+  inferRecoveredPlanningOperation,
   isTerminalPlanningJob,
+  selectLatestRecoverableAiPlanningSession,
   useCancelPlanningJob,
   useCreatePlanningRefinement,
   useCreatePlanningSession,
+  useLocalAiPlanningSessions,
   usePlanningJob,
   usePlanningSession,
 } from "@/hook/use-ai-trip-planning";
@@ -32,6 +37,7 @@ import {
   type CreatePlanningRefinementRequest,
   type PlanningResult,
 } from "@/lib/ai-trip-planning/types";
+import { type LocalAiPlanningSession } from "@/lib/sqlite/model/ai-planning-session";
 import {
   type AiPlannerDraftSelection,
   type AiPlannerIntakeAnswers,
@@ -42,6 +48,7 @@ import { useRouter } from "expo-router";
 import { CalendarDays, MessageCircle, X } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -69,6 +76,7 @@ type ActivePlanningContext = {
   sessionId: string;
   jobId: string;
   operation: "initial" | "refinement";
+  recovered?: boolean;
 };
 
 function getPlanningErrorMessage(error: unknown) {
@@ -92,6 +100,7 @@ export default function AiTripPlannerScreen() {
   const createPlanningRefinement = useCreatePlanningRefinement();
   const cancelPlanningJob = useCancelPlanningJob(userId ?? "");
   const [activeView, setActiveView] = useState<PlannerView>("chat");
+  const [recoveryDismissed, setRecoveryDismissed] = useState(false);
   const [submissionAttempt, setSubmissionAttempt] =
     useState<SubmissionAttempt | null>(null);
   const [planningContext, setPlanningContext] =
@@ -117,12 +126,30 @@ export default function AiTripPlannerScreen() {
   const [localImportError, setLocalImportError] = useState<string | null>(null);
   const isImportingRef = useRef(false);
   const [openedDraftJobId, setOpenedDraftJobId] = useState<string | null>(null);
+  const localPlanningSessions = useLocalAiPlanningSessions(userId);
+  const recoverableSession = useMemo(
+    () =>
+      selectLatestRecoverableAiPlanningSession(
+        localPlanningSessions.data ?? [],
+      ),
+    [localPlanningSessions.data],
+  );
+  const showRecovery = Boolean(
+    recoverableSession && !recoveryDismissed && !planningContext,
+  );
+  const isCheckingRecovery = Boolean(
+    userId &&
+      localPlanningSessions.isPending &&
+      !recoveryDismissed &&
+      !planningContext,
+  );
   const planningJob = usePlanningJob(planningContext?.jobId, userId, {
     enabled: Boolean(planningContext),
   });
   const planningSession = usePlanningSession(
-    planningContext?.sessionId,
-    Boolean(planningContext),
+    planningContext?.sessionId ??
+      (showRecovery ? recoverableSession?.id : undefined),
+    Boolean(planningContext) || showRecovery,
   );
   const job = planningJob.data;
 
@@ -167,6 +194,42 @@ export default function AiTripPlannerScreen() {
     }
   }, [resolvedPlan, resolvedPlanningResult]);
 
+  useEffect(() => {
+    if (!planningSession.data) {
+      return;
+    }
+
+    const apiSession = planningSession.data;
+
+    setPlanningContext((current) => {
+      if (!current?.recovered || current.sessionId !== apiSession.id) {
+        return current;
+      }
+
+      const operation = inferRecoveredPlanningOperation(
+        current.jobId,
+        apiSession.messages,
+      );
+      const answers = {
+        destination: apiSession.initialRequest.destination,
+        durationDays: apiSession.initialRequest.durationDays,
+        startDate: current.answers.startDate,
+        tripBrief: apiSession.initialRequest.tripBrief,
+      };
+
+      if (
+        current.operation === operation &&
+        current.answers.destination === answers.destination &&
+        current.answers.durationDays === answers.durationDays &&
+        current.answers.tripBrief === answers.tripBrief
+      ) {
+        return current;
+      }
+
+      return { ...current, answers, operation };
+    });
+  }, [planningSession.data]);
+
   const importTrip = useMutation({
     mutationFn: actionImportAiPlanningResult,
     onSuccess: (imported) => {
@@ -177,6 +240,9 @@ export default function AiTripPlannerScreen() {
       );
       void queryClient.invalidateQueries({
         queryKey: ["local-trips", imported.trip.userId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: aiTripPlanningQueryKeys.localSessions(imported.trip.userId),
       });
       router.replace(`/trip/${imported.trip.id}`);
 
@@ -214,6 +280,32 @@ export default function AiTripPlannerScreen() {
     },
     onSettled: () => {
       isImportingRef.current = false;
+    },
+  });
+
+  const discardRecovery = useMutation({
+    mutationFn: async ({ id, userId }: { id: string; userId: string }) => {
+      const { actionDeleteLocalAiPlanningSession } =
+        await import("@/lib/sqlite/model/ai-planning-session");
+
+      await actionDeleteLocalAiPlanningSession(id, userId);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.removeQueries({
+        queryKey: aiTripPlanningQueryKeys.localSession(
+          variables.id,
+          variables.userId,
+        ),
+      });
+      queryClient.setQueryData<LocalAiPlanningSession[]>(
+        aiTripPlanningQueryKeys.localSessions(variables.userId),
+        (sessions) =>
+          sessions?.filter((session) => session.id !== variables.id) ?? [],
+      );
+    },
+    onError: (error) => {
+      setRecoveryDismissed(false);
+      console.error("Failed to discard AI planning recovery", error);
     },
   });
 
@@ -300,6 +392,7 @@ export default function AiTripPlannerScreen() {
     }
 
     try {
+      setRecoveryDismissed(true);
       const attempt = {
         answers,
         request: buildCreatePlanningSessionRequest(answers),
@@ -341,6 +434,7 @@ export default function AiTripPlannerScreen() {
   };
 
   const handleEditAnswers = () => {
+    setRecoveryDismissed(true);
     setSubmissionAttempt(null);
     setPlanningContext(null);
     setRefinementAttempt(null);
@@ -355,6 +449,60 @@ export default function AiTripPlannerScreen() {
     createPlanningSession.reset();
     createPlanningRefinement.reset();
     cancelPlanningJob.reset();
+  };
+
+  const handleContinueRecovery = () => {
+    if (!recoverableSession?.activeJobId) {
+      return;
+    }
+
+    const apiSession =
+      planningSession.data?.id === recoverableSession.id
+        ? planningSession.data
+        : null;
+    const operation = inferRecoveredPlanningOperation(
+      recoverableSession.activeJobId,
+      apiSession?.messages ?? [],
+    );
+
+    if (!apiSession) {
+      void planningSession.refetch();
+    }
+
+    setRecoveryDismissed(true);
+    setSubmissionAttempt(null);
+    setRefinementAttempt(null);
+    setLatestPlan(null);
+    setLatestPlanningResult(null);
+    setOpenedDraftJobId(null);
+    setLocalSubmissionError(null);
+    setLocalRefinementError(null);
+    setLocalImportError(null);
+    setPlanningContext({
+      answers: {
+        destination:
+          apiSession?.initialRequest.destination ??
+          recoverableSession.destination,
+        durationDays:
+          apiSession?.initialRequest.durationDays ??
+          recoverableSession.durationDays,
+        startDate: recoverableSession.startDate,
+        tripBrief: apiSession?.initialRequest.tripBrief ?? "",
+      },
+      sessionId: recoverableSession.id,
+      jobId: recoverableSession.activeJobId,
+      operation,
+      recovered: true,
+    });
+  };
+
+  const handleStartNewFromRecovery = () => {
+    if (!recoverableSession || !userId || discardRecovery.isPending) {
+      return;
+    }
+
+    setRecoveryDismissed(true);
+    discardRecovery.mutate({ id: recoverableSession.id, userId });
   };
 
   const executeRefinement = async (attempt: RefinementAttempt) => {
@@ -694,13 +842,15 @@ export default function AiTripPlannerScreen() {
       secondaryAction={secondaryAction}
     />
   ) : null;
-  const headerBadge = isRefinementBusy
-    ? "Updating"
-    : livePlan
-      ? `Draft #${livePlan.revision}`
-      : planningContext
-        ? "Planning"
-        : "New";
+  const headerBadge = showRecovery
+    ? "Recent"
+    : isRefinementBusy
+      ? "Updating"
+      : livePlan
+        ? `Draft #${livePlan.revision}`
+        : planningContext
+          ? "Planning"
+          : "New";
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
@@ -722,9 +872,11 @@ export default function AiTripPlannerScreen() {
                 Plan with AI
               </TitleRegular>
               <TitleRegular size="xxs" color={colors.textLightGrey}>
-                {planningContext
-                  ? `${planningContext.answers.destination} planning session`
-                  : "New planning session"}
+                {showRecovery
+                  ? "Planning saved on this device"
+                  : planningContext
+                    ? `${planningContext.answers.destination} planning session`
+                    : "New planning session"}
               </TitleRegular>
             </View>
             <View style={styles.revisionBadge}>
@@ -804,7 +956,17 @@ export default function AiTripPlannerScreen() {
                 activeView !== "chat" && styles.hiddenPane,
               ]}
             >
-              {livePlan ? (
+              {isCheckingRecovery ? (
+                <View style={styles.recoveryLoading}>
+                  <ActivityIndicator color={getColor(colors.purple)} />
+                </View>
+              ) : showRecovery && recoverableSession ? (
+                <AiPlannerPlanningSessionRecovery
+                  session={recoverableSession}
+                  onContinue={handleContinueRecovery}
+                  onStartNew={handleStartNewFromRecovery}
+                />
+              ) : livePlan ? (
                 <AiPlannerRefinementConversation
                   draftRevision={livePlan.revision}
                   messages={refinementMessages}
@@ -967,6 +1129,7 @@ const styles = StyleSheet.create({
   body: { flex: 1 },
   viewPane: { flex: 1 },
   hiddenPane: { display: "none" },
+  recoveryLoading: { flex: 1, alignItems: "center", justifyContent: "center" },
   reviewContent: { gap: gaps.sm },
   reviewRow: {
     flexDirection: "row",
