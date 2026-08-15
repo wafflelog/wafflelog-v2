@@ -29,6 +29,7 @@ function createClient(fetchImplementation: PlanningFetch) {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 describe("planning API client", () => {
@@ -73,6 +74,7 @@ describe("planning API client", () => {
           "Idempotency-Key": "request-1",
         },
         body: JSON.stringify(request),
+        signal: expect.any(AbortSignal),
       },
     );
   });
@@ -194,6 +196,35 @@ describe("planning API client", () => {
       expect(error).toBeInstanceOf(PlanningApiError);
       expect(error).toMatchObject({ kind: "network", cause });
     }
+  });
+
+  it("aborts requests that exceed the configured timeout", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn<PlanningFetch>().mockImplementation(
+      async (_input, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            "abort",
+            () => reject(new Error("request aborted")),
+            { once: true },
+          );
+        }),
+    );
+    const client = createPlanningApiClient({
+      baseUrl: BASE_URL,
+      fetchImplementation: fetchMock,
+      getAccessToken: async () => ACCESS_TOKEN,
+      requestTimeoutMs: 100,
+    });
+    const request = client.getPlanningJob("job-1");
+    const expectation = expect(request).rejects.toMatchObject({
+      kind: "timeout",
+      status: null,
+      message: "Planning service request timed out",
+    });
+
+    await vi.advanceTimersByTimeAsync(100);
+    await expectation;
   });
 
   it("rejects invalid successful responses", async () => {

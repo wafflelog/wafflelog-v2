@@ -103,6 +103,7 @@ export function validatePlanningDuration(
 
 export function validatePlanningTripBrief(
   input: string,
+  maxLength = AI_PLANNER_TRIP_BRIEF_MAX_LENGTH,
 ): IntakeValidationResult<string> {
   const tripBrief = input.trim();
 
@@ -113,10 +114,10 @@ export function validatePlanningTripBrief(
     };
   }
 
-  if (tripBrief.length > AI_PLANNER_TRIP_BRIEF_MAX_LENGTH) {
+  if (tripBrief.length > maxLength) {
     return {
       success: false,
-      error: `Trip brief must be ${AI_PLANNER_TRIP_BRIEF_MAX_LENGTH.toLocaleString("en-GB")} characters or fewer.`,
+      error: `Trip brief must be ${maxLength.toLocaleString("en-GB")} characters or fewer.`,
     };
   }
 

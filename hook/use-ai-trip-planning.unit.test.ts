@@ -7,6 +7,7 @@ import {
   aiTripPlanningQueryKeys,
   buildLocalPlanningJobUpdate,
   getPlanningJobPollInterval,
+  hasPlanningWaitTimedOut,
   isTerminalPlanningJob,
 } from "./use-ai-trip-planning";
 
@@ -152,5 +153,13 @@ describe("AI trip planning polling", () => {
     ] as const) {
       expect(isTerminalPlanningJob(runningJob(status))).toBe(false);
     }
+  });
+
+  it("stops automatic waiting at the configured deadline", () => {
+    const startedAt = 1_000;
+
+    expect(hasPlanningWaitTimedOut(startedAt, 10_999, 10_000)).toBe(false);
+    expect(hasPlanningWaitTimedOut(startedAt, 11_000, 10_000)).toBe(true);
+    expect(hasPlanningWaitTimedOut(startedAt, 12_000, 10_000)).toBe(true);
   });
 });

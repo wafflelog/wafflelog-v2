@@ -10,11 +10,12 @@ import type {
 } from "@/lib/ai-trip-planning/types";
 import type { UpdateLocalAiPlanningSessionJobInput } from "@/lib/sqlite/model/ai-planning-session";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const DEFAULT_POLL_INTERVAL_MS = 3000;
 const MIN_POLL_INTERVAL_MS = 1000;
 const MAX_POLL_INTERVAL_MS = 10_000;
+export const MAX_AUTOMATIC_PLANNING_WAIT_MS = 10 * 60 * 1000;
 
 export const aiTripPlanningQueryKeys = {
   all: ["ai-trip-planning"] as const,
@@ -22,15 +23,11 @@ export const aiTripPlanningQueryKeys = {
   session: (sessionId: string) =>
     [...aiTripPlanningQueryKeys.sessions(), sessionId] as const,
   jobs: () => [...aiTripPlanningQueryKeys.all, "jobs"] as const,
-  job: (jobId: string) =>
-    [...aiTripPlanningQueryKeys.jobs(), jobId] as const,
+  job: (jobId: string) => [...aiTripPlanningQueryKeys.jobs(), jobId] as const,
   localSessions: (userId: string) =>
     [...aiTripPlanningQueryKeys.all, "local-sessions", userId] as const,
   localSession: (sessionId: string, userId: string) =>
-    [
-      ...aiTripPlanningQueryKeys.localSessions(userId),
-      sessionId,
-    ] as const,
+    [...aiTripPlanningQueryKeys.localSessions(userId), sessionId] as const,
 };
 
 export type CreatePlanningSessionVariables = {
@@ -66,13 +63,20 @@ export function getPlanningJobPollInterval(
     return false;
   }
 
-  const requestedInterval =
-    response?.retryAfterMs ?? DEFAULT_POLL_INTERVAL_MS;
+  const requestedInterval = response?.retryAfterMs ?? DEFAULT_POLL_INTERVAL_MS;
 
   return Math.min(
     MAX_POLL_INTERVAL_MS,
     Math.max(MIN_POLL_INTERVAL_MS, requestedInterval),
   );
+}
+
+export function hasPlanningWaitTimedOut(
+  startedAt: number,
+  now = Date.now(),
+  maxWaitMs = MAX_AUTOMATIC_PLANNING_WAIT_MS,
+) {
+  return now - startedAt >= maxWaitMs;
 }
 
 export function buildLocalPlanningJobUpdate(
@@ -96,9 +100,8 @@ export function useLocalAiPlanningSessions(
   return useQuery({
     queryKey: aiTripPlanningQueryKeys.localSessions(userId ?? ""),
     queryFn: async () => {
-      const { actionListLocalAiPlanningSessions } = await import(
-        "@/lib/sqlite/model/ai-planning-session"
-      );
+      const { actionListLocalAiPlanningSessions } =
+        await import("@/lib/sqlite/model/ai-planning-session");
 
       return actionListLocalAiPlanningSessions(userId!);
     },
@@ -117,9 +120,8 @@ export function useLocalAiPlanningSession(
       userId ?? "",
     ),
     queryFn: async () => {
-      const { actionGetLocalAiPlanningSession } = await import(
-        "@/lib/sqlite/model/ai-planning-session"
-      );
+      const { actionGetLocalAiPlanningSession } =
+        await import("@/lib/sqlite/model/ai-planning-session");
 
       return actionGetLocalAiPlanningSession(sessionId!, userId!);
     },
@@ -141,9 +143,11 @@ export function useCreatePlanningSession() {
         request,
         idempotencyKey,
       );
-      const { actionUpsertLocalAiPlanningSession } = await import(
-        "@/lib/sqlite/model/ai-planning-session"
-      );
+
+      console.log("planning session response", response);
+
+      const { actionUpsertLocalAiPlanningSession } =
+        await import("@/lib/sqlite/model/ai-planning-session");
       const localSession = await actionUpsertLocalAiPlanningSession({
         id: response.data.id,
         userId,
@@ -186,9 +190,8 @@ export function useCreatePlanningRefinement() {
         request,
         idempotencyKey,
       );
-      const { actionUpdateLocalAiPlanningSessionJob } = await import(
-        "@/lib/sqlite/model/ai-planning-session"
-      );
+      const { actionUpdateLocalAiPlanningSessionJob } =
+        await import("@/lib/sqlite/model/ai-planning-session");
       const localSession = await actionUpdateLocalAiPlanningSessionJob({
         id: response.data.sessionId,
         userId,
@@ -228,21 +231,61 @@ export function usePlanningSession(
 export function usePlanningJob(
   jobId: string | null | undefined,
   userId: string | null | undefined,
-  enabled = true,
+  options: {
+    enabled?: boolean;
+    maxWaitMs?: number;
+  } = {},
 ) {
   const queryClient = useQueryClient();
+  const enabled = options.enabled ?? true;
+  const maxWaitMs = options.maxWaitMs ?? MAX_AUTOMATIC_PLANNING_WAIT_MS;
+  const [pollingStartedAt, setPollingStartedAt] = useState(() => Date.now());
+  const [isPollingTimedOut, setIsPollingTimedOut] = useState(false);
   const query = useQuery({
     queryKey: aiTripPlanningQueryKeys.job(jobId ?? ""),
     queryFn: () => planningApiClient.getPlanningJob(jobId!),
-    enabled: Boolean(jobId) && Boolean(userId) && enabled,
+    enabled: Boolean(jobId) && Boolean(userId) && enabled && !isPollingTimedOut,
     select: (response) => response.data,
-    refetchInterval: (jobQuery) =>
-      getPlanningJobPollInterval(jobQuery.state.data),
+    refetchInterval: (jobQuery) => {
+      if (jobQuery.state.status === "error") {
+        return false;
+      }
+
+      return getPlanningJobPollInterval(jobQuery.state.data);
+    },
   });
 
   const sessionId = query.data?.sessionId;
   const status = query.data?.status;
   const updatedAt = query.data?.updatedAt;
+  const isTerminal = query.data ? isTerminalPlanningJob(query.data) : false;
+
+  useEffect(() => {
+    setPollingStartedAt(Date.now());
+    setIsPollingTimedOut(false);
+  }, [jobId]);
+
+  useEffect(() => {
+    if (!jobId || !userId || !enabled || isTerminal) {
+      return;
+    }
+
+    const remainingWaitMs = Math.max(
+      0,
+      maxWaitMs - (Date.now() - pollingStartedAt),
+    );
+    const timeout = setTimeout(() => {
+      setIsPollingTimedOut(true);
+    }, remainingWaitMs);
+
+    return () => clearTimeout(timeout);
+  }, [enabled, isTerminal, jobId, maxWaitMs, pollingStartedAt, userId]);
+
+  const resumePolling = useCallback(() => {
+    setPollingStartedAt(Date.now());
+    setIsPollingTimedOut(false);
+    void query.refetch();
+  }, [query]);
 
   useEffect(() => {
     if (!query.data || !userId) {
@@ -277,9 +320,7 @@ export function usePlanningJob(
   useEffect(() => {
     if (
       !sessionId ||
-      (status !== "completed" &&
-        status !== "failed" &&
-        status !== "cancelled")
+      (status !== "completed" && status !== "failed" && status !== "cancelled")
     ) {
       return;
     }
@@ -289,7 +330,11 @@ export function usePlanningJob(
     });
   }, [queryClient, sessionId, status]);
 
-  return query;
+  return {
+    ...query,
+    isPollingTimedOut,
+    resumePolling,
+  };
 }
 
 export function useCancelPlanningJob(userId: string) {
@@ -298,9 +343,8 @@ export function useCancelPlanningJob(userId: string) {
   return useMutation({
     mutationFn: async (jobId: string) => {
       const response = await planningApiClient.cancelPlanningJob(jobId);
-      const { actionUpdateLocalAiPlanningSessionJob } = await import(
-        "@/lib/sqlite/model/ai-planning-session"
-      );
+      const { actionUpdateLocalAiPlanningSessionJob } =
+        await import("@/lib/sqlite/model/ai-planning-session");
       const localSession = await actionUpdateLocalAiPlanningSessionJob(
         buildLocalPlanningJobUpdate(response.data, userId),
       );

@@ -3,7 +3,8 @@ export type PlanningApiErrorKind =
   | "api"
   | "configuration"
   | "invalid-response"
-  | "network";
+  | "network"
+  | "timeout";
 
 type PlanningApiErrorOptions = {
   kind: PlanningApiErrorKind;
@@ -29,4 +30,3 @@ export class PlanningApiError extends Error {
 export function isPlanningApiError(error: unknown): error is PlanningApiError {
   return error instanceof PlanningApiError;
 }
-

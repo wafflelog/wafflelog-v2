@@ -16,6 +16,7 @@ import {
   validatePlanningStartDate,
   validatePlanningTripBrief,
 } from "@/lib/ai-trip-planning/intake-validation";
+import { getPlanningTripBriefInputLimit } from "@/lib/ai-trip-planning/session-request";
 import { getFontFamily } from "@/lib/helper/utils";
 import { type AiPlannerIntakeAnswers } from "@/types/ai-trip-planner";
 import dayjs from "dayjs";
@@ -38,6 +39,14 @@ import {
 } from "react-native";
 
 type IntakeField = keyof AiPlannerIntakeAnswers;
+
+type AiPlannerIntakeConversationProps = {
+  canEdit: boolean;
+  isPlanningStarted: boolean;
+  planningProgress?: React.ReactNode;
+  onEditAnswers: () => void;
+  onStartPlanning: (answers: AiPlannerIntakeAnswers) => void;
+};
 
 const questions: Record<IntakeField, string> = {
   destination:
@@ -92,14 +101,16 @@ function UserBubble({ children }: { children: React.ReactNode }) {
 
 type IntakeSummaryProps = {
   answers: AiPlannerIntakeAnswers;
-  isSubmitted: boolean;
+  canEdit: boolean;
+  isPlanningStarted: boolean;
   onEdit: (field: IntakeField) => void;
   onStartPlanning: () => void;
 };
 
 function IntakeSummary({
   answers,
-  isSubmitted,
+  canEdit,
+  isPlanningStarted,
   onEdit,
   onStartPlanning,
 }: IntakeSummaryProps) {
@@ -125,6 +136,7 @@ function IntakeSummary({
       <TouchableOpacity
         style={styles.summaryRow}
         onPress={() => onEdit("destination")}
+        disabled={!canEdit}
         activeOpacity={0.7}
       >
         <View style={styles.summaryIcon}>
@@ -138,12 +150,15 @@ function IntakeSummary({
             {answers.destination}
           </TitleRegular>
         </View>
-        <Pencil size={15} color={getColor(colors.textLightGrey)} />
+        {canEdit ? (
+          <Pencil size={15} color={getColor(colors.textLightGrey)} />
+        ) : null}
       </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.summaryRow}
         onPress={() => onEdit("startDate")}
+        disabled={!canEdit}
         activeOpacity={0.7}
       >
         <View style={styles.summaryIcon}>
@@ -157,12 +172,15 @@ function IntakeSummary({
             {dayjs(answers.startDate).format("D MMMM YYYY")}
           </TitleRegular>
         </View>
-        <Pencil size={15} color={getColor(colors.textLightGrey)} />
+        {canEdit ? (
+          <Pencil size={15} color={getColor(colors.textLightGrey)} />
+        ) : null}
       </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.summaryRow}
         onPress={() => onEdit("durationDays")}
+        disabled={!canEdit}
         activeOpacity={0.7}
       >
         <View style={styles.summaryIcon}>
@@ -176,12 +194,15 @@ function IntakeSummary({
             {answers.durationDays} {answers.durationDays === 1 ? "day" : "days"}
           </TitleRegular>
         </View>
-        <Pencil size={15} color={getColor(colors.textLightGrey)} />
+        {canEdit ? (
+          <Pencil size={15} color={getColor(colors.textLightGrey)} />
+        ) : null}
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.summaryRow, styles.summaryRowLast]}
         onPress={() => onEdit("tripBrief")}
+        disabled={!canEdit}
         activeOpacity={0.7}
       >
         <View style={styles.summaryIcon}>
@@ -199,10 +220,12 @@ function IntakeSummary({
             {briefPreview}
           </TitleRegular>
         </View>
-        <Pencil size={15} color={getColor(colors.textLightGrey)} />
+        {canEdit ? (
+          <Pencil size={15} color={getColor(colors.textLightGrey)} />
+        ) : null}
       </TouchableOpacity>
 
-      {!isSubmitted ? (
+      {!isPlanningStarted ? (
         <TouchableOpacity
           style={styles.startButton}
           onPress={onStartPlanning}
@@ -218,7 +241,13 @@ function IntakeSummary({
   );
 }
 
-export function AiPlannerIntakeConversation() {
+export function AiPlannerIntakeConversation({
+  canEdit,
+  isPlanningStarted,
+  planningProgress,
+  onEditAnswers,
+  onStartPlanning,
+}: AiPlannerIntakeConversationProps) {
   const scrollRef = useRef<ScrollView>(null);
   const [answers, setAnswers] = useState<Partial<AiPlannerIntakeAnswers>>({});
   const [activeField, setActiveField] =
@@ -226,7 +255,6 @@ export function AiPlannerIntakeConversation() {
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const isComplete =
     answers.destination !== undefined &&
@@ -240,7 +268,7 @@ export function AiPlannerIntakeConversation() {
     }, 50);
 
     return () => clearTimeout(timer);
-  }, [activeField, answers, error, isEditing, isSubmitted]);
+  }, [activeField, answers, error, isEditing, planningProgress]);
 
   const advanceAfterAnswer = (nextAnswers: Partial<AiPlannerIntakeAnswers>) => {
     if (isEditing) {
@@ -308,7 +336,10 @@ export function AiPlannerIntakeConversation() {
       return;
     }
 
-    const result = validatePlanningTripBrief(input);
+    const result = validatePlanningTripBrief(
+      input,
+      getPlanningTripBriefInputLimit(answers.startDate ?? ""),
+    );
 
     if (!result.success) {
       setError(result.error);
@@ -323,13 +354,17 @@ export function AiPlannerIntakeConversation() {
   };
 
   const handleEdit = (field: IntakeField) => {
+    if (!canEdit) {
+      return;
+    }
+
     const answer = answers[field];
 
     setActiveField(field);
     setInput(answer === undefined ? "" : String(answer));
     setError(null);
     setIsEditing(true);
-    setIsSubmitted(false);
+    onEditAnswers();
   };
 
   const handleInputChange = (value: string) => {
@@ -344,7 +379,9 @@ export function AiPlannerIntakeConversation() {
     activeField === "destination"
       ? AI_PLANNER_DESTINATION_MAX_LENGTH
       : activeField === "tripBrief"
-        ? AI_PLANNER_TRIP_BRIEF_MAX_LENGTH
+        ? answers.startDate
+          ? getPlanningTripBriefInputLimit(answers.startDate)
+          : AI_PLANNER_TRIP_BRIEF_MAX_LENGTH
         : undefined;
   const placeholder =
     activeField === "destination"
@@ -422,26 +459,15 @@ export function AiPlannerIntakeConversation() {
             </AssistantBubble>
             <IntakeSummary
               answers={completedAnswers}
-              isSubmitted={isSubmitted}
+              canEdit={canEdit}
+              isPlanningStarted={isPlanningStarted}
               onEdit={handleEdit}
-              onStartPlanning={() => setIsSubmitted(true)}
+              onStartPlanning={() => onStartPlanning(completedAnswers)}
             />
           </>
         ) : null}
 
-        {isSubmitted ? (
-          <View style={styles.prototypeResult}>
-            <Clock3 size={18} color={getColor(colors.orange)} />
-            <View style={styles.prototypeResultCopy}>
-              <TitleRegular size="sm" weight="600" color={colors.textDarkGrey}>
-                Ready for API integration
-              </TitleRegular>
-              <TitleRegular size="xs" color={colors.textLightGrey}>
-                This prototype stops here. No planning request was sent.
-              </TitleRegular>
-            </View>
-          </View>
-        ) : null}
+        {planningProgress}
       </ScrollView>
 
       {!isComplete || isEditing ? (
@@ -558,7 +584,9 @@ export function AiPlannerIntakeConversation() {
         <View style={styles.prototypeFooter}>
           <View style={styles.prototypeDot} />
           <TitleRegular size="xxs" color={colors.textLightGrey}>
-            UI prototype · no API request is sent
+            {isPlanningStarted
+              ? "Planning session · progress is saved locally"
+              : "Ready to start planning"}
           </TitleRegular>
         </View>
       )}
@@ -671,20 +699,6 @@ const styles = StyleSheet.create({
     borderRadius: borderRadiuses.sm,
     backgroundColor: getColor(colors.purple),
   },
-  prototypeResult: {
-    alignSelf: "center",
-    width: "100%",
-    maxWidth: 560,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: gaps.sm,
-    padding: gaps.sm,
-    borderRadius: borderRadiuses.md,
-    borderWidth: 1,
-    borderColor: getColor(colors.orange, 0.2),
-    backgroundColor: getColor(colors.orange, 0.07),
-  },
-  prototypeResultCopy: { flex: 1, gap: 2 },
   composerArea: {
     borderTopWidth: 1,
     borderTopColor: getColor(colors.whiteGrey, 0.7),

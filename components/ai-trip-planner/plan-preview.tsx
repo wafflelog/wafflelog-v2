@@ -1,9 +1,9 @@
-import { BeforeYouDecide } from "@/components/ai-trip-planner/draft/before-you-decide";
 import { CustomizationNotice } from "@/components/ai-trip-planner/draft/customization-notice";
 import { DraftActions } from "@/components/ai-trip-planner/draft/draft-actions";
 import { SuggestedChecklist } from "@/components/ai-trip-planner/draft/suggested-checklist";
 import { TripDayAccordion } from "@/components/ai-trip-planner/draft/trip-day-accordion";
 import { TripSummary } from "@/components/ai-trip-planner/draft/trip-summary";
+import { WorthChecking } from "@/components/ai-trip-planner/draft/worth-checking";
 import { TitleRegular } from "@/components/title/regular";
 import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
 import { type AiPlannerPlanViewModel } from "@/types/ai-trip-planner";
@@ -41,7 +41,6 @@ export function AiPlannerPlanPreview({
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const [showNotes, setShowNotes] = useState(false);
   const [isCustomizing, setIsCustomizing] = useState(false);
 
   const toggleSetValue = (
@@ -82,12 +81,7 @@ export function AiPlannerPlanPreview({
       >
         <TripSummary plan={plan} />
 
-        <BeforeYouDecide
-          assumptions={plan.assumptions}
-          warnings={plan.warnings}
-          isExpanded={showNotes}
-          onToggle={() => setShowNotes((current) => !current)}
-        />
+        <WorthChecking warnings={plan.warnings} />
 
         {isCustomizing ? <CustomizationNotice /> : null}
 
@@ -109,13 +103,7 @@ export function AiPlannerPlanPreview({
                 {includedItemIds.size}/{allItemIds.length}
               </TitleRegular>
             </View>
-          ) : (
-            <View style={styles.draftCountBadge}>
-              <TitleRegular size="xs" weight="600" color={colors.purple}>
-                {allItemIds.length} ideas
-              </TitleRegular>
-            </View>
-          )}
+          ) : null}
         </View>
 
         <View style={styles.days}>
@@ -184,12 +172,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: gaps.xs,
     paddingVertical: gaps.xxs,
     backgroundColor: getColor(colors.pineGreen, 0.1),
-  },
-  draftCountBadge: {
-    borderRadius: borderRadiuses.full,
-    paddingHorizontal: gaps.xs,
-    paddingVertical: gaps.xxs,
-    backgroundColor: getColor(colors.purple, 0.08),
   },
   days: { gap: gaps.sm },
 });

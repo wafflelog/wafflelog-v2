@@ -1,22 +1,26 @@
-import { AiPlannerConversation } from "@/components/ai-trip-planner/conversation";
 import { AiPlannerIntakeConversation } from "@/components/ai-trip-planner/intake-conversation";
 import { AiPlannerPlanPreview } from "@/components/ai-trip-planner/plan-preview";
+import {
+  AiPlannerPlanningProgress,
+  type PlanningProgressVariant,
+} from "@/components/ai-trip-planner/planning-progress";
 import { TitleRegular } from "@/components/title/regular";
 import { Dialog } from "@/components/ui/dialog";
+import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
 import {
-  borderRadiuses,
-  colors,
-  gaps,
-  getColor,
-} from "@/constants/theme";
-import {
-  AI_PLANNER_INITIAL_MESSAGES,
-  AI_PLANNER_PROTOTYPE_PLAN,
-} from "@/data/ai-trip-planner-prototype";
-import { type AiPlannerConversationMessage } from "@/types/ai-trip-planner";
+  buildPlanningMutationId,
+  useCancelPlanningJob,
+  useCreatePlanningSession,
+  usePlanningJob,
+} from "@/hook/use-ai-trip-planning";
+import { useAuthSession } from "@/hook/use-auth-session";
+import { isPlanningApiError } from "@/lib/ai-trip-planning/errors";
+import { adaptPlanningResultToPlanPreview } from "@/lib/ai-trip-planning/plan-adapter";
+import { buildCreatePlanningSessionRequest } from "@/lib/ai-trip-planning/session-request";
+import { type AiPlannerIntakeAnswers } from "@/types/ai-trip-planner";
 import { useRouter } from "expo-router";
 import { CalendarDays, MessageCircle, X } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -27,55 +31,274 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type PlannerView = "chat" | "draft";
-type PlannerChatMode = "intake" | "sample";
 
-export default function AiTripPlannerPrototypeScreen() {
+type SubmissionAttempt = {
+  answers: AiPlannerIntakeAnswers;
+  request: ReturnType<typeof buildCreatePlanningSessionRequest>;
+  idempotencyKey: string;
+};
+
+type ActivePlanningContext = {
+  answers: AiPlannerIntakeAnswers;
+  sessionId: string;
+  jobId: string;
+};
+
+function getPlanningErrorMessage(error: unknown) {
+  if (isPlanningApiError(error)) {
+    return error.detail || error.message;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Something went wrong. Please try again.";
+}
+
+export default function AiTripPlannerScreen() {
   const router = useRouter();
+  const { session } = useAuthSession();
+  const userId = session?.user.id ?? null;
+  const createPlanningSession = useCreatePlanningSession();
+  const cancelPlanningJob = useCancelPlanningJob(userId ?? "");
   const [activeView, setActiveView] = useState<PlannerView>("chat");
-  const [chatMode, setChatMode] = useState<PlannerChatMode>("intake");
-  const [messages, setMessages] = useState<AiPlannerConversationMessage[]>(
-    AI_PLANNER_INITIAL_MESSAGES,
-  );
-  const [prompt, setPrompt] = useState("");
+  const [submissionAttempt, setSubmissionAttempt] =
+    useState<SubmissionAttempt | null>(null);
+  const [planningContext, setPlanningContext] =
+    useState<ActivePlanningContext | null>(null);
+  const [localSubmissionError, setLocalSubmissionError] = useState<
+    string | null
+  >(null);
   const [reviewVisible, setReviewVisible] = useState(false);
   const [reviewSelection, setReviewSelection] = useState({
-    itineraryItemCount: 8,
-    checklistItemCount: 3,
+    itineraryItemCount: 0,
+    checklistItemCount: 0,
   });
+  const [openedDraftJobId, setOpenedDraftJobId] = useState<string | null>(null);
+  const planningJob = usePlanningJob(planningContext?.jobId, userId, {
+    enabled: Boolean(planningContext),
+  });
+  const job = planningJob.data;
 
-  const handleSend = () => {
-    const content = prompt.trim();
+  const livePlan = useMemo(() => {
+    if (job?.status !== "completed" || !planningContext) {
+      return null;
+    }
 
-    if (!content) {
+    return adaptPlanningResultToPlanPreview({
+      result: job.result,
+      revisionNumber: job.revisionNumber,
+      startDate: planningContext.answers.startDate,
+    });
+  }, [job, planningContext]);
+
+  const itineraryItemCount = useMemo(
+    () =>
+      livePlan?.days.reduce((count, day) => count + day.items.length, 0) ?? 0,
+    [livePlan],
+  );
+
+  useEffect(() => {
+    if (
+      livePlan &&
+      planningContext &&
+      openedDraftJobId !== planningContext.jobId
+    ) {
+      setOpenedDraftJobId(planningContext.jobId);
+      setActiveView("draft");
+    }
+  }, [livePlan, openedDraftJobId, planningContext]);
+
+  const executeSubmission = async (attempt: SubmissionAttempt) => {
+    if (!userId) {
+      setLocalSubmissionError("You must be signed in to plan a trip.");
       return;
     }
 
-    const nextIndex = messages.length + 1;
-    setMessages((current) => [
-      ...current,
-      {
-        id: `prototype-user-${nextIndex}`,
-        role: "user",
-        body: content,
-        time: "Now",
-      },
-      {
-        id: `prototype-assistant-${nextIndex}`,
-        role: "assistant",
-        body: "That’s a useful adjustment. In the finished experience I’d research the change, explain what moved, and publish a new draft here. For now, this message is only demonstrating the conversation flow.",
-        time: "Now",
-      },
-    ]);
-    setPrompt("");
+    setLocalSubmissionError(null);
+    createPlanningSession.reset();
+
+    try {
+      const result = await createPlanningSession.mutateAsync({
+        userId,
+        startDate: attempt.answers.startDate,
+        request: attempt.request,
+        idempotencyKey: attempt.idempotencyKey,
+      });
+
+      setPlanningContext({
+        answers: attempt.answers,
+        sessionId: result.planningSession.id,
+        jobId: result.planningSession.job.id,
+      });
+    } catch (error) {
+      // The mutation exposes its normalized error to the progress UI.
+      console.error("Planning submission failed", error);
+    }
   };
 
-  const handleAskForChanges = () => {
-    setPrompt("Could you make day two a little less busy? ");
-    setChatMode("sample");
-    setActiveView("chat");
+  const handleStartPlanning = (answers: AiPlannerIntakeAnswers) => {
+    if (createPlanningSession.isPending) {
+      return;
+    }
+
+    try {
+      const attempt = {
+        answers,
+        request: buildCreatePlanningSessionRequest(answers),
+        idempotencyKey: buildPlanningMutationId(),
+      } satisfies SubmissionAttempt;
+
+      setSubmissionAttempt(attempt);
+      setPlanningContext(null);
+      cancelPlanningJob.reset();
+      void executeSubmission(attempt);
+    } catch (error) {
+      setLocalSubmissionError(getPlanningErrorMessage(error));
+    }
   };
 
-  const isShowingSample = activeView === "draft" || chatMode === "sample";
+  const handleRetrySubmission = () => {
+    if (submissionAttempt) {
+      void executeSubmission(submissionAttempt);
+    }
+  };
+
+  const handleRestartPlanning = () => {
+    const answers = planningContext?.answers ?? submissionAttempt?.answers;
+
+    if (!answers) {
+      return;
+    }
+
+    handleStartPlanning(answers);
+  };
+
+  const handleEditAnswers = () => {
+    setSubmissionAttempt(null);
+    setPlanningContext(null);
+    setLocalSubmissionError(null);
+    createPlanningSession.reset();
+    cancelPlanningJob.reset();
+  };
+
+  const handleCancelPlanning = () => {
+    if (!planningContext?.jobId || !userId) {
+      return;
+    }
+
+    cancelPlanningJob.mutate(planningContext.jobId);
+  };
+
+  const submissionError =
+    localSubmissionError ||
+    (createPlanningSession.error
+      ? getPlanningErrorMessage(createPlanningSession.error)
+      : null);
+  const canEdit =
+    !planningContext || job?.status === "failed" || job?.status === "cancelled";
+  const isPlanningStarted =
+    Boolean(submissionAttempt) || Boolean(planningContext);
+  let progressVariant: PlanningProgressVariant | null = null;
+  let progressMessage: string | null = null;
+  let primaryAction:
+    | { label: string; onPress: () => void; disabled?: boolean }
+    | undefined;
+  let secondaryAction:
+    | { label: string; onPress: () => void; disabled?: boolean }
+    | undefined;
+
+  if (createPlanningSession.isPending) {
+    progressVariant = "submitting";
+  } else if (submissionError && !planningContext) {
+    progressVariant = "submission-error";
+    progressMessage = submissionError;
+    primaryAction = {
+      label: "Try again",
+      onPress: handleRetrySubmission,
+      disabled: !submissionAttempt,
+    };
+  } else if (planningContext) {
+    if (cancelPlanningJob.isError) {
+      progressVariant = "polling-error";
+      progressMessage = getPlanningErrorMessage(cancelPlanningJob.error);
+      primaryAction = {
+        label: "Check again",
+        onPress: () => {
+          cancelPlanningJob.reset();
+          void planningJob.refetch();
+        },
+      };
+    } else if (job?.status === "completed") {
+      progressVariant = "completed";
+      primaryAction = {
+        label: "View draft",
+        onPress: () => setActiveView("draft"),
+      };
+    } else if (job?.status === "failed") {
+      progressVariant = "failed";
+      progressMessage = job.message;
+      primaryAction = {
+        label: "Start again",
+        onPress: handleRestartPlanning,
+      };
+    } else if (job?.status === "cancelled") {
+      progressVariant = "cancelled";
+      primaryAction = {
+        label: "Start again",
+        onPress: handleRestartPlanning,
+      };
+    } else if (planningJob.isPollingTimedOut) {
+      progressVariant = "timed-out";
+      primaryAction = {
+        label: "Check again",
+        onPress: planningJob.resumePolling,
+      };
+      secondaryAction = {
+        label: cancelPlanningJob.isPending ? "Cancelling…" : "Cancel planning",
+        onPress: handleCancelPlanning,
+        disabled: cancelPlanningJob.isPending,
+      };
+    } else if (planningJob.isError) {
+      progressVariant = "polling-error";
+      progressMessage = getPlanningErrorMessage(planningJob.error);
+      primaryAction = {
+        label: "Check again",
+        onPress: () => void planningJob.refetch(),
+      };
+      secondaryAction = {
+        label: cancelPlanningJob.isPending ? "Cancelling…" : "Cancel planning",
+        onPress: handleCancelPlanning,
+        disabled: cancelPlanningJob.isPending,
+      };
+    } else {
+      progressVariant = "running";
+      progressMessage =
+        job && "progress" in job
+          ? job.progress.message
+          : "Your planning job is queued.";
+      secondaryAction = {
+        label: cancelPlanningJob.isPending ? "Cancelling…" : "Cancel planning",
+        onPress: handleCancelPlanning,
+        disabled: cancelPlanningJob.isPending,
+      };
+    }
+  }
+
+  const planningProgress = progressVariant ? (
+    <AiPlannerPlanningProgress
+      variant={progressVariant}
+      message={progressMessage}
+      primaryAction={primaryAction}
+      secondaryAction={secondaryAction}
+    />
+  ) : null;
+  const headerBadge = livePlan
+    ? `Draft #${livePlan.revision}`
+    : planningContext
+      ? "Planning"
+      : "New";
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
@@ -97,14 +320,14 @@ export default function AiTripPlannerPrototypeScreen() {
                 Plan with AI
               </TitleRegular>
               <TitleRegular size="xxs" color={colors.textLightGrey}>
-                {isShowingSample
-                  ? "Osaka planning session"
+                {planningContext
+                  ? `${planningContext.answers.destination} planning session`
                   : "New planning session"}
               </TitleRegular>
             </View>
             <View style={styles.revisionBadge}>
               <TitleRegular size="xxs" weight="600" color={colors.purple}>
-                {isShowingSample ? "Draft #2" : "Prototype"}
+                {headerBadge}
               </TitleRegular>
             </View>
           </View>
@@ -112,10 +335,7 @@ export default function AiTripPlannerPrototypeScreen() {
           <View style={styles.tabsWrapper}>
             <View style={styles.tabs}>
               <TouchableOpacity
-                style={[
-                  styles.tab,
-                  activeView === "chat" && styles.activeTab,
-                ]}
+                style={[styles.tab, activeView === "chat" && styles.activeTab]}
                 onPress={() => setActiveView("chat")}
               >
                 <MessageCircle
@@ -130,9 +350,7 @@ export default function AiTripPlannerPrototypeScreen() {
                   size="sm"
                   weight="600"
                   color={
-                    activeView === "chat"
-                      ? colors.purple
-                      : colors.textLightGrey
+                    activeView === "chat" ? colors.purple : colors.textLightGrey
                   }
                 >
                   Chat
@@ -142,8 +360,10 @@ export default function AiTripPlannerPrototypeScreen() {
                 style={[
                   styles.tab,
                   activeView === "draft" && styles.activeTab,
+                  !livePlan && styles.disabledTab,
                 ]}
                 onPress={() => setActiveView("draft")}
+                disabled={!livePlan}
               >
                 <CalendarDays
                   size={17}
@@ -164,39 +384,49 @@ export default function AiTripPlannerPrototypeScreen() {
                 >
                   Trip draft
                 </TitleRegular>
-                <View style={styles.itemCount}>
-                  <TitleRegular size="xxs" weight="700" color={colors.purple}>
-                    8
-                  </TitleRegular>
-                </View>
+                {livePlan ? (
+                  <View style={styles.itemCount}>
+                    <TitleRegular size="xxs" weight="700" color={colors.purple}>
+                      {itineraryItemCount}
+                    </TitleRegular>
+                  </View>
+                ) : null}
               </TouchableOpacity>
             </View>
           </View>
 
           <View style={styles.body}>
-            {activeView === "chat" ? (
-              chatMode === "intake" ? (
-                <AiPlannerIntakeConversation />
-              ) : (
-                <AiPlannerConversation
-                  messages={messages}
-                  prompt={prompt}
-                  onPromptChange={setPrompt}
-                  onSend={handleSend}
-                  onUseSuggestion={setPrompt}
-                  onOpenDraft={() => setActiveView("draft")}
-                />
-              )
-            ) : (
-              <AiPlannerPlanPreview
-                plan={AI_PLANNER_PROTOTYPE_PLAN}
-                onAskForChanges={handleAskForChanges}
-                onReview={(selection) => {
-                  setReviewSelection(selection);
-                  setReviewVisible(true);
-                }}
+            <View
+              style={[
+                styles.viewPane,
+                activeView !== "chat" && styles.hiddenPane,
+              ]}
+            >
+              <AiPlannerIntakeConversation
+                canEdit={canEdit}
+                isPlanningStarted={isPlanningStarted}
+                planningProgress={planningProgress}
+                onEditAnswers={handleEditAnswers}
+                onStartPlanning={handleStartPlanning}
               />
-            )}
+            </View>
+            {livePlan ? (
+              <View
+                style={[
+                  styles.viewPane,
+                  activeView !== "draft" && styles.hiddenPane,
+                ]}
+              >
+                <AiPlannerPlanPreview
+                  plan={livePlan}
+                  onAskForChanges={() => setActiveView("chat")}
+                  onReview={(selection) => {
+                    setReviewSelection(selection);
+                    setReviewVisible(true);
+                  }}
+                />
+              </View>
+            ) : null}
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -215,7 +445,7 @@ export default function AiTripPlannerPrototypeScreen() {
               Trip
             </TitleRegular>
             <TitleRegular size="sm" weight="600" color={colors.textDarkGrey}>
-              Osaka · 4 days
+              {livePlan?.destination} · {livePlan?.dateRange}
             </TitleRegular>
           </View>
           <View style={styles.reviewRow}>
@@ -236,7 +466,8 @@ export default function AiTripPlannerPrototypeScreen() {
           </View>
           <View style={styles.prototypeReviewNotice}>
             <TitleRegular size="xs" color={colors.orange}>
-              Prototype only—no trip or records will be created.
+              Draft review only—creating Wafflelog records is the next
+              milestone.
             </TitleRegular>
           </View>
         </View>
@@ -305,6 +536,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   activeTab: { backgroundColor: getColor(colors.white) },
+  disabledTab: { opacity: 0.45 },
   itemCount: {
     minWidth: 20,
     height: 20,
@@ -315,6 +547,8 @@ const styles = StyleSheet.create({
     backgroundColor: getColor(colors.purple, 0.12),
   },
   body: { flex: 1 },
+  viewPane: { flex: 1 },
+  hiddenPane: { display: "none" },
   reviewContent: { gap: gaps.sm },
   reviewRow: {
     flexDirection: "row",

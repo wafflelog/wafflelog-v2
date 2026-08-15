@@ -11,6 +11,7 @@ import type {
 } from "./types";
 
 const DEFAULT_BASE_URL = "https://api.wafflelog.co.uk";
+export const DEFAULT_PLANNING_REQUEST_TIMEOUT_MS = 15_000;
 
 type GetAccessToken = () => Promise<string | null>;
 
@@ -23,6 +24,7 @@ type PlanningApiClientOptions = {
   baseUrl?: string;
   fetchImplementation?: PlanningFetch;
   getAccessToken?: GetAccessToken;
+  requestTimeoutMs?: number;
 };
 
 type RequestOptions = {
@@ -44,9 +46,7 @@ export type PlanningApiClient = {
   getPlanningSession: (
     sessionId: string,
   ) => Promise<PlanningApiResponse<PlanningSession>>;
-  getPlanningJob: (
-    jobId: string,
-  ) => Promise<PlanningApiResponse<PlanningJob>>;
+  getPlanningJob: (jobId: string) => Promise<PlanningApiResponse<PlanningJob>>;
   cancelPlanningJob: (
     jobId: string,
   ) => Promise<PlanningApiResponse<PlanningJob>>;
@@ -155,6 +155,8 @@ export function createPlanningApiClient(
   );
   const fetchImplementation = options.fetchImplementation ?? fetch;
   const getAccessToken = options.getAccessToken ?? getSupabaseAccessToken;
+  const requestTimeoutMs =
+    options.requestTimeoutMs ?? DEFAULT_PLANNING_REQUEST_TIMEOUT_MS;
 
   async function request<T>(
     path: string,
@@ -182,7 +184,10 @@ export function createPlanningApiClient(
       headers["Idempotency-Key"] = requestOptions.idempotencyKey;
     }
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
     let response: Response;
+    let responseBody: unknown;
 
     try {
       response = await fetchImplementation(`${baseUrl}${path}`, {
@@ -192,19 +197,28 @@ export function createPlanningApiClient(
           requestOptions.body === undefined
             ? undefined
             : JSON.stringify(requestOptions.body),
+        signal: controller.signal,
       });
+      responseBody = await parseJsonResponse(response);
     } catch (error) {
       if (isPlanningApiError(error)) {
         throw error;
+      }
+
+      if (controller.signal.aborted) {
+        throw new PlanningApiError("Planning service request timed out", {
+          kind: "timeout",
+          cause: error,
+        });
       }
 
       throw new PlanningApiError("Unable to reach the planning service", {
         kind: "network",
         cause: error,
       });
+    } finally {
+      clearTimeout(timeout);
     }
-
-    const responseBody = await parseJsonResponse(response);
 
     if (!response.ok) {
       const detail = readErrorDetail(responseBody);
@@ -220,10 +234,13 @@ export function createPlanningApiClient(
     }
 
     if (responseBody === null) {
-      throw new PlanningApiError("Planning service returned an empty response", {
-        kind: "invalid-response",
-        status: response.status,
-      });
+      throw new PlanningApiError(
+        "Planning service returned an empty response",
+        {
+          kind: "invalid-response",
+          status: response.status,
+        },
+      );
     }
 
     return {
@@ -239,11 +256,7 @@ export function createPlanningApiClient(
         body: planningRequest,
         idempotencyKey,
       }),
-    createPlanningRefinement: (
-      sessionId,
-      refinementRequest,
-      idempotencyKey,
-    ) =>
+    createPlanningRefinement: (sessionId, refinementRequest, idempotencyKey) =>
       request<PlanningRefinementAccepted>(
         `/v1/planning-sessions/${encodeURIComponent(sessionId)}/messages`,
         {
@@ -257,14 +270,11 @@ export function createPlanningApiClient(
         `/v1/planning-sessions/${encodeURIComponent(sessionId)}`,
       ),
     getPlanningJob: (jobId) =>
-      request<PlanningJob>(
-        `/v1/planning-jobs/${encodeURIComponent(jobId)}`,
-      ),
+      request<PlanningJob>(`/v1/planning-jobs/${encodeURIComponent(jobId)}`),
     cancelPlanningJob: (jobId) =>
-      request<PlanningJob>(
-        `/v1/planning-jobs/${encodeURIComponent(jobId)}`,
-        { method: "DELETE" },
-      ),
+      request<PlanningJob>(`/v1/planning-jobs/${encodeURIComponent(jobId)}`, {
+        method: "DELETE",
+      }),
   };
 }
 

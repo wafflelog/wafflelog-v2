@@ -121,4 +121,15 @@ describe("AI planning intake validation", () => {
       error: "Trip brief must be 4,000 characters or fewer.",
     });
   });
+
+  it("supports a reduced brief limit for generated request context", () => {
+    expect(validatePlanningTripBrief("123456", 5)).toEqual({
+      success: false,
+      error: "Trip brief must be 5 characters or fewer.",
+    });
+    expect(validatePlanningTripBrief("12345", 5)).toEqual({
+      success: true,
+      value: "12345",
+    });
+  });
 });
