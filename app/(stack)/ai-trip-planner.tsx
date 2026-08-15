@@ -4,20 +4,31 @@ import {
   AiPlannerPlanningProgress,
   type PlanningProgressVariant,
 } from "@/components/ai-trip-planner/planning-progress";
+import {
+  AiPlannerRefinementConversation,
+  type AiPlannerRefinementMessage,
+} from "@/components/ai-trip-planner/refinement-conversation";
 import { TitleRegular } from "@/components/title/regular";
 import { Dialog } from "@/components/ui/dialog";
 import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
 import {
   buildPlanningMutationId,
+  isTerminalPlanningJob,
   useCancelPlanningJob,
+  useCreatePlanningRefinement,
   useCreatePlanningSession,
   usePlanningJob,
+  usePlanningSession,
 } from "@/hook/use-ai-trip-planning";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { isPlanningApiError } from "@/lib/ai-trip-planning/errors";
 import { adaptPlanningResultToPlanPreview } from "@/lib/ai-trip-planning/plan-adapter";
 import { buildCreatePlanningSessionRequest } from "@/lib/ai-trip-planning/session-request";
-import { type AiPlannerIntakeAnswers } from "@/types/ai-trip-planner";
+import { type CreatePlanningRefinementRequest } from "@/lib/ai-trip-planning/types";
+import {
+  type AiPlannerIntakeAnswers,
+  type AiPlannerPlanViewModel,
+} from "@/types/ai-trip-planner";
 import { useRouter } from "expo-router";
 import { CalendarDays, MessageCircle, X } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
@@ -38,10 +49,17 @@ type SubmissionAttempt = {
   idempotencyKey: string;
 };
 
+type RefinementAttempt = {
+  request: CreatePlanningRefinementRequest;
+  idempotencyKey: string;
+  messageId?: string;
+};
+
 type ActivePlanningContext = {
   answers: AiPlannerIntakeAnswers;
   sessionId: string;
   jobId: string;
+  operation: "initial" | "refinement";
 };
 
 function getPlanningErrorMessage(error: unknown) {
@@ -61,15 +79,23 @@ export default function AiTripPlannerScreen() {
   const { session } = useAuthSession();
   const userId = session?.user.id ?? null;
   const createPlanningSession = useCreatePlanningSession();
+  const createPlanningRefinement = useCreatePlanningRefinement();
   const cancelPlanningJob = useCancelPlanningJob(userId ?? "");
   const [activeView, setActiveView] = useState<PlannerView>("chat");
   const [submissionAttempt, setSubmissionAttempt] =
     useState<SubmissionAttempt | null>(null);
   const [planningContext, setPlanningContext] =
     useState<ActivePlanningContext | null>(null);
+  const [refinementAttempt, setRefinementAttempt] =
+    useState<RefinementAttempt | null>(null);
   const [localSubmissionError, setLocalSubmissionError] = useState<
     string | null
   >(null);
+  const [localRefinementError, setLocalRefinementError] = useState<
+    string | null
+  >(null);
+  const [latestPlan, setLatestPlan] =
+    useState<AiPlannerPlanViewModel | null>(null);
   const [reviewVisible, setReviewVisible] = useState(false);
   const [reviewSelection, setReviewSelection] = useState({
     itineraryItemCount: 0,
@@ -79,9 +105,13 @@ export default function AiTripPlannerScreen() {
   const planningJob = usePlanningJob(planningContext?.jobId, userId, {
     enabled: Boolean(planningContext),
   });
+  const planningSession = usePlanningSession(
+    planningContext?.sessionId,
+    Boolean(planningContext),
+  );
   const job = planningJob.data;
 
-  const livePlan = useMemo(() => {
+  const completedJobPlan = useMemo(() => {
     if (job?.status !== "completed" || !planningContext) {
       return null;
     }
@@ -93,22 +123,76 @@ export default function AiTripPlannerScreen() {
     });
   }, [job, planningContext]);
 
+  const sessionPlan = useMemo(() => {
+    const currentRevision = planningSession.data?.currentRevision;
+
+    if (!currentRevision || !planningContext) {
+      return null;
+    }
+
+    return adaptPlanningResultToPlanPreview({
+      result: currentRevision.result,
+      revisionNumber: currentRevision.revisionNumber,
+      startDate: planningContext.answers.startDate,
+    });
+  }, [planningContext, planningSession.data?.currentRevision]);
+
+  const resolvedPlan = completedJobPlan ?? sessionPlan;
+  const livePlan = resolvedPlan ?? latestPlan;
+
+  useEffect(() => {
+    if (resolvedPlan) {
+      setLatestPlan(resolvedPlan);
+    }
+  }, [resolvedPlan]);
+
   const itineraryItemCount = useMemo(
     () =>
       livePlan?.days.reduce((count, day) => count + day.items.length, 0) ?? 0,
     [livePlan],
   );
 
+  const refinementMessages = useMemo<AiPlannerRefinementMessage[]>(() => {
+    const messages =
+      planningSession.data?.messages.map((message) => ({
+        id: message.id,
+        content: message.content,
+      })) ?? [];
+
+    if (
+      refinementAttempt &&
+      (!refinementAttempt.messageId ||
+        !messages.some(
+          (message) => message.id === refinementAttempt.messageId,
+        ))
+    ) {
+      messages.push({
+        id: refinementAttempt.messageId ?? refinementAttempt.idempotencyKey,
+        content: refinementAttempt.request.content,
+      });
+    }
+
+    return messages;
+  }, [planningSession.data?.messages, refinementAttempt]);
+
+  const isRefinementJob = planningContext?.operation === "refinement";
+  const isRefinementBusy =
+    createPlanningRefinement.isPending ||
+    Boolean(isRefinementJob && (!job || !isTerminalPlanningJob(job)));
+  const canSubmitRefinement =
+    Boolean(livePlan && planningContext) &&
+    !isRefinementBusy &&
+    !cancelPlanningJob.isPending;
+
   useEffect(() => {
     if (
-      livePlan &&
-      planningContext &&
-      openedDraftJobId !== planningContext.jobId
+      job?.status === "completed" &&
+      openedDraftJobId !== job.id
     ) {
-      setOpenedDraftJobId(planningContext.jobId);
+      setOpenedDraftJobId(job.id);
       setActiveView("draft");
     }
-  }, [livePlan, openedDraftJobId, planningContext]);
+  }, [job, openedDraftJobId]);
 
   const executeSubmission = async (attempt: SubmissionAttempt) => {
     if (!userId) {
@@ -131,6 +215,7 @@ export default function AiTripPlannerScreen() {
         answers: attempt.answers,
         sessionId: result.planningSession.id,
         jobId: result.planningSession.job.id,
+        operation: "initial",
       });
     } catch (error) {
       // The mutation exposes its normalized error to the progress UI.
@@ -152,6 +237,11 @@ export default function AiTripPlannerScreen() {
 
       setSubmissionAttempt(attempt);
       setPlanningContext(null);
+      setRefinementAttempt(null);
+      setLatestPlan(null);
+      setOpenedDraftJobId(null);
+      setLocalRefinementError(null);
+      createPlanningRefinement.reset();
       cancelPlanningJob.reset();
       void executeSubmission(attempt);
     } catch (error) {
@@ -178,9 +268,94 @@ export default function AiTripPlannerScreen() {
   const handleEditAnswers = () => {
     setSubmissionAttempt(null);
     setPlanningContext(null);
+    setRefinementAttempt(null);
+    setLatestPlan(null);
+    setOpenedDraftJobId(null);
     setLocalSubmissionError(null);
+    setLocalRefinementError(null);
     createPlanningSession.reset();
+    createPlanningRefinement.reset();
     cancelPlanningJob.reset();
+  };
+
+  const executeRefinement = async (attempt: RefinementAttempt) => {
+    if (!userId || !planningContext) {
+      setLocalRefinementError(
+        userId
+          ? "The planning session is no longer available."
+          : "You must be signed in to update this trip.",
+      );
+      return;
+    }
+
+    const { sessionId } = planningContext;
+
+    setLocalRefinementError(null);
+    createPlanningRefinement.reset();
+    cancelPlanningJob.reset();
+
+    try {
+      const result = await createPlanningRefinement.mutateAsync({
+        userId,
+        sessionId,
+        request: attempt.request,
+        idempotencyKey: attempt.idempotencyKey,
+      });
+
+      setRefinementAttempt({
+        ...attempt,
+        messageId: result.refinement.messageId,
+      });
+      setPlanningContext((current) =>
+        current?.sessionId === result.refinement.sessionId
+          ? {
+              ...current,
+              jobId: result.refinement.job.id,
+              operation: "refinement",
+            }
+          : current,
+      );
+      void planningSession.refetch();
+    } catch (error) {
+      // The mutation exposes its normalized error to the progress UI.
+      console.error("Planning refinement failed", error);
+    }
+  };
+
+  const handleSubmitRefinement = (
+    request: CreatePlanningRefinementRequest,
+  ) => {
+    if (!canSubmitRefinement) {
+      return;
+    }
+
+    const attempt = {
+      request,
+      idempotencyKey: buildPlanningMutationId(),
+    } satisfies RefinementAttempt;
+
+    setRefinementAttempt(attempt);
+    void executeRefinement(attempt);
+  };
+
+  const handleRetryRefinementSubmission = () => {
+    if (refinementAttempt) {
+      void executeRefinement(refinementAttempt);
+    }
+  };
+
+  const handleRestartRefinement = () => {
+    if (!refinementAttempt) {
+      return;
+    }
+
+    const attempt = {
+      request: refinementAttempt.request,
+      idempotencyKey: buildPlanningMutationId(),
+    } satisfies RefinementAttempt;
+
+    setRefinementAttempt(attempt);
+    void executeRefinement(attempt);
   };
 
   const handleCancelPlanning = () => {
@@ -196,11 +371,17 @@ export default function AiTripPlannerScreen() {
     (createPlanningSession.error
       ? getPlanningErrorMessage(createPlanningSession.error)
       : null);
+  const refinementError =
+    localRefinementError ||
+    (createPlanningRefinement.error
+      ? getPlanningErrorMessage(createPlanningRefinement.error)
+      : null);
   const canEdit =
     !planningContext || job?.status === "failed" || job?.status === "cancelled";
   const isPlanningStarted =
     Boolean(submissionAttempt) || Boolean(planningContext);
   let progressVariant: PlanningProgressVariant | null = null;
+  let progressTitle: string | undefined;
   let progressMessage: string | null = null;
   let primaryAction:
     | { label: string; onPress: () => void; disabled?: boolean }
@@ -209,7 +390,104 @@ export default function AiTripPlannerScreen() {
     | { label: string; onPress: () => void; disabled?: boolean }
     | undefined;
 
-  if (createPlanningSession.isPending) {
+  if (livePlan) {
+    if (createPlanningRefinement.isPending) {
+      progressVariant = "submitting";
+      progressTitle = "Sending your changes";
+      progressMessage = "Adding your feedback to this planning session…";
+    } else if (refinementError) {
+      progressVariant = "submission-error";
+      progressTitle = "We couldn’t send your changes";
+      progressMessage = refinementError;
+      primaryAction = {
+        label: "Try again",
+        onPress: handleRetryRefinementSubmission,
+        disabled: !refinementAttempt,
+      };
+    } else if (isRefinementJob) {
+      if (cancelPlanningJob.isError) {
+        progressVariant = "polling-error";
+        progressTitle = "We couldn’t cancel this update";
+        progressMessage = getPlanningErrorMessage(cancelPlanningJob.error);
+        primaryAction = {
+          label: "Check again",
+          onPress: () => {
+            cancelPlanningJob.reset();
+            void planningJob.refetch();
+          },
+        };
+      } else if (job?.status === "completed") {
+        progressVariant = "completed";
+        progressTitle = `Draft #${job.revisionNumber} is ready`;
+        progressMessage = "Your feedback has been applied to the itinerary.";
+        primaryAction = {
+          label: "View draft",
+          onPress: () => setActiveView("draft"),
+        };
+      } else if (job?.status === "failed") {
+        progressVariant = "failed";
+        progressTitle = "We couldn’t update this draft";
+        progressMessage = job.message;
+        primaryAction = {
+          label: "Try changes again",
+          onPress: handleRestartRefinement,
+          disabled: !refinementAttempt,
+        };
+      } else if (job?.status === "cancelled") {
+        progressVariant = "cancelled";
+        progressTitle = "Draft update cancelled";
+        progressMessage =
+          "Your previous draft is still available and hasn’t been changed.";
+        primaryAction = {
+          label: "Try changes again",
+          onPress: handleRestartRefinement,
+          disabled: !refinementAttempt,
+        };
+      } else if (planningJob.isPollingTimedOut) {
+        progressVariant = "timed-out";
+        progressTitle = "This update is taking longer than expected";
+        primaryAction = {
+          label: "Check again",
+          onPress: planningJob.resumePolling,
+        };
+        secondaryAction = {
+          label: cancelPlanningJob.isPending
+            ? "Cancelling…"
+            : "Cancel update",
+          onPress: handleCancelPlanning,
+          disabled: cancelPlanningJob.isPending,
+        };
+      } else if (planningJob.isError) {
+        progressVariant = "polling-error";
+        progressMessage = getPlanningErrorMessage(planningJob.error);
+        primaryAction = {
+          label: "Check again",
+          onPress: () => void planningJob.refetch(),
+        };
+        secondaryAction = {
+          label: cancelPlanningJob.isPending
+            ? "Cancelling…"
+            : "Cancel update",
+          onPress: handleCancelPlanning,
+          disabled: cancelPlanningJob.isPending,
+        };
+      } else {
+        progressVariant = "running";
+        progressTitle = "Updating your draft";
+        progressMessage =
+          job && "progress" in job
+            ? job.progress.message
+            : "Your draft update is queued.";
+        secondaryAction = {
+          label: cancelPlanningJob.isPending
+            ? "Cancelling…"
+            : "Cancel update",
+          onPress: handleCancelPlanning,
+          disabled: cancelPlanningJob.isPending,
+        };
+      }
+    }
+  } else if (createPlanningSession.isPending) {
     progressVariant = "submitting";
   } else if (submissionError && !planningContext) {
     progressVariant = "submission-error";
@@ -289,16 +567,19 @@ export default function AiTripPlannerScreen() {
   const planningProgress = progressVariant ? (
     <AiPlannerPlanningProgress
       variant={progressVariant}
+      title={progressTitle}
       message={progressMessage}
       primaryAction={primaryAction}
       secondaryAction={secondaryAction}
     />
   ) : null;
-  const headerBadge = livePlan
-    ? `Draft #${livePlan.revision}`
-    : planningContext
-      ? "Planning"
-      : "New";
+  const headerBadge = isRefinementBusy
+    ? "Updating"
+    : livePlan
+      ? `Draft #${livePlan.revision}`
+      : planningContext
+        ? "Planning"
+        : "New";
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
@@ -402,13 +683,23 @@ export default function AiTripPlannerScreen() {
                 activeView !== "chat" && styles.hiddenPane,
               ]}
             >
-              <AiPlannerIntakeConversation
-                canEdit={canEdit}
-                isPlanningStarted={isPlanningStarted}
-                planningProgress={planningProgress}
-                onEditAnswers={handleEditAnswers}
-                onStartPlanning={handleStartPlanning}
-              />
+              {livePlan ? (
+                <AiPlannerRefinementConversation
+                  draftRevision={livePlan.revision}
+                  messages={refinementMessages}
+                  canSubmit={canSubmitRefinement}
+                  planningProgress={planningProgress}
+                  onSubmit={handleSubmitRefinement}
+                />
+              ) : (
+                <AiPlannerIntakeConversation
+                  canEdit={canEdit}
+                  isPlanningStarted={isPlanningStarted}
+                  planningProgress={planningProgress}
+                  onEditAnswers={handleEditAnswers}
+                  onStartPlanning={handleStartPlanning}
+                />
+              )}
             </View>
             {livePlan ? (
               <View
@@ -418,6 +709,7 @@ export default function AiTripPlannerScreen() {
                 ]}
               >
                 <AiPlannerPlanPreview
+                  key={`draft-${livePlan.revision}`}
                   plan={livePlan}
                   onAskForChanges={() => setActiveView("chat")}
                   onReview={(selection) => {

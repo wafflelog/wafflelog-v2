@@ -37,6 +37,7 @@ type PlanningProgressAction = {
 
 type AiPlannerPlanningProgressProps = {
   variant: PlanningProgressVariant;
+  title?: string;
   message?: string | null;
   primaryAction?: PlanningProgressAction;
   secondaryAction?: PlanningProgressAction;
@@ -91,6 +92,7 @@ function ProgressIcon({ variant }: { variant: PlanningProgressVariant }) {
 
 export function AiPlannerPlanningProgress({
   variant,
+  title,
   message,
   primaryAction,
   secondaryAction,
@@ -113,7 +115,7 @@ export function AiPlannerPlanningProgress({
       </View>
       <View style={styles.copy}>
         <TitleRegular size="sm" weight="600" color={colors.textDarkGrey}>
-          {titles[variant]}
+          {title || titles[variant]}
         </TitleRegular>
         <TitleRegular size="xs" color={colors.textLightGrey}>
           {message || fallbackMessages[variant]}
