@@ -38,7 +38,6 @@ export type Trip = {
    * Supabase timestamp/timestamptz columns return dates as strings
    */
   endDate: string;
-  location: string;
   companions: Companion[];
   pins: Pin[];
   checklistItems: ChecklistItem[];

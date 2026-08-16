@@ -40,7 +40,6 @@ export default function TripLinksScreen() {
         title: localTrip.title,
         startDate: localTrip.startDate,
         endDate: localTrip.endDate,
-        location: "Unknown destination",
         companions: [],
         pins: [],
         checklistItems: [],

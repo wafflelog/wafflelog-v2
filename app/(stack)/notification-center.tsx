@@ -1,17 +1,20 @@
 import { TitleRegular } from "@/components/title/regular";
 import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
+import {
+  getAppNotificationsQueryKey,
+  useAppNotifications,
+} from "@/hook/use-app-notifications";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionPullActiveCompanionTrips } from "@/lib/sqlite/model/companion-trip-sync";
 import {
   actionAcceptTripInvitation,
-  actionListAppNotifications,
   actionMarkNotificationRead,
   actionRejectTripInvitation,
   type AppNotification,
 } from "@/lib/supabase/actions";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -70,11 +73,7 @@ export default function NotificationCenterScreen() {
     null,
   );
 
-  const notificationsQuery = useQuery({
-    queryKey: ["app-notifications", session?.user.id],
-    queryFn: () => actionListAppNotifications(),
-    enabled: Boolean(session?.user.id),
-  });
+  const notificationsQuery = useAppNotifications(session?.user.id);
 
   const invitationResponseMutation = useMutation({
     mutationFn: async ({
@@ -98,7 +97,7 @@ export default function NotificationCenterScreen() {
     },
     onSuccess: (response) => {
       void queryClient.invalidateQueries({
-        queryKey: ["app-notifications", session?.user.id],
+        queryKey: getAppNotificationsQueryKey(session?.user.id),
       });
       void queryClient.invalidateQueries({ queryKey: ["local-trips", session?.user.id] });
 

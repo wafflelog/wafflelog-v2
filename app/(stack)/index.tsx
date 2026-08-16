@@ -3,6 +3,7 @@ import { CardTrip } from "@/components/card/trip";
 import { DialogNewTrip } from "@/components/dialog/new-trip";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
+import { useAppNotifications } from "@/hook/use-app-notifications";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionListLocalTrips } from "@/lib/sqlite/model/trip";
 import { supabase } from "@/lib/supabase/client";
@@ -13,7 +14,6 @@ import { Redirect, useRouter } from "expo-router";
 import {
   Bell as BellIcon,
   Calendar as CalendarIcon,
-  MapPin as MapPinIcon,
   Plane as PlaneIcon,
   Plus as PlusIcon,
   Sparkles as SparklesIcon,
@@ -43,6 +43,7 @@ export default function IndexScreen() {
     queryFn: () => actionListLocalTrips(session!.user.id),
     enabled: Boolean(session?.user.id),
   });
+  const notificationsQuery = useAppNotifications(session?.user.id);
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer} edges={["top"]}>
@@ -70,7 +71,6 @@ export default function IndexScreen() {
     title: trip.title,
     startDate: trip.startDate,
     endDate: trip.endDate,
-    location: "Unknown destination",
     companions: [],
     pins: [],
     checklistItems: [],
@@ -104,6 +104,11 @@ export default function IndexScreen() {
     ? dayjs(nextUpcomingTrip.startDate).startOf("day").diff(today, "day")
     : null;
   const username = session?.user.user_metadata.username || "Traveler";
+  const unreadNotificationCount =
+    notificationsQuery.data?.filter((notification) => !notification.read_at)
+      .length ?? 0;
+  const notificationBadgeLabel =
+    unreadNotificationCount > 99 ? "99+" : String(unreadNotificationCount);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -135,14 +140,6 @@ export default function IndexScreen() {
             <View style={styles.headerContent}>
               <Text style={styles.greeting}>{getGreeting()}!</Text>
               <Text style={styles.userName}>{username}</Text>
-              {ongoingTrips.length > 0 && (
-                <View style={styles.currentLocationBadge}>
-                  <MapPinIcon size={14} color={getColor(colors.waffle)} />
-                  <Text style={styles.currentLocationText}>
-                    Currently in {ongoingTrips[0].location}
-                  </Text>
-                </View>
-              )}
               {daysUntilNextTrip !== null && daysUntilNextTrip > 0 && (
                 <View style={styles.countdownBadge}>
                   <CalendarIcon size={14} color={getColor(colors.turquoise)} />
@@ -156,11 +153,21 @@ export default function IndexScreen() {
             <TouchableOpacity
               style={styles.notificationButton}
               onPress={() => router.push("/notification-center")}
+              accessibilityRole="button"
+              accessibilityLabel={
+                unreadNotificationCount > 0
+                  ? `Notifications, ${unreadNotificationCount} unread`
+                  : "Notifications"
+              }
             >
               <BellIcon size={24} color="#fff" />
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>3</Text>
-              </View>
+              {unreadNotificationCount > 0 ? (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {notificationBadgeLabel}
+                  </Text>
+                </View>
+              ) : null}
             </TouchableOpacity>
           </View>
         </ImageBackground>
@@ -388,22 +395,7 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 0, 0, 0.3)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
-  },
-  currentLocationBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    paddingHorizontal: gaps.sm,
-    paddingVertical: 6,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-    marginBottom: gaps.xs,
-  },
-  currentLocationText: {
-    fontSize: 13,
-    color: getColor(colors.textDarkGrey),
-    fontWeight: "600",
-    marginLeft: 6,
+    textTransform: "capitalize",
   },
   countdownBadge: {
     flexDirection: "row",
@@ -430,8 +422,9 @@ const styles = StyleSheet.create({
     right: 4,
     backgroundColor: getColor(colors.red),
     borderRadius: 10,
-    width: 20,
+    minWidth: 20,
     height: 20,
+    paddingHorizontal: 4,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,

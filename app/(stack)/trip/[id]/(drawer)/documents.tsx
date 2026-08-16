@@ -61,7 +61,6 @@ export default function TripDocumentsScreen() {
         title: localTrip.title,
         startDate: localTrip.startDate,
         endDate: localTrip.endDate,
-        location: "Unknown destination",
         companions: [],
         pins: [],
         checklistItems: [],

@@ -3,13 +3,11 @@ import { TitleRegular } from "@/components/title/regular";
 import { UIInProgressBadge } from "@/components/ui/in-progress-badge";
 import { UIProgressBar } from "@/components/ui/progress-bar";
 import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
+import { getTripProgress } from "@/lib/helper/trip";
 import { formatDate } from "@/lib/helper/utils";
 import { type Trip } from "@/types/trip";
 
-import {
-  ChevronRight as ChevronRightIcon,
-  MapPin as MapPinIcon,
-} from "lucide-react-native";
+import { ChevronRight as ChevronRightIcon } from "lucide-react-native";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 type CardTripHeroProps = {
@@ -18,6 +16,8 @@ type CardTripHeroProps = {
 };
 
 export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
+  const progress = getTripProgress(trip.startDate, trip.endDate);
+
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={styles.content}>
@@ -33,19 +33,14 @@ export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
           trip.endDate,
         )}`}</TitleRegular>
 
-        <View style={styles.locationContainer}>
-          <MapPinIcon size={16} color={getColor(colors.pineGreen)} />
-          <TitleRegular size="xs" color={colors.textLightGrey}>
-            {trip.location}
-          </TitleRegular>
-        </View>
-
-        <View style={styles.progressContainer}>
-          <UIProgressBar progress={50} height={6} />
-          <TitleRegular size="xs" color={colors.textLightGrey}>
-            Day 3 of 7
-          </TitleRegular>
-        </View>
+        {progress ? (
+          <View style={styles.progressContainer}>
+            <UIProgressBar progress={progress.percentage} height={6} />
+            <TitleRegular size="xs" color={colors.textLightGrey}>
+              Day {progress.currentDay} of {progress.totalDays}
+            </TitleRegular>
+          </View>
+        ) : null}
         <ListUsersHorizontalIcons users={trip.companions} max={3} />
       </View>
       <View style={styles.chevronContainer}>
@@ -72,11 +67,6 @@ const styles = StyleSheet.create({
   inProgress: {
     alignSelf: "flex-start",
     marginBottom: gaps.xs,
-  },
-  locationContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
   },
   progressContainer: {
     flexDirection: "column",
