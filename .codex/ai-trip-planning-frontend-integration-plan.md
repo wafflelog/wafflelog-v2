@@ -2,9 +2,11 @@
 
 ## Status
 
-Draft for review.
+Functional v1 complete; further work parked on 16 August 2026.
 
-This document describes the proposed integration between the Wafflelog Expo application and the deployed AI trip planning API. It is intentionally a planning document only. Implementation should begin after this plan has been reviewed and the Expo upgrade is complete.
+Phases 0–4 have been implemented. The happy path, conversational refinement, atomic import, and same-device recovery have been manually verified. Phase 5 hardening and optional product enhancements are intentionally deferred while other product priorities are addressed.
+
+This document now serves as both the original integration design and the handoff record for resuming the feature later.
 
 ## Goal
 
@@ -18,6 +20,32 @@ Add an AI-assisted planning experience in which a signed-in user can:
 6. Accept the result and create the corresponding Wafflelog trip content.
 
 The AI service produces suggestions only. Wafflelog remains responsible for review, local persistence, synchronization, and all user-owned records.
+
+## Implementation Snapshot
+
+### Completed
+
+- OpenAPI TypeScript generation and a typed authenticated API client.
+- Supabase JWT bearer authentication and idempotency keys for mutations.
+- Conversational intake for destination, start date, duration, and trip brief, including client-side validation.
+- Asynchronous planning-session creation, bounded polling, timeout handling, cancellation, retry, and public progress states.
+- Day-grouped draft review with summaries, warnings, recommendation reasons, and research sources.
+- Conversational feedback and revised planning jobs.
+- A separate final-customization step for selecting itinerary suggestions and checklist items.
+- Atomic and idempotent local import of the trip, pins, locations, notes, reference links, and checklist items.
+- Navigation to the imported trip followed by normal background synchronization.
+- Local planning-session persistence and same-device recovery after navigation, backgrounding, or app termination.
+- Automated coverage for the API client, polling helpers, mapping, local persistence, transaction rollback, repeated import, and recovery selection.
+
+### Current boundaries
+
+- Recovery begins only after the create-session response has been received and its session and job IDs have been stored locally. Partially completed intake questions are not persisted.
+- Planning history is device-local. It is not restored after reinstalling the app or moving to another device.
+- Choosing `Start a new trip` from recovery removes the local recovery record but does not currently cancel a non-terminal backend job.
+- Final customization supports including or excluding individual itinerary suggestions and checklist items. It does not yet provide structured edits for the trip title, dates, pin times, or categories.
+- General reference links are imported with the accepted trip rather than being individually selectable.
+- Documents, images, expenses, and companions are not generated from the current API result.
+- A full cross-platform failure, accessibility, and release-readiness pass has not been completed.
 
 ## Current Application Architecture
 
@@ -555,6 +583,8 @@ Status: complete.
 
 ### Phase 1: API and recovery foundation
 
+Status: complete.
+
 - Add runtime configuration.
 - Implement the typed API client.
 - Implement job polling.
@@ -563,12 +593,16 @@ Status: complete.
 
 ### Phase 2: Initial request and progress UI
 
+Status: complete.
+
 - Add the home-screen entry point.
 - Build the initial request form.
 - Build progress, error, retry, and cancellation states.
 - Support resume after navigation or app restart.
 
 ### Phase 3: Draft review and conversation
+
+Status: complete for the functional v1 scope. Structured field editing remains an optional enhancement.
 
 - Display the current revision by day.
 - Show assumptions, warnings, and sources.
@@ -577,6 +611,8 @@ Status: complete.
 
 ### Phase 4: Atomic import
 
+Status: complete.
+
 - Implement and test deterministic mapping.
 - Add the idempotent SQLite transaction.
 - Invalidate local queries and navigate to the trip.
@@ -584,11 +620,45 @@ Status: complete.
 
 ### Phase 5: Hardening and release readiness
 
-- Complete end-to-end failure and recovery testing.
-- Add analytics and operational logging without sensitive prompt contents.
-- Add accessibility and mobile keyboard testing.
-- Add contract-drift checks.
-- Test on iOS, Android, and web where supported.
+Status: pending and intentionally parked.
+
+#### Priority 1: lifecycle and release cleanup
+
+- When `Start a new trip` abandons a non-terminal recovered job, make a best-effort cancellation request before deleting its local recovery record.
+- Remove remaining user-visible `UI prototype` wording.
+- Remove temporary debug logging, including the planning-session response log.
+- Review unused prototype-only components and data, removing them only after confirming they have no consumers.
+- Decide how long abandoned, failed, and unaccepted local planning sessions should be retained.
+
+#### Priority 2: failure and recovery verification
+
+- Verify initial submission while offline and against `401`, `409`, `422`, `503`, and transport failures.
+- Verify that an interrupted or timed-out poll retains the session and can resume safely.
+- Verify failed and cancelled initial jobs, including restart and edit-answer paths.
+- Verify failed, cancelled, and timed-out refinement jobs without losing the previous completed draft.
+- Verify local import validation errors, transaction rollback, repeated confirmation, and offline acceptance.
+- Verify that background-sync failure leaves the locally created trip usable and retryable.
+- Check expired-token refresh behaviour and confirm logical POST retries reuse their original idempotency key.
+
+#### Priority 3: automated flow coverage
+
+- Add UI or end-to-end coverage for intake, progress, completed review, refinement, recovery after termination, customization, import, and navigation.
+- Add a regression flow for abandoning a recovered running job and starting a new plan.
+- Keep API health and deployed contract checks in CI rather than in the mobile runtime.
+
+#### Priority 4: accessibility and platform QA
+
+- Verify screen-reader labels, focus order, button states, and announcements for progress and errors.
+- Test keyboard avoidance, numeric input, date selection, safe areas, and close-button reachability.
+- Test small phones, large phones, and tablets.
+- Test supported iOS and Android versions, plus web if the route remains supported there.
+
+#### Priority 5: observability and contract safety
+
+- Add privacy-safe analytics for entry, submission, completion, refinement, recovery, abandonment, and import.
+- Add operational error reporting without recording prompts, generated content, access tokens, or other sensitive trip details.
+- Regenerate OpenAPI types in CI and fail when committed generated output has drifted.
+- Review API contract changes alongside mapping and import behaviour.
 
 ### Later enhancements
 
@@ -597,43 +667,35 @@ Status: complete.
 - Cross-device planning-session history.
 - Shareable or downloadable itinerary documents.
 - Collaborative planning sessions.
-- Additional structured editing without requiring conversational refinement.
+- Structured editing of the trip title, start date, pin time, and category before import.
+- Whole-day inclusion controls and individual selection of general reference links.
+- Optional persistence and recovery of partially completed intake answers.
 
-## Initial Acceptance Criteria
+## Initial Acceptance Criteria: Current Status
 
-The first frontend milestone is complete when:
+- [x] A signed-in user can create a planning session.
+- [x] The app polls and displays public job progress.
+- [x] A stored job survives navigation, backgrounding, and restart on the same device.
+- [x] The user can review a completed draft and its sources.
+- [x] The user can submit feedback and receive a revised draft.
+- [x] The user can exclude individual itinerary suggestions and checklist items during final customization.
+- [x] Acceptance creates one local trip with the selected pins, notes, links, locations, and checklist items.
+- [x] Import is atomic and idempotent.
+- [x] The imported trip is immediately usable from local storage.
+- [x] Normal background synchronization uploads the created records.
+- [x] Automated tests cover mapping, polling, persistence, rollback, and duplicate acceptance.
+- [ ] Complete the full failure, cancellation, accessibility, and cross-platform release-readiness matrix described in Phase 5.
 
-- a signed-in user can create a planning session;
-- the app can poll and display public job progress;
-- the job survives navigation, backgrounding, and restart;
-- the user can review a completed draft and its sources;
-- the user can submit feedback and receive a revised draft;
-- the user can exclude unwanted days and items;
-- acceptance creates one local trip with the selected pins, notes, links, locations, and checklist items;
-- import is atomic and idempotent;
-- the trip is immediately usable offline;
-- normal background synchronization uploads the records;
-- failures and cancellation provide a recoverable user experience;
-- automated tests cover mapping, polling, rollback, and duplicate acceptance.
+## Resolved and Deferred Decisions
 
-## Decisions Required Before Implementation
+1. The first version keeps `startDate` locally and injects it into the trip brief sent to the API.
+2. Itinerary items become pins; their description and recommendation reason are preserved as notes where useful.
+3. Estimated duration remains descriptive and does not calculate a pin end time.
+4. Suggestions without valid coordinates remain normal pins without a `pin_location` record.
+5. The plan summary, assumptions, and warnings are stored together as a deterministic trip-level note.
+6. No document is fabricated because the API does not return a downloadable document artifact.
+7. Retention of locally persisted, unaccepted planning sessions remains undecided and is listed in Phase 5.
 
-1. Should `startDate` be added to the API request before frontend work begins, or should the first version retain and inject it through the trip brief?
-2. Should all itinerary item types become pins, including `note`, or should note-only items become trip-level notes?
-3. Should estimated duration calculate an end time, or remain descriptive in the initial release?
-4. Should locations without coordinates remain plain pins, or should the app resolve their search queries before import?
-5. Should assumptions and warnings be stored in one trip note or separate notes?
-6. Is a downloadable itinerary document required for the first release, given that the current API does not return a file?
-7. How long should locally persisted, unaccepted planning sessions be retained?
+## Recommended Restart Point
 
-## Recommended First Implementation Slice
-
-After the Expo upgrade, begin with a thin vertical slice:
-
-1. Create a typed authenticated API client.
-2. Submit one initial request.
-3. Poll until completion.
-4. Render the returned draft read-only.
-5. Import only the trip and pins in one transaction.
-
-Once that path is reliable, add persisted recovery, local review controls, notes, links, checklist items, and conversational refinement incrementally.
+When work resumes, start with Phase 5 Priority 1 rather than extending the product surface. Then complete the failure matrix and device QA before considering the optional enhancements. The API contract and SQLite schema do not need to change for the first hardening pass.
