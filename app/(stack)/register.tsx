@@ -1,25 +1,25 @@
+import { AuthField } from "@/components/auth/auth-field";
+import { AuthScreen } from "@/components/auth/auth-screen";
+import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { TitleRegular } from "@/components/title/regular";
-import { UIInputText } from "@/components/ui/input/text";
-import {
-  borderRadiuses,
-  colors,
-  gaps,
-  getColor,
-  getShadowStyle,
-} from "@/constants/theme";
+import { colors, gaps } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionSignUpWithEmail } from "@/lib/supabase/actions";
 import { useMutation } from "@tanstack/react-query";
 import { Link, Redirect, router } from "expo-router";
-import { useState } from "react";
-import { Pressable, SafeAreaView, StyleSheet, View } from "react-native";
+import { LockKeyhole, Mail, UserRound } from "lucide-react-native";
+import { useRef, useState } from "react";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const USERNAME_PATTERN = /^[a-z0-9_]+$/;
 
 export default function RegisterScreen() {
   const { isAuthenticated, isLoading } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
@@ -103,130 +103,108 @@ export default function RegisterScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <View style={styles.hero}>
-        <TitleRegular
-          size="xxl"
-          color={colors.textDarkGrey}
-          style={styles.title}
-        >
-          Welcome to Wafflelog
-        </TitleRegular>
-        <TitleRegular
-          size="md"
-          color={colors.textLightGrey}
-          style={styles.subtitle}
-        >
-          Create an account to save trips, sync your travel log, and unlock the
-          rest of the app.
-        </TitleRegular>
-      </View>
-
-      <View style={styles.card}>
+    <>
+      <AuthScreen
+        eyebrow="CREATE YOUR ACCOUNT"
+        title="Start with an idea. Build a plan."
+        subtitle="Give us the basics. We’ll suggest ideas and draft your trip."
+      >
         <View style={styles.form}>
-          <UIInputText
-            placeholder="Username"
+          <AuthField
+            label="Username"
+            placeholder="Choose a username"
             value={username}
-            onChange={(value) => setUsername(value.toLowerCase().replace(/\s+/g, ""))}
+            onChangeText={(value) =>
+              setUsername(value.toLowerCase().replace(/\s+/g, ""))
+            }
+            icon={UserRound}
             autoCapitalize="none"
             autoCorrect={false}
             autoFocus
-          />
-          <UIInputText
-            placeholder="Email"
-            value={email}
-            onChange={setEmail}
-            keyboardType="email-address"
-          />
-          <UIInputText
-            placeholder="Password"
-            value={password}
-            onChange={setPassword}
-            secureTextEntry
-          />
-          <Pressable
-            style={[
-              styles.primaryButton,
-              signUpMutation.isPending && styles.primaryButtonDisabled,
-            ]}
-            onPress={handleRegister}
+            textContentType="username"
+            autoComplete="username-new"
+            returnKeyType="next"
+            onSubmitEditing={() => emailInputRef.current?.focus()}
+            helperText="3–30 characters · lowercase letters, numbers, or underscores"
             disabled={signUpMutation.isPending}
-          >
-            <TitleRegular size="md" color={colors.white} weight="600">
-              {signUpMutation.isPending
-                ? "Creating account..."
-                : "Create account"}
-            </TitleRegular>
-          </Pressable>
+          />
+          <AuthField
+            ref={emailInputRef}
+            label="Email address"
+            placeholder="you@example.com"
+            value={email}
+            onChangeText={setEmail}
+            icon={Mail}
+            keyboardType="email-address"
+            textContentType="emailAddress"
+            autoComplete="email"
+            returnKeyType="next"
+            onSubmitEditing={() => passwordInputRef.current?.focus()}
+            disabled={signUpMutation.isPending}
+          />
+          <AuthField
+            ref={passwordInputRef}
+            label="Password"
+            placeholder="Create a password"
+            value={password}
+            onChangeText={setPassword}
+            icon={LockKeyhole}
+            secureTextEntry
+            textContentType="newPassword"
+            autoComplete="new-password"
+            returnKeyType="done"
+            onSubmitEditing={handleRegister}
+            helperText="Use at least 6 characters"
+            disabled={signUpMutation.isPending}
+          />
+          <AuthSubmitButton
+            label="Create account"
+            pendingLabel="Creating account..."
+            isPending={signUpMutation.isPending}
+            onPress={handleRegister}
+          />
           <View style={styles.footer}>
             <TitleRegular size="sm" color={colors.textLightGrey}>
               Already have an account?
             </TitleRegular>
             <Link href="/login" asChild replace>
-              <Pressable>
-                <TitleRegular size="sm" color={colors.waffle} weight="600">
+              <Pressable style={styles.switchButton} hitSlop={8}>
+                <TitleRegular
+                  size="sm"
+                  color={colors.pineGreen}
+                  weight="700"
+                >
                   Log in
                 </TitleRegular>
               </Pressable>
             </Link>
           </View>
         </View>
-      </View>
+      </AuthScreen>
 
       <SystemMessageModal />
-    </SafeAreaView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#F5F7FA",
-    paddingHorizontal: gaps.lg,
-    paddingVertical: gaps.xl,
-    justifyContent: "center",
-    gap: gaps.xl,
-  },
   loadingScreen: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F5F7FA",
-  },
-  hero: {
-    gap: gaps.sm,
-  },
-  title: {
-    lineHeight: 32,
-  },
-  subtitle: {
-    lineHeight: 24,
-  },
-  card: {
-    backgroundColor: getColor(colors.white),
-    borderRadius: borderRadiuses.lg,
-    padding: gaps.lg,
-    gap: gaps.md,
-    ...getShadowStyle("md"),
+    backgroundColor: "#FFF9E8",
   },
   form: {
-    gap: gaps.md,
-  },
-  primaryButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: getColor(colors.waffle),
-    borderRadius: borderRadiuses.md,
-    minHeight: 52,
-    paddingHorizontal: gaps.md,
-  },
-  primaryButtonDisabled: {
-    opacity: 0.7,
+    gap: gaps.lg,
   },
   footer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: gaps.xs,
+    flexWrap: "wrap",
+  },
+  switchButton: {
+    paddingVertical: gaps.xxs,
   },
 });

@@ -1,23 +1,22 @@
+import { AuthField } from "@/components/auth/auth-field";
+import { AuthScreen } from "@/components/auth/auth-screen";
+import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { TitleRegular } from "@/components/title/regular";
-import { UIInputText } from "@/components/ui/input/text";
-import {
-  borderRadiuses,
-  colors,
-  gaps,
-  getColor,
-  getShadowStyle,
-} from "@/constants/theme";
+import { colors, gaps } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionSignInWithEmail } from "@/lib/supabase/actions";
 import { useMutation } from "@tanstack/react-query";
 import { Link, Redirect, router } from "expo-router";
-import { useState } from "react";
-import { Pressable, SafeAreaView, StyleSheet, View } from "react-native";
+import { LockKeyhole, Mail } from "lucide-react-native";
+import { useRef, useState } from "react";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
   const { isAuthenticated, isLoading } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
+  const passwordInputRef = useRef<TextInput>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -68,120 +67,89 @@ export default function LoginScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <View style={styles.hero}>
-        <TitleRegular
-          size="xxl"
-          color={colors.textDarkGrey}
-          style={styles.title}
-        >
-          Welcome back
-        </TitleRegular>
-        <TitleRegular
-          size="md"
-          color={colors.textLightGrey}
-          style={styles.subtitle}
-        >
-          Log in to continue to your trips and travel log.
-        </TitleRegular>
-      </View>
-
-      <View style={styles.card}>
+    <>
+      <AuthScreen
+        eyebrow="WELCOME BACK"
+        title="Get your next trip ready."
+        subtitle="Keep every trip organised, everyone aligned, and all expenses tracked in one place."
+      >
         <View style={styles.form}>
-          <UIInputText
-            placeholder="Email"
+          <AuthField
+            label="Email address"
+            placeholder="you@example.com"
             value={email}
-            onChange={setEmail}
+            onChangeText={setEmail}
+            icon={Mail}
             autoFocus
             keyboardType="email-address"
-          />
-          <UIInputText
-            placeholder="Password"
-            value={password}
-            onChange={setPassword}
-            secureTextEntry
-          />
-          <Pressable
-            style={[
-              styles.primaryButton,
-              signInMutation.isPending && styles.primaryButtonDisabled,
-            ]}
-            onPress={handleLogin}
+            textContentType="emailAddress"
+            autoComplete="email"
+            returnKeyType="next"
+            onSubmitEditing={() => passwordInputRef.current?.focus()}
             disabled={signInMutation.isPending}
-          >
-            <TitleRegular size="md" color={colors.white} weight="600">
-              {signInMutation.isPending ? "Logging in..." : "Log in"}
-            </TitleRegular>
-          </Pressable>
+          />
+          <AuthField
+            ref={passwordInputRef}
+            label="Password"
+            placeholder="Enter your password"
+            value={password}
+            onChangeText={setPassword}
+            icon={LockKeyhole}
+            secureTextEntry
+            textContentType="password"
+            autoComplete="current-password"
+            returnKeyType="done"
+            onSubmitEditing={handleLogin}
+            disabled={signInMutation.isPending}
+          />
+          <AuthSubmitButton
+            label="Log in"
+            pendingLabel="Logging in..."
+            isPending={signInMutation.isPending}
+            onPress={handleLogin}
+          />
           <View style={styles.footer}>
             <TitleRegular size="sm" color={colors.textLightGrey}>
-              Need an account?
+              New to Wafflelog?
             </TitleRegular>
             <Link href="/register" asChild replace>
-              <Pressable>
-                <TitleRegular size="sm" color={colors.waffle} weight="600">
-                  Register
+              <Pressable style={styles.switchButton} hitSlop={8}>
+                <TitleRegular
+                  size="sm"
+                  color={colors.pineGreen}
+                  weight="700"
+                >
+                  Create an account
                 </TitleRegular>
               </Pressable>
             </Link>
           </View>
         </View>
-      </View>
+      </AuthScreen>
 
       <SystemMessageModal />
-    </SafeAreaView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#F5F7FA",
-    paddingHorizontal: gaps.lg,
-    paddingVertical: gaps.xl,
-    justifyContent: "center",
-    gap: gaps.xl,
-  },
   loadingScreen: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F5F7FA",
-  },
-  hero: {
-    gap: gaps.sm,
-  },
-  title: {
-    lineHeight: 32,
-  },
-  subtitle: {
-    lineHeight: 24,
-  },
-  card: {
-    backgroundColor: getColor(colors.white),
-    borderRadius: borderRadiuses.lg,
-    padding: gaps.lg,
-    gap: gaps.md,
-    ...getShadowStyle("md"),
+    backgroundColor: "#FFF9E8",
   },
   form: {
-    gap: gaps.md,
-  },
-  primaryButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: getColor(colors.waffle),
-    borderRadius: borderRadiuses.md,
-    minHeight: 52,
-    paddingHorizontal: gaps.md,
-  },
-  primaryButtonDisabled: {
-    opacity: 0.7,
+    gap: gaps.lg,
   },
   footer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: gaps.xs,
+    flexWrap: "wrap",
+  },
+  switchButton: {
+    paddingVertical: gaps.xxs,
   },
 });
