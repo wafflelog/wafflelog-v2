@@ -1,6 +1,12 @@
 import { CardCompanionSearchResult } from "@/components/card/companion/search-result";
 import { UIText } from "@/components/ui/text";
-import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
+import {
+  colors,
+  gaps,
+  getCardBasicStyle,
+  getColor,
+  semanticColors,
+} from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
@@ -225,12 +231,16 @@ export default function UserSearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: semanticColors.screen,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: gaps.md,
     paddingVertical: gaps.sm,
+    backgroundColor: semanticColors.screen,
+    borderBottomWidth: 1,
+    borderBottomColor: semanticColors.brandDivider,
   },
   backButton: {
     width: 40,
@@ -254,6 +264,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     paddingHorizontal: gaps.md,
+    paddingTop: gaps.sm,
     paddingBottom: gaps.sm,
     gap: gaps.xs,
   },
@@ -265,7 +276,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: gaps.sm,
     paddingVertical: gaps.xs,
-    backgroundColor: "white",
+    backgroundColor: semanticColors.surface,
   },
   searchIcon: {
     marginRight: gaps.xs,

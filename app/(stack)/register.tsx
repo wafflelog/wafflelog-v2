@@ -2,7 +2,7 @@ import { AuthField } from "@/components/auth/auth-field";
 import { AuthScreen } from "@/components/auth/auth-screen";
 import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { TitleRegular } from "@/components/title/regular";
-import { colors, gaps } from "@/constants/theme";
+import { colors, gaps, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionSignUpWithEmail } from "@/lib/supabase/actions";
@@ -171,7 +171,7 @@ export default function RegisterScreen() {
               <Pressable style={styles.switchButton} hitSlop={8}>
                 <TitleRegular
                   size="sm"
-                  color={colors.pineGreen}
+                  color={colors.purple}
                   weight="700"
                 >
                   Log in
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFF9E8",
+    backgroundColor: semanticColors.authScreen,
   },
   form: {
     gap: gaps.lg,

@@ -3,7 +3,7 @@ import { CardTripChecklistItem } from "@/components/card/checklist-item";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { DialogNewChecklistItem } from "@/components/dialog/new-checklist-item";
 import { UITab } from "@/components/ui/tab";
-import { gaps } from "@/constants/theme";
+import { gaps, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import {
   actionListLocalChecklistItems,
@@ -146,10 +146,11 @@ export default function TripChecklistScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: semanticColors.screen,
   },
   tabs: {
     gap: gaps.md,
-    backgroundColor: "white",
+    backgroundColor: semanticColors.surface,
     padding: gaps.md,
     flexDirection: "row",
   },

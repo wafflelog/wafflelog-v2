@@ -2,7 +2,7 @@ import { ButtonFab } from "@/components/button/fab";
 import { CardTrip } from "@/components/card/trip";
 import { DialogNewTrip } from "@/components/dialog/new-trip";
 import { TitleRegular } from "@/components/title/regular";
-import { colors, gaps, getColor } from "@/constants/theme";
+import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { useAppNotifications } from "@/hook/use-app-notifications";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionListLocalTrips } from "@/lib/sqlite/model/trip";
@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase/client";
 import { type Trip } from "@/types/trip";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
+import { Image } from "expo-image";
 import { Redirect, useRouter } from "expo-router";
 import {
   Bell as BellIcon,
@@ -114,9 +115,17 @@ export default function IndexScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Branding Header */}
       <View style={styles.brandingHeader}>
-        <TitleRegular size="xl" style={styles.brandingText}>
-          Wafflelog
-        </TitleRegular>
+        <View style={styles.brandLockup}>
+          <Image
+            source={require("../../assets/images/icon.png")}
+            style={styles.brandLogo}
+            contentFit="cover"
+            accessibilityLabel="Wafflelog logo"
+          />
+          <TitleRegular size="xl" style={styles.brandingText}>
+            Wafflelog
+          </TitleRegular>
+        </View>
         <TouchableOpacity onPress={handleSignOut}>
           <Text style={styles.signOutText}>Sign out</Text>
         </TouchableOpacity>
@@ -308,7 +317,7 @@ export default function IndexScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F7FA",
+    backgroundColor: semanticColors.screen,
   },
   aiPlannerFab: {
     bottom: gaps.xl + 64,
@@ -318,27 +327,37 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F5F7FA",
+    backgroundColor: semanticColors.screen,
   },
   brandingHeader: {
-    backgroundColor: "#fff",
+    backgroundColor: semanticColors.screen,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: gaps.md,
     paddingVertical: gaps.sm,
     borderBottomWidth: 1,
-    borderBottomColor: getColor(colors.whiteGrey),
+    borderBottomColor: semanticColors.brandDivider,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 2,
   },
+  brandLockup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: gaps.sm,
+  },
+  brandLogo: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+  },
   brandingText: {
     fontSize: 20,
     fontWeight: "700",
-    color: getColor(colors.waffle),
+    color: getColor(colors.textDarkGrey),
     letterSpacing: -0.5,
   },
   signOutText: {
@@ -477,13 +496,13 @@ const styles = StyleSheet.create({
     marginBottom: gaps.lg,
   },
   emptyStateButton: {
-    backgroundColor: getColor(colors.waffle),
+    backgroundColor: semanticColors.primaryAction,
     paddingHorizontal: gaps.lg,
     paddingVertical: gaps.md,
     borderRadius: 12,
   },
   emptyStateButtonText: {
-    color: "#fff",
+    color: semanticColors.primaryActionContent,
     fontSize: 16,
     fontWeight: "600",
   },

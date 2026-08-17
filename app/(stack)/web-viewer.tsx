@@ -1,5 +1,5 @@
 import { TitleRegular } from "@/components/title/regular";
-import { colors, getColor } from "@/constants/theme";
+import { colors, getColor, semanticColors } from "@/constants/theme";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { X as XIcon } from "lucide-react-native";
 import { useState } from "react";
@@ -34,7 +34,7 @@ export default function WebViewerScreen() {
             {params.title}
           </TitleRegular>
           <TouchableOpacity onPress={() => router.back()}>
-            <XIcon size={24} color={getColor(colors.pineGreen)} />
+            <XIcon size={24} color={semanticColors.textPrimary} />
           </TouchableOpacity>
         </View>
         <WebView
@@ -73,11 +73,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
+    backgroundColor: semanticColors.screen,
+    borderBottomWidth: 1,
+    borderBottomColor: semanticColors.brandDivider,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#333",
+    color: semanticColors.textPrimary,
   },
   webview: {},
   loadingContainer: {

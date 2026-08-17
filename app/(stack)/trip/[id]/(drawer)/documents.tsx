@@ -3,7 +3,7 @@ import { CardDocument } from "@/components/card/document";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { DialogNewDocument } from "@/components/dialog/new-document";
 import { UIText } from "@/components/ui/text";
-import { gaps, getCardBasicStyle } from "@/constants/theme";
+import { gaps, getCardBasicStyle, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { getPinTitle } from "@/lib/helper/pin";
@@ -187,6 +187,7 @@ export default function TripDocumentsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: semanticColors.screen,
   },
   documents: {
     gap: gaps.md,

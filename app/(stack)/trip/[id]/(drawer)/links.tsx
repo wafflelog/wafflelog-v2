@@ -2,7 +2,7 @@ import { ButtonFab } from "@/components/button/fab";
 import { CardPinReferenceLinkRegular } from "@/components/card/reference-link/regular";
 import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
 import { UIText } from "@/components/ui/text";
-import { gaps, getCardBasicStyle } from "@/constants/theme";
+import { gaps, getCardBasicStyle, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { getPinTitle } from "@/lib/helper/pin";
@@ -103,6 +103,7 @@ export default function TripLinksScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: semanticColors.screen,
   },
   links: {
     gap: gaps.md,

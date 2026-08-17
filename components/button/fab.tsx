@@ -4,7 +4,7 @@ import {
   colors,
   gaps,
   getCardBasicStyle,
-  getColor,
+  semanticColors,
 } from "@/constants/theme";
 import {
   type StyleProp,
@@ -27,8 +27,8 @@ export function ButtonFab({ onPress, text, icon, style }: ButtonFabProps) {
       onPress={onPress}
       activeOpacity={0.8}
     >
-      {icon(getColor(colors.white))}
-      <TitleRegular size="sm" weight="600" color={colors.white}>
+      {icon(semanticColors.primaryActionContent)}
+      <TitleRegular size="sm" weight="600" color={colors.textDarkGrey}>
         {text}
       </TitleRegular>
     </TouchableOpacity>
@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     ...getCardBasicStyle("sm"),
-    backgroundColor: getColor(colors.purple),
+    backgroundColor: semanticColors.primaryAction,
     borderRadius: borderRadiuses.full,
     gap: gaps.xs,
   },

@@ -74,7 +74,7 @@ export const AuthField = forwardRef<TextInput, AuthFieldProps>(
           <Icon
             size={20}
             color={getColor(
-              isFocused ? colors.pineGreen : colors.textLightGrey,
+              isFocused ? colors.textDarkGrey : colors.textLightGrey,
             )}
           />
           <TextInput

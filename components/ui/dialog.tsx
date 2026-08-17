@@ -1,5 +1,11 @@
 import { TitleRegular } from "@/components/title/regular";
-import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
+import {
+  borderRadiuses,
+  colors,
+  gaps,
+  getColor,
+  semanticColors,
+} from "@/constants/theme";
 import { X as XIcon } from "lucide-react-native";
 import React from "react";
 import {
@@ -123,7 +129,15 @@ export function Dialog({
                   ]}
                   onPress={onConfirm}
                 >
-                  <TitleRegular size="sm" weight="600" color={colors.white}>
+                  <TitleRegular
+                    size="sm"
+                    weight="600"
+                    color={
+                      confirmVariant === "danger"
+                        ? colors.white
+                        : colors.textDarkGrey
+                    }
+                  >
                     {confirmText}
                   </TitleRegular>
                 </TouchableOpacity>
@@ -155,7 +169,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: getColor(colors.white),
+    backgroundColor: semanticColors.surface,
     borderTopLeftRadius: borderRadiuses.lg,
     borderTopRightRadius: borderRadiuses.lg,
     flexDirection: "column",
@@ -174,7 +188,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: getColor(colors.whiteGrey),
+    backgroundColor: semanticColors.neutralDivider,
     marginHorizontal: gaps.lg,
   },
   content: {
@@ -199,7 +213,7 @@ const styles = StyleSheet.create({
     backgroundColor: getColor(colors.whiteGrey, 0.5),
   },
   createButton: {
-    backgroundColor: getColor(colors.blue),
+    backgroundColor: semanticColors.primaryAction,
   },
   dangerButton: {
     backgroundColor: getColor(colors.red),

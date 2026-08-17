@@ -10,7 +10,7 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { DrawerItemRegular } from "@/components/drawer/item/regular";
 import { TitleRegular } from "@/components/title/regular";
-import { colors, gaps, getColor } from "@/constants/theme";
+import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { formatDate } from "@/lib/helper/utils";
 import { getPinTitle } from "@/lib/helper/pin";
@@ -75,13 +75,13 @@ export function DrawerPin({ id }: DrawerPinProps) {
       <View style={styles.header}>
         {trip && (
           <TouchableOpacity onPress={() => router.back()}>
-            <TitleRegular size="lg" weight="600" color={colors.blue}>
+            <TitleRegular size="lg" weight="600" color={colors.textDarkGrey}>
               {trip.title}
             </TitleRegular>
           </TouchableOpacity>
         )}
         {currentPin && dayNumber !== null && (
-          <TitleRegular size="md" weight="600" color={colors.blue}>
+          <TitleRegular size="md" weight="600" color={colors.textDarkGrey}>
             Day {dayNumber} - {formatDate(currentPin.startDate, "long")}
           </TitleRegular>
         )}
@@ -100,7 +100,11 @@ export function DrawerPin({ id }: DrawerPinProps) {
               icon: (color) => (
                 <MapPinIcon
                   size={20}
-                  color={id === pin.id ? color : getColor(colors.blue)}
+                  color={
+                    id === pin.id
+                      ? color
+                      : getColor(colors.textLightGrey)
+                  }
                 />
               ),
             }}
@@ -115,6 +119,7 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: gaps.sm,
     paddingVertical: gaps.sm,
+    backgroundColor: semanticColors.screen,
   },
   content: {
     gap: gaps.lg,
@@ -127,6 +132,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: getColor(colors.paleGrey, 0.5),
+    backgroundColor: semanticColors.brandDivider,
   },
 });

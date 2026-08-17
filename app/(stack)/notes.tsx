@@ -2,7 +2,12 @@ import { CardNoteRegular } from "@/components/card/note/regular";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { TitleRegular } from "@/components/title/regular";
 import { UIInputText } from "@/components/ui/input/text";
-import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
+import {
+  colors,
+  gaps,
+  getCardBasicStyle,
+  semanticColors,
+} from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import {
@@ -180,7 +185,7 @@ export default function NotesScreen() {
           onPress={handleCreateNote}
           disabled={!newNote.trim() || createNoteMutation.isPending}
         >
-          <TitleRegular size="xs" weight="600" color={colors.white}>
+          <TitleRegular size="xs" weight="600" color={colors.textDarkGrey}>
             {createNoteMutation.isPending ? "Saving" : "Send"}
           </TitleRegular>
         </Pressable>
@@ -215,6 +220,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+    backgroundColor: semanticColors.screen,
   },
   listStyle: {
     padding: 16,
@@ -237,7 +243,7 @@ const styles = StyleSheet.create({
   sendButton: {
     minHeight: 44,
     borderRadius: 22,
-    backgroundColor: getColor(colors.waffle),
+    backgroundColor: semanticColors.primaryAction,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: gaps.md,

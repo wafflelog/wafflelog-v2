@@ -1,4 +1,10 @@
-import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
+import {
+  borderRadiuses,
+  colors,
+  gaps,
+  getColor,
+  semanticColors,
+} from "@/constants/theme";
 import { CirclePlus as CirclePlusIcon } from "lucide-react-native";
 import {
   StyleProp,
@@ -33,7 +39,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: semanticColors.surface,
     borderStyle: "dashed",
     borderWidth: 2,
     borderColor: getColor(colors.whiteGrey),

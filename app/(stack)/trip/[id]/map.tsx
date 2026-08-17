@@ -1,5 +1,11 @@
 import { TitleRegular } from "@/components/title/regular";
-import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
+import {
+  colors,
+  gaps,
+  getCardBasicStyle,
+  getColor,
+  semanticColors,
+} from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { formatDate } from "@/lib/helper/utils";
 import { getPinTimeLabelForDate, getPinTitle } from "@/lib/helper/pin";
@@ -362,13 +368,15 @@ export default function TripMapScreen() {
                   <TitleRegular
                     size="xs"
                     weight="600"
-                    color={isSelected ? colors.white : colors.textDarkGrey}
+                    color={colors.textDarkGrey}
                   >
                     {tripDay.label}
                   </TitleRegular>
                   <TitleRegular
                     size="xxs"
-                    color={isSelected ? colors.white : colors.textLightGrey}
+                    color={
+                      isSelected ? colors.textDarkGrey : colors.textLightGrey
+                    }
                   >
                     {formatDate(tripDay.value, "short")}
                   </TitleRegular>
@@ -521,7 +529,7 @@ const styles = StyleSheet.create({
     backgroundColor: getColor(colors.white),
   },
   dayChipActive: {
-    backgroundColor: getColor(colors.waffle),
+    backgroundColor: semanticColors.primaryAction,
   },
   carouselContainer: {
     position: "relative",

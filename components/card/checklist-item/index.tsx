@@ -28,7 +28,7 @@ export const CardTripChecklistItem = ({
         ]}
       >
         {checklistItem.completed && (
-          <CheckIcon size={20} color={getColor(colors.white)} />
+          <CheckIcon size={20} color={getColor(colors.textDarkGrey)} />
         )}
       </View>
       <View style={styles.content}>

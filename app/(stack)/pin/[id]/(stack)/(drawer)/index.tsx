@@ -36,7 +36,12 @@ import { DialogNewImage } from "@/components/dialog/new-image";
 import { DialogNewPin } from "@/components/dialog/new-pin";
 import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
 import { TitleRegular } from "@/components/title/regular";
-import { colors, getCardBasicStyle, getColor } from "@/constants/theme";
+import {
+  colors,
+  getCardBasicStyle,
+  getColor,
+  semanticColors,
+} from "@/constants/theme";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { canEditPin } from "@/lib/helper/permissions";
 import { getPinHeaderTimeLabel } from "@/lib/helper/pin";
@@ -501,6 +506,7 @@ export default function PinIndexScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: semanticColors.screen,
   },
   content: {
     flex: 1,
@@ -584,6 +590,6 @@ const styles = StyleSheet.create({
   noteBadgeText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#fff",
+    color: semanticColors.primaryActionContent,
   },
 });

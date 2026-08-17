@@ -34,7 +34,7 @@ export const CardUserIcon = ({
         containerStyle,
       ]}
     >
-      <TitleRegular size={size} weight="600" color={colors.white}>
+      <TitleRegular size={size} weight="600" color={colors.textDarkGrey}>
         {user.fullname.charAt(0)}
       </TitleRegular>
     </View>

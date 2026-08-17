@@ -10,7 +10,7 @@ import {
   type DrawerItem,
 } from "@/components/drawer/item/regular";
 import { TitleRegular } from "@/components/title/regular";
-import { colors, gaps, getColor } from "@/constants/theme";
+import { colors, gaps, semanticColors } from "@/constants/theme";
 import {
   FileTextIcon,
   ImageIcon,
@@ -92,7 +92,7 @@ export function DrawerTrip({ id, navigation }: DrawerTripProps) {
       contentContainerStyle={styles.content}
     >
       <View style={styles.header}>
-        <TitleRegular size="xxl" weight="600" color={colors.waffle}>
+        <TitleRegular size="xxl" weight="700" color={colors.textDarkGrey}>
           Wafflelog
         </TitleRegular>
       </View>
@@ -116,6 +116,7 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: gaps.sm,
     paddingVertical: gaps.sm,
+    backgroundColor: semanticColors.screen,
   },
   content: {
     gap: gaps.lg,
@@ -126,6 +127,6 @@ const styles = StyleSheet.create({
   header: {},
   divider: {
     height: 1,
-    backgroundColor: getColor(colors.paleGrey, 0.5),
+    backgroundColor: semanticColors.brandDivider,
   },
 });

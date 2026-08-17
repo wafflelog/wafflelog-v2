@@ -2,7 +2,7 @@ import { ButtonFab } from "@/components/button/fab";
 import { CardImageRegular } from "@/components/card/image/regular";
 import { DialogNewImage } from "@/components/dialog/new-image";
 import { UIText } from "@/components/ui/text";
-import { gaps, getCardBasicStyle } from "@/constants/theme";
+import { gaps, getCardBasicStyle, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { getPinTitle } from "@/lib/helper/pin";
@@ -116,6 +116,7 @@ export default function TripImagesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: semanticColors.screen,
   },
   images: {
     gap: gaps.md,

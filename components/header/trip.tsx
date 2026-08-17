@@ -1,4 +1,4 @@
-import { colors, getColor } from "@/constants/theme";
+import { colors, getColor, semanticColors } from "@/constants/theme";
 import { formatDate } from "@/lib/helper/utils";
 import { type Trip } from "@/types/trip";
 import {
@@ -93,9 +93,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: "#fff",
+    backgroundColor: semanticColors.screen,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    borderBottomColor: semanticColors.brandDivider,
   },
   backButton: {
     padding: 4,
@@ -110,11 +110,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#333",
+    color: semanticColors.textPrimary,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: "#666",
+    color: semanticColors.textSecondary,
     marginTop: 2,
   },
   moreButton: {

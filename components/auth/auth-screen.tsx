@@ -1,5 +1,5 @@
 import { TitleRegular } from "@/components/title/regular";
-import { colors, gaps, getColor } from "@/constants/theme";
+import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { Image } from "expo-image";
 import {
   KeyboardAvoidingView,
@@ -48,7 +48,7 @@ export function AuthScreen({
               <TitleRegular
                 size="xl"
                 weight="700"
-                color={colors.pineGreen}
+                color={colors.textDarkGrey}
                 style={styles.brandName}
               >
                 Wafflelog
@@ -61,7 +61,7 @@ export function AuthScreen({
                 <TitleRegular
                   size="xs"
                   weight="700"
-                  color={colors.pineGreen}
+                  color={colors.purple}
                   style={styles.eyebrow}
                 >
                   {eyebrow}
@@ -105,7 +105,7 @@ export function AuthScreen({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#FFF9E8",
+    backgroundColor: semanticColors.authScreen,
     overflow: "hidden",
   },
   keyboardView: {
@@ -182,11 +182,11 @@ const styles = StyleSheet.create({
     maxWidth: 420,
   },
   card: {
-    backgroundColor: getColor(colors.white),
+    backgroundColor: semanticColors.surface,
     borderRadius: 24,
     padding: gaps.lg,
     borderWidth: 1,
-    borderColor: getColor(colors.waffle, 0.2),
+    borderColor: semanticColors.brandDivider,
     shadowColor: getColor(colors.black),
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,

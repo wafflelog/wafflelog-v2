@@ -39,14 +39,16 @@ export function UITab({
       {icon && (
         <View style={styles.icon}>
           {icon(
-            isActive ? getColor(colors.orange) : getColor(colors.textLightGrey)
+            isActive
+              ? getColor(colors.textDarkGrey)
+              : getColor(colors.textLightGrey)
           )}
         </View>
       )}
       <TitleRegular
         size="sm"
         weight="600"
-        color={isActive ? colors.orange : colors.textLightGrey}
+        color={isActive ? colors.textDarkGrey : colors.textLightGrey}
       >
         {text}
       </TitleRegular>

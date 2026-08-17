@@ -5,7 +5,7 @@ import { TitleRegular } from "@/components/title/regular";
 import { TripExpenseSummary } from "@/components/trip/expense-summary";
 import { UITab } from "@/components/ui/tab";
 import { UIText } from "@/components/ui/text";
-import { gaps, getCardBasicStyle } from "@/constants/theme";
+import { gaps, getCardBasicStyle, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import {
@@ -258,10 +258,11 @@ export default function TripExpensesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: semanticColors.screen,
   },
   tabs: {
     gap: gaps.md,
-    backgroundColor: "white",
+    backgroundColor: semanticColors.surface,
     padding: gaps.md,
     flexDirection: "row",
   },

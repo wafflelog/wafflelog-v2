@@ -1,3 +1,4 @@
+import { semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { Stack } from "expo-router";
 
@@ -5,7 +6,14 @@ export default function Layout() {
   const { isAuthenticated } = useAuthSession();
 
   return (
-    <Stack>
+    <Stack
+      screenOptions={{
+        contentStyle: { backgroundColor: semanticColors.screen },
+        headerStyle: { backgroundColor: semanticColors.screen },
+        headerTintColor: semanticColors.textPrimary,
+        headerShadowVisible: false,
+      }}
+    >
       <Stack.Protected guard={isAuthenticated}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="user" options={{ headerShown: false }} />
@@ -17,7 +25,11 @@ export default function Layout() {
         <Stack.Screen name="pin/[id]/(stack)" options={{ headerShown: false }} />
         <Stack.Screen
           name="notes"
-          options={{ headerShown: true, presentation: "modal" }}
+          options={{
+            headerShown: true,
+            presentation: "modal",
+            title: "Notes",
+          }}
         />
         <Stack.Screen
           name="notification-center"

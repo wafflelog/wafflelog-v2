@@ -1,5 +1,6 @@
 export const colors = {
   waffle: [255, 179, 0],
+  waffleCream: [255, 249, 232],
   orange: [255, 128, 0],
   turquoise: [42, 183, 202],
   blue: [50, 100, 150],
@@ -47,6 +48,20 @@ export const getColor = (color: [number, number, number], alpha?: number) => {
   }
   return `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
 };
+
+// Semantic roles keep the brand hierarchy consistent across the app. Raw
+// palette colours remain available for contextual accents and categories.
+export const semanticColors = {
+  screen: getColor(colors.white),
+  authScreen: getColor(colors.waffleCream),
+  surface: getColor(colors.white),
+  textPrimary: getColor(colors.textDarkGrey),
+  textSecondary: getColor(colors.textLightGrey),
+  primaryAction: getColor(colors.waffle),
+  primaryActionContent: getColor(colors.textDarkGrey),
+  brandDivider: getColor(colors.waffle, 0.22),
+  neutralDivider: getColor(colors.whiteGrey),
+} as const;
 
 export const getShadowStyle = (size: "sm" | "md" | "lg" | "xl") => {
   const shadows = {
@@ -102,7 +117,7 @@ export const getShadowStyle = (size: "sm" | "md" | "lg" | "xl") => {
 export const getCardBasicStyle = (size: "sm" | "md" | "lg") => {
   return {
     ...getShadowStyle(size),
-    backgroundColor: "#fff",
+    backgroundColor: semanticColors.surface,
     borderRadius: borderRadiuses[size],
     padding: gaps[size],
   };

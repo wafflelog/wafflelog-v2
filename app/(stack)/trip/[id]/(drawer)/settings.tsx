@@ -2,7 +2,13 @@ import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { DialogNewTrip } from "@/components/dialog/new-trip";
 import { TitleRegular } from "@/components/title/regular";
 import { UIText } from "@/components/ui/text";
-import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
+import {
+  colors,
+  gaps,
+  getCardBasicStyle,
+  getColor,
+  semanticColors,
+} from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { formatDateRange } from "@/lib/helper/utils";
 import {
@@ -135,6 +141,7 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: gaps.md,
     padding: gaps.md,
+    backgroundColor: semanticColors.screen,
   },
   card: {
     ...getCardBasicStyle("sm"),

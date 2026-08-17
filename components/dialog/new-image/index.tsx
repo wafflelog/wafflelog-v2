@@ -5,6 +5,7 @@ import {
   colors,
   gaps,
   getColor,
+  semanticColors,
 } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { type SystemMessageType } from "@/hook/use-system-message";
@@ -251,13 +252,13 @@ const styles = StyleSheet.create({
   },
   pickerButton: {
     borderRadius: borderRadiuses.sm,
-    backgroundColor: getColor(colors.blue),
+    backgroundColor: semanticColors.primaryAction,
     paddingVertical: gaps.sm,
     paddingHorizontal: gaps.md,
     alignItems: "center",
   },
   pickerButtonText: {
-    color: getColor(colors.white),
+    color: semanticColors.primaryActionContent,
   },
   meta: {
     gap: gaps.xxs,

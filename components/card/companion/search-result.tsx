@@ -46,7 +46,9 @@ export function CardCompanionSearchResult({
         <TitleRegular
           size="xs"
           weight="600"
-          color={state === "invite" ? colors.white : colors.textLightGrey}
+          color={
+            state === "invite" ? colors.textDarkGrey : colors.textLightGrey
+          }
         >
           {stateText[state]}
         </TitleRegular>

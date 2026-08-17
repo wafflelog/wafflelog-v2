@@ -90,18 +90,10 @@ export const UIInputSelect = ({
               onPress={() => handleSelect(item.value)}
               activeOpacity={0.7}
             >
-              {item.icon?.(
-                selectedValue === item.value
-                  ? getColor(colors.blue)
-                  : getColor(colors.textDarkGrey)
-              )}
+              {item.icon?.(getColor(colors.textDarkGrey))}
               <TitleRegular
                 size="md"
-                color={
-                  selectedValue === item.value
-                    ? colors.blue
-                    : colors.textDarkGrey
-                }
+                color={colors.textDarkGrey}
                 weight={selectedValue === item.value ? "600" : "400"}
               >
                 {item.label}
@@ -141,6 +133,6 @@ const styles = StyleSheet.create({
     gap: gaps.sm,
   },
   optionSelected: {
-    backgroundColor: getColor(colors.blue, 0.1),
+    backgroundColor: getColor(colors.waffle, 0.18),
   },
 });

@@ -1,5 +1,11 @@
 import { TitleRegular } from "@/components/title/regular";
-import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
+import {
+  borderRadiuses,
+  colors,
+  gaps,
+  getColor,
+  semanticColors,
+} from "@/constants/theme";
 import {
   getAppNotificationsQueryKey,
   useAppNotifications,
@@ -266,7 +272,7 @@ export default function NotificationCenterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F7FA",
+    backgroundColor: semanticColors.screen,
   },
   header: {
     flexDirection: "row",
@@ -274,9 +280,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: gaps.md,
     paddingVertical: gaps.md,
-    backgroundColor: "#fff",
+    backgroundColor: semanticColors.screen,
     borderBottomWidth: 1,
-    borderBottomColor: getColor(colors.whiteGrey),
+    borderBottomColor: semanticColors.brandDivider,
   },
   backButton: {
     padding: gaps.xs,
@@ -299,7 +305,7 @@ const styles = StyleSheet.create({
   },
   notificationItem: {
     flexDirection: "row",
-    backgroundColor: "#fff",
+    backgroundColor: semanticColors.surface,
     borderRadius: borderRadiuses.md,
     padding: gaps.md,
     marginBottom: gaps.md,
@@ -365,7 +371,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   acceptButtonText: {
-    color: getColor(colors.white),
+    color: semanticColors.textPrimary,
     fontSize: 13,
     fontWeight: "700",
   },

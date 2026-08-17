@@ -19,7 +19,7 @@ type DrawerItemRegularProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-const activeTextColor = colors.white;
+const activeTextColor = colors.textDarkGrey;
 const inactiveTextColor = colors.textLightGrey;
 const activeBackgroundColor = colors.waffle;
 

@@ -1,3 +1,4 @@
+import { colors, getColor, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { persistLocalPlaceImage } from "@/lib/media/place";
@@ -245,7 +246,11 @@ export default function PlaceSearchScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons
+            name="arrow-back"
+            size={24}
+            color={semanticColors.textPrimary}
+          />
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Search Places</Text>
@@ -259,13 +264,13 @@ export default function PlaceSearchScreen() {
           <Ionicons
             name="search"
             size={20}
-            color="#666"
+            color={semanticColors.textSecondary}
             style={styles.searchIcon}
           />
           <TextInput
             style={styles.searchInput}
             placeholder="Search for a place..."
-            placeholderTextColor="#999"
+            placeholderTextColor={getColor(colors.paleGrey)}
             value={searchQuery}
             onChangeText={handleSearch}
             autoFocus
@@ -277,7 +282,11 @@ export default function PlaceSearchScreen() {
                 setSearchResults([]);
               }}
             >
-              <Ionicons name="close-circle" size={20} color="#999" />
+              <Ionicons
+                name="close-circle"
+                size={20}
+                color={getColor(colors.paleGrey)}
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -286,7 +295,11 @@ export default function PlaceSearchScreen() {
       {/* Error Message */}
       {error && (
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle" size={20} color="#FF6B6B" />
+          <Ionicons
+            name="alert-circle"
+            size={20}
+            color={getColor(colors.red)}
+          />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
@@ -317,7 +330,11 @@ export default function PlaceSearchScreen() {
                     </View>
                   ) : (
                     <View style={styles.thumbnailPlaceholder}>
-                      <Ionicons name="image-outline" size={24} color="#999" />
+                      <Ionicons
+                        name="image-outline"
+                        size={24}
+                        color={getColor(colors.paleGrey)}
+                      />
                     </View>
                   )}
                   <View style={styles.resultInfo}>
@@ -329,7 +346,11 @@ export default function PlaceSearchScreen() {
                     </Text>
                     {item.rating && (
                       <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={16} color="#FFB800" />
+                        <Ionicons
+                          name="star"
+                          size={16}
+                          color={getColor(colors.waffle)}
+                        />
                         <Text style={styles.ratingText}>{item.rating}</Text>
                         {item.userRatingCount && (
                           <Text style={styles.reviewCount}>
@@ -353,7 +374,11 @@ export default function PlaceSearchScreen() {
                           </Text>
                           {review.rating && (
                             <View style={styles.reviewRating}>
-                              <Ionicons name="star" size={12} color="#FFB800" />
+                              <Ionicons
+                                name="star"
+                                size={12}
+                                color={getColor(colors.waffle)}
+                              />
                               <Text style={styles.reviewRatingText}>
                                 {review.rating}
                               </Text>
@@ -397,7 +422,11 @@ export default function PlaceSearchScreen() {
       {/* Empty State */}
       {searchQuery.length === 0 && (
         <View style={styles.emptyState}>
-          <Ionicons name="search-outline" size={64} color="#CCC" />
+          <Ionicons
+            name="search-outline"
+            size={64}
+            color={getColor(colors.paleGrey)}
+          />
           <Text style={styles.emptyStateText}>Search for places</Text>
           <Text style={styles.emptyStateSubtext}>
             Enter a place name or address to find locations
@@ -424,7 +453,7 @@ export default function PlaceSearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F7FA",
+    backgroundColor: semanticColors.screen,
   },
   header: {
     flexDirection: "row",
@@ -432,9 +461,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: "#fff",
+    backgroundColor: semanticColors.screen,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    borderBottomColor: semanticColors.brandDivider,
   },
   backButton: {
     padding: 4,
@@ -447,18 +476,18 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#333",
+    color: semanticColors.textPrimary,
   },
   searchContainer: {
     padding: 20,
-    backgroundColor: "#fff",
+    backgroundColor: semanticColors.screen,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    borderBottomColor: semanticColors.brandDivider,
   },
   searchInputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F7FA",
+    backgroundColor: semanticColors.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -470,13 +499,11 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: "#333",
+    color: semanticColors.textPrimary,
   },
   resultsContainer: {
     flex: 1,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    backgroundColor: semanticColors.screen,
   },
   resultsList: {
     flex: 1,
@@ -486,7 +513,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   resultCard: {
-    backgroundColor: "#fff",
+    backgroundColor: semanticColors.surface,
     borderRadius: 12,
     padding: 16,
     shadowColor: "#000",
@@ -510,13 +537,13 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: "100%",
     height: "100%",
-    backgroundColor: "#F0F0F0",
+    backgroundColor: getColor(colors.whiteGrey, 0.5),
   },
   thumbnailPlaceholder: {
     width: 80,
     height: 80,
     borderRadius: 8,
-    backgroundColor: "#F0F0F0",
+    backgroundColor: getColor(colors.whiteGrey, 0.5),
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -536,12 +563,12 @@ const styles = StyleSheet.create({
   resultName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
+    color: semanticColors.textPrimary,
     marginBottom: 4,
   },
   resultAddress: {
     fontSize: 14,
-    color: "#666",
+    color: semanticColors.textSecondary,
     lineHeight: 20,
     marginBottom: 8,
   },
@@ -554,30 +581,30 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#333",
+    color: semanticColors.textPrimary,
   },
   reviewCount: {
     fontSize: 12,
-    color: "#999",
+    color: getColor(colors.paleGrey),
   },
   reviewsContainer: {
     marginTop: 12,
     marginBottom: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
+    borderTopColor: semanticColors.neutralDivider,
   },
   reviewsTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#333",
+    color: semanticColors.textPrimary,
     marginBottom: 8,
   },
   reviewItem: {
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
+    borderBottomColor: semanticColors.neutralDivider,
   },
   reviewHeader: {
     flexDirection: "row",
@@ -588,7 +615,7 @@ const styles = StyleSheet.create({
   reviewAuthor: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#333",
+    color: semanticColors.textPrimary,
   },
   reviewRating: {
     flexDirection: "row",
@@ -598,17 +625,17 @@ const styles = StyleSheet.create({
   reviewRatingText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#666",
+    color: semanticColors.textSecondary,
   },
   reviewText: {
     fontSize: 13,
-    color: "#666",
+    color: semanticColors.textSecondary,
     lineHeight: 18,
   },
   coordinatesContainer: {
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
+    borderTopColor: semanticColors.neutralDivider,
     gap: 8,
   },
   coordinateItem: {
@@ -619,12 +646,12 @@ const styles = StyleSheet.create({
   coordinateLabel: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#666",
+    color: semanticColors.textSecondary,
     minWidth: 70,
   },
   coordinateValue: {
     fontSize: 13,
-    color: "#333",
+    color: semanticColors.textPrimary,
     fontFamily: "monospace",
   },
   emptyState: {
@@ -636,13 +663,13 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#666",
+    color: semanticColors.textSecondary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: "#999",
+    color: getColor(colors.paleGrey),
     textAlign: "center",
   },
   loadingContainer: {
@@ -651,12 +678,12 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: "#666",
+    color: semanticColors.textSecondary,
   },
   errorContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFE5E5",
+    backgroundColor: getColor(colors.red, 0.12),
     padding: 16,
     margin: 20,
     borderRadius: 8,
@@ -665,6 +692,6 @@ const styles = StyleSheet.create({
   errorText: {
     flex: 1,
     fontSize: 14,
-    color: "#FF6B6B",
+    color: getColor(colors.red),
   },
 });

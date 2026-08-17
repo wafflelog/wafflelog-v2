@@ -3,7 +3,7 @@ import {
   borderRadiuses,
   colors,
   gaps,
-  getColor,
+  semanticColors,
 } from "@/constants/theme";
 import { ArrowRight } from "lucide-react-native";
 import { ActivityIndicator, Pressable, StyleSheet } from "react-native";
@@ -34,13 +34,16 @@ export function AuthSubmitButton({
       accessibilityState={{ disabled: isPending, busy: isPending }}
     >
       {isPending ? (
-        <ActivityIndicator size="small" color={getColor(colors.white)} />
+        <ActivityIndicator
+          size="small"
+          color={semanticColors.primaryActionContent}
+        />
       ) : null}
-      <TitleRegular size="md" color={colors.white} weight="700">
+      <TitleRegular size="md" color={colors.textDarkGrey} weight="700">
         {isPending ? pendingLabel : label}
       </TitleRegular>
       {!isPending ? (
-        <ArrowRight size={20} color={getColor(colors.white)} />
+        <ArrowRight size={20} color={semanticColors.primaryActionContent} />
       ) : null}
     </Pressable>
   );
@@ -55,8 +58,8 @@ const styles = StyleSheet.create({
     gap: gaps.sm,
     paddingHorizontal: gaps.md,
     borderRadius: borderRadiuses.md,
-    backgroundColor: getColor(colors.waffle),
-    shadowColor: getColor(colors.orange),
+    backgroundColor: semanticColors.primaryAction,
+    shadowColor: semanticColors.primaryAction,
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.2,
     shadowRadius: 10,

@@ -1,5 +1,6 @@
 import { DrawerPin } from "@/components/drawer/pin";
 import { HeaderPinBackButton, HeaderPinTitle } from "@/components/header/pin";
+import { semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionGetLocalPin } from "@/lib/sqlite/model/pin";
 import { DrawerToggleButton } from "@react-navigation/drawer";
@@ -25,6 +26,11 @@ export default function Layout() {
       }}
       screenOptions={{
         drawerPosition: "right",
+        drawerStyle: { backgroundColor: semanticColors.screen },
+        sceneStyle: { backgroundColor: semanticColors.screen },
+        headerStyle: { backgroundColor: semanticColors.screen },
+        headerTintColor: semanticColors.textPrimary,
+        headerShadowVisible: false,
         headerTitle: (props) => <HeaderPinTitle {...props} pin={localPin} />,
         headerLeft: (props) => (
           <HeaderPinBackButton

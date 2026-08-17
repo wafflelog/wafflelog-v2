@@ -60,9 +60,9 @@ const styles = StyleSheet.create({
     backgroundColor: getColor(colors.waffle),
   },
   activeText: {
-    color: "white",
+    color: getColor(colors.textDarkGrey),
   },
   activeDate: {
-    color: "white",
+    color: getColor(colors.textDarkGrey),
   },
 });

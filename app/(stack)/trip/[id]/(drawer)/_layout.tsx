@@ -3,6 +3,7 @@ import {
   HeaderTripBackButton,
   HeaderTripTitle,
 } from "@/components/header/trip";
+import { semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { DrawerToggleButton } from "@react-navigation/drawer";
@@ -28,6 +29,11 @@ export default function Layout() {
       }}
       screenOptions={{
         drawerPosition: "right",
+        drawerStyle: { backgroundColor: semanticColors.screen },
+        sceneStyle: { backgroundColor: semanticColors.screen },
+        headerStyle: { backgroundColor: semanticColors.screen },
+        headerTintColor: semanticColors.textPrimary,
+        headerShadowVisible: false,
         headerTitle: () => <HeaderTripTitle trip={localTrip} />,
         headerLeft: (props) => (
           <HeaderTripBackButton

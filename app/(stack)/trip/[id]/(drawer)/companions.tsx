@@ -1,7 +1,14 @@
 import { ButtonFab } from "@/components/button/fab";
 import { CardCompanionRegular } from "@/components/card/companion/regular";
 import { UIText } from "@/components/ui/text";
-import { borderRadiuses, colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
+import {
+  borderRadiuses,
+  colors,
+  gaps,
+  getCardBasicStyle,
+  getColor,
+  semanticColors,
+} from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
@@ -233,6 +240,7 @@ export default function TripCompanionsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: semanticColors.screen,
   },
   companions: {
     gap: gaps.md,

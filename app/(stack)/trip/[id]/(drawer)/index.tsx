@@ -5,7 +5,7 @@ import { TripCategoryFilter } from "@/components/trip/category-filter";
 import { TripDaysTab } from "@/components/trip/days-tab";
 import { TripPinsList } from "@/components/trip/pins-list";
 import { CATEGORIES } from "@/constants/pin-categories";
-import { colors, gaps, getColor } from "@/constants/theme";
+import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionListLocalNotesByTrip } from "@/lib/sqlite/model/note";
 import { actionListLocalPinsByTripAndDate } from "@/lib/sqlite/model/pin";
@@ -253,10 +253,11 @@ export default function TripIndexScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: semanticColors.screen,
   },
   top: {
     gap: 16,
-    backgroundColor: "white",
+    backgroundColor: semanticColors.surface,
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
@@ -312,6 +313,6 @@ const styles = StyleSheet.create({
   noteBadgeText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#fff",
+    color: semanticColors.primaryActionContent,
   },
 });

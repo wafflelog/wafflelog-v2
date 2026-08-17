@@ -1,3 +1,4 @@
+import { colors, getColor, semanticColors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
@@ -78,7 +79,11 @@ export default function PinnedNotesScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons
+            name="arrow-back"
+            size={24}
+            color={semanticColors.textPrimary}
+          />
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Pinned Notes</Text>
@@ -87,7 +92,11 @@ export default function PinnedNotesScreen() {
           </Text>
         </View>
         <TouchableOpacity style={styles.addButton}>
-          <Ionicons name="add-circle" size={28} color="#4A90E2" />
+          <Ionicons
+            name="add-circle"
+            size={28}
+            color={semanticColors.primaryActionContent}
+          />
         </TouchableOpacity>
       </View>
 
@@ -103,7 +112,11 @@ export default function PinnedNotesScreen() {
           >
             <View style={styles.noteHeader}>
               <View style={styles.pinBadge}>
-                <Ionicons name="pin" size={14} color="#4A90E2" />
+                <Ionicons
+                  name="pin"
+                  size={14}
+                  color={getColor(colors.purple)}
+                />
                 <TouchableOpacity
                   onPress={(e) => {
                     e.stopPropagation();
@@ -126,7 +139,11 @@ export default function PinnedNotesScreen() {
                   handlePinPress(item.pinId);
                 }}
               >
-                <Ionicons name="location" size={14} color="#4A90E2" />
+                <Ionicons
+                  name="location"
+                  size={14}
+                  color={getColor(colors.purple)}
+                />
                 <Text style={styles.viewPinText}>View Pin</Text>
               </TouchableOpacity>
             </View>
@@ -134,7 +151,11 @@ export default function PinnedNotesScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="create-outline" size={64} color="#CCC" />
+            <Ionicons
+              name="create-outline"
+              size={64}
+              color={getColor(colors.paleGrey)}
+            />
             <Text style={styles.emptyStateText}>No pinned notes yet</Text>
             <Text style={styles.emptyStateSubtext}>
               Pin notes from pin details to see them here
@@ -149,7 +170,7 @@ export default function PinnedNotesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F7FA",
+    backgroundColor: semanticColors.screen,
   },
   header: {
     flexDirection: "row",
@@ -157,9 +178,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: "#fff",
+    backgroundColor: semanticColors.screen,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    borderBottomColor: semanticColors.brandDivider,
   },
   backButton: {
     padding: 4,
@@ -171,22 +192,27 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#333",
+    color: semanticColors.textPrimary,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: "#666",
+    color: semanticColors.textSecondary,
     marginTop: 2,
   },
   addButton: {
-    padding: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: semanticColors.primaryAction,
   },
   listContent: {
     padding: 20,
     gap: 12,
   },
   noteCard: {
-    backgroundColor: "#fff",
+    backgroundColor: semanticColors.surface,
     borderRadius: 12,
     padding: 16,
     shadowColor: "#000",
@@ -195,7 +221,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     borderLeftWidth: 3,
-    borderLeftColor: "#4A90E2",
+    borderLeftColor: getColor(colors.purple),
   },
   noteHeader: {
     flexDirection: "row",
@@ -206,7 +232,7 @@ const styles = StyleSheet.create({
   pinBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F0F7FF",
+    backgroundColor: getColor(colors.purple, 0.1),
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -215,15 +241,15 @@ const styles = StyleSheet.create({
   pinName: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#4A90E2",
+    color: getColor(colors.purple),
   },
   noteDate: {
     fontSize: 11,
-    color: "#999",
+    color: getColor(colors.paleGrey),
   },
   noteText: {
     fontSize: 15,
-    color: "#666",
+    color: semanticColors.textSecondary,
     lineHeight: 22,
     marginBottom: 12,
   },
@@ -239,7 +265,7 @@ const styles = StyleSheet.create({
   viewPinText: {
     fontSize: 13,
     fontWeight: "500",
-    color: "#4A90E2",
+    color: getColor(colors.purple),
   },
   emptyState: {
     flex: 1,
@@ -251,13 +277,13 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#666",
+    color: semanticColors.textSecondary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: "#999",
+    color: getColor(colors.paleGrey),
     textAlign: "center",
   },
 });
