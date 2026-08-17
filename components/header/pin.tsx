@@ -1,23 +1,14 @@
+import { HeaderIconButton } from "@/components/header/icon-button";
 import { UIText } from "@/components/ui/text";
-import { colors, getColor, semanticColors } from "@/constants/theme";
+import { semanticColors } from "@/constants/theme";
 import { getPinHeaderTimeLabel, getPinTitle } from "@/lib/helper/pin";
 import { type Pin } from "@/types/pin";
-import {
-  HeaderBackButton,
-  type HeaderBackButtonProps,
-  type HeaderTitleProps,
-} from "@react-navigation/elements";
+import { type HeaderTitleProps } from "@react-navigation/elements";
 import {
   ChevronLeft as ChevronLeftIcon,
-  Menu as MenuIcon,
+  List as ListIcon,
 } from "lucide-react-native";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
-
-type HeaderDefaultProps = {
-  pin: Pin;
-  onBackPress: () => void;
-  onMorePress: () => void;
-};
+import { StyleSheet, View } from "react-native";
 
 type HeaderPinTitleProps = {
   pin?:
@@ -33,31 +24,6 @@ type HeaderPinTitleProps = {
 
 type HeaderPinButtonProps = {
   onPress: () => void;
-} & HeaderBackButtonProps;
-
-export const HeaderPin = ({
-  pin,
-  onBackPress,
-  onMorePress,
-}: HeaderDefaultProps) => {
-  return (
-    <View style={styles.header}>
-      <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
-        <ChevronLeftIcon size={24} color={getColor(colors.textDarkGrey)} />
-      </TouchableOpacity>
-      <View style={styles.headerContent}>
-        <UIText style={styles.headerTitle} weight="700">
-          {getPinTitle(pin)}
-        </UIText>
-        <UIText style={styles.headerSubtitle}>
-          {getPinHeaderTimeLabel(pin)}
-        </UIText>
-      </View>
-      <TouchableOpacity style={styles.moreButton} onPress={onMorePress}>
-        <MenuIcon size={24} color={getColor(colors.textDarkGrey)} />
-      </TouchableOpacity>
-    </View>
-  );
 };
 
 export const HeaderPinTitle = ({
@@ -67,7 +33,19 @@ export const HeaderPinTitle = ({
   tintColor,
 }: HeaderPinTitleProps) => {
   if (!pin) {
-    return null;
+    return (
+      <View style={styles.nativeTitle}>
+        <UIText
+          style={[styles.headerTitle, tintColor ? { color: tintColor } : null]}
+          numberOfLines={1}
+          allowFontScaling={allowFontScaling}
+          onLayout={onLayout}
+          weight="700"
+        >
+          Pin
+        </UIText>
+      </View>
+    );
   }
 
   return (
@@ -94,32 +72,23 @@ export const HeaderPinTitle = ({
 
 export const HeaderPinBackButton = ({
   onPress,
-  ...props
-}: HeaderPinButtonProps) => {
-  return <HeaderBackButton {...props} onPress={onPress} />;
-};
+}: HeaderPinButtonProps) => (
+  <HeaderIconButton
+    accessibilityLabel="Go back"
+    icon={ChevronLeftIcon}
+    onPress={onPress}
+  />
+);
+
+export const HeaderPinMenuButton = ({ onPress }: HeaderPinButtonProps) => (
+  <HeaderIconButton
+    accessibilityLabel="View pins for this day"
+    icon={ListIcon}
+    onPress={onPress}
+  />
+);
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: semanticColors.screen,
-    borderBottomWidth: 1,
-    borderBottomColor: semanticColors.brandDivider,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerContent: {
-    flex: 1,
-    alignItems: "center",
-  },
   nativeTitle: {
     alignItems: "center",
   },
@@ -132,11 +101,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: semanticColors.textSecondary,
     marginTop: 2,
-  },
-  moreButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
   },
 });

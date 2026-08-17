@@ -1,15 +1,20 @@
 import { DrawerPin } from "@/components/drawer/pin";
-import { HeaderPinBackButton, HeaderPinTitle } from "@/components/header/pin";
+import {
+  HeaderPinBackButton,
+  HeaderPinMenuButton,
+  HeaderPinTitle,
+} from "@/components/header/pin";
 import { semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionGetLocalPin } from "@/lib/sqlite/model/pin";
-import { DrawerToggleButton } from "@react-navigation/drawer";
+import { DrawerActions } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import { useGlobalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
+import { StyleSheet } from "react-native";
 
 export default function Layout() {
-  const { id } = useGlobalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { session } = useAuthSession();
 
@@ -24,11 +29,17 @@ export default function Layout() {
       drawerContent={(props) => {
         return <DrawerPin {...props} id={id} />;
       }}
-      screenOptions={{
+      screenOptions={({ navigation }) => ({
         drawerPosition: "right",
         drawerStyle: { backgroundColor: semanticColors.screen },
         sceneStyle: { backgroundColor: semanticColors.screen },
-        headerStyle: { backgroundColor: semanticColors.screen },
+        headerStyle: {
+          backgroundColor: semanticColors.screen,
+          borderBottomColor: semanticColors.neutralDivider,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+        },
+        headerLeftContainerStyle: { paddingLeft: 8 },
+        headerRightContainerStyle: { paddingRight: 8 },
         headerTintColor: semanticColors.textPrimary,
         headerShadowVisible: false,
         headerTitle: (props) => <HeaderPinTitle {...props} pin={localPin} />,
@@ -40,8 +51,14 @@ export default function Layout() {
             }}
           />
         ),
-        headerRight: (props) => <DrawerToggleButton {...props} />,
-      }}
+        headerRight: () => (
+          <HeaderPinMenuButton
+            onPress={() => {
+              navigation.dispatch(DrawerActions.toggleDrawer());
+            }}
+          />
+        ),
+      })}
     >
       <Drawer.Screen name="index" options={{ headerShown: true }} />
     </Drawer>

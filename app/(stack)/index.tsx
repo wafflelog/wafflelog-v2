@@ -24,6 +24,7 @@ import {
 import { useState } from "react";
 import {
   ImageBackground,
+  Pressable,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -206,10 +207,12 @@ export default function IndexScreen() {
           </View>
         </ImageBackground>
 
-        <TouchableOpacity
-          style={styles.plannerCard}
+        <Pressable
+          style={({ pressed }) => [
+            styles.plannerCard,
+            pressed && styles.plannerCardPressed,
+          ]}
           onPress={() => router.push("/ai-trip-planner")}
-          activeOpacity={0.84}
           accessibilityRole="button"
           accessibilityLabel="Draft a trip with the trip planner"
         >
@@ -227,7 +230,7 @@ export default function IndexScreen() {
           <View style={styles.plannerAction}>
             <ChevronRightIcon size={18} color={getColor(colors.purple)} />
           </View>
-        </TouchableOpacity>
+        </Pressable>
 
         {/* Ongoing Trip */}
         {ongoingTrips.length > 0 && (
@@ -568,6 +571,12 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
     zIndex: 2,
+  },
+  plannerCardPressed: {
+    borderColor: getColor(colors.purple, 0.42),
+    shadowOpacity: 0.04,
+    elevation: 1,
+    transform: [{ translateY: 1 }, { scale: 0.995 }],
   },
   plannerIcon: {
     width: 44,

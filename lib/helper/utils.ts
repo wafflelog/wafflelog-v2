@@ -12,7 +12,22 @@ export function formatDate(date: string, format: "long" | "short" = "long") {
 }
 
 export function formatDateRange(startDate: string, endDate: string) {
-  return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+  const start = dayjs(startDate);
+  const end = dayjs(endDate);
+
+  if (start.isSame(end, "day")) {
+    return start.format("DD MMM YYYY");
+  }
+
+  if (start.isSame(end, "month")) {
+    return `${start.format("DD")}–${end.format("DD MMM YYYY")}`;
+  }
+
+  if (start.isSame(end, "year")) {
+    return `${start.format("DD MMM")}–${end.format("DD MMM YYYY")}`;
+  }
+
+  return `${start.format("DD MMM YYYY")}–${end.format("DD MMM YYYY")}`;
 }
 
 export function formatTime(time: string) {

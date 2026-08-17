@@ -36,10 +36,26 @@ describe("formatDate", () => {
 });
 
 describe("formatDateRange", () => {
-  it("formats a start and end date", () => {
+  it("formats dates in the same month without repeating the month and year", () => {
     expect(formatDateRange("2026-07-15", "2026-07-20")).toBe(
-      "15 Jul 2026 - 20 Jul 2026",
+      "15–20 Jul 2026",
     );
+  });
+
+  it("formats dates in different months without repeating the year", () => {
+    expect(formatDateRange("2026-07-30", "2026-08-03")).toBe(
+      "30 Jul–03 Aug 2026",
+    );
+  });
+
+  it("formats dates in different years", () => {
+    expect(formatDateRange("2026-12-30", "2027-01-03")).toBe(
+      "30 Dec 2026–03 Jan 2027",
+    );
+  });
+
+  it("formats a single-day range as one date", () => {
+    expect(formatDateRange("2026-07-15", "2026-07-15")).toBe("15 Jul 2026");
   });
 });
 
