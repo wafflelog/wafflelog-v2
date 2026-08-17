@@ -54,6 +54,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: gaps.sm,
+    minHeight: 44,
   },
   active: {
     backgroundColor: getColor(activeBackgroundColor),

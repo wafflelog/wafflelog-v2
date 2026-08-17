@@ -1,3 +1,4 @@
+import { UIText } from "@/components/ui/text";
 import { colors, getColor, semanticColors } from "@/constants/theme";
 import { getPinHeaderTimeLabel, getPinTitle } from "@/lib/helper/pin";
 import { type Pin } from "@/types/pin";
@@ -10,7 +11,7 @@ import {
   ChevronLeft as ChevronLeftIcon,
   Menu as MenuIcon,
 } from "lucide-react-native";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 type HeaderDefaultProps = {
   pin: Pin;
@@ -45,8 +46,12 @@ export const HeaderPin = ({
         <ChevronLeftIcon size={24} color={getColor(colors.textDarkGrey)} />
       </TouchableOpacity>
       <View style={styles.headerContent}>
-        <Text style={styles.headerTitle}>{getPinTitle(pin)}</Text>
-        <Text style={styles.headerSubtitle}>{getPinHeaderTimeLabel(pin)}</Text>
+        <UIText style={styles.headerTitle} weight="700">
+          {getPinTitle(pin)}
+        </UIText>
+        <UIText style={styles.headerSubtitle}>
+          {getPinHeaderTimeLabel(pin)}
+        </UIText>
       </View>
       <TouchableOpacity style={styles.moreButton} onPress={onMorePress}>
         <MenuIcon size={24} color={getColor(colors.textDarkGrey)} />
@@ -67,21 +72,22 @@ export const HeaderPinTitle = ({
 
   return (
     <View style={styles.nativeTitle}>
-      <Text
+      <UIText
         style={[styles.headerTitle, tintColor ? { color: tintColor } : null]}
         numberOfLines={1}
         allowFontScaling={allowFontScaling}
         onLayout={onLayout}
+        weight="700"
       >
         {getPinTitle(pin)}
-      </Text>
-      <Text
+      </UIText>
+      <UIText
         style={styles.headerSubtitle}
         numberOfLines={1}
         allowFontScaling={allowFontScaling}
       >
         {getPinHeaderTimeLabel(pin)}
-      </Text>
+      </UIText>
     </View>
   );
 };
@@ -105,7 +111,10 @@ const styles = StyleSheet.create({
     borderBottomColor: semanticColors.brandDivider,
   },
   backButton: {
-    padding: 4,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerContent: {
     flex: 1,
@@ -125,6 +134,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   moreButton: {
-    padding: 4,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

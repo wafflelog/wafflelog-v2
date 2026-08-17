@@ -22,10 +22,15 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Map as MapIcon,
   Plus as PlusIcon,
-  SquarePen as SquarePenIcon,
+  StickyNote as StickyNoteIcon,
 } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function TripIndexScreen() {
   const { id } = useLocalSearchParams();
@@ -37,7 +42,7 @@ export default function TripIndexScreen() {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [isDialogNewPinOpen, setIsDialogNewPinOpen] = useState(false);
 
-  const { data: localTrip } = useQuery({
+  const { data: localTrip, isPending: isLocalTripPending } = useQuery({
     queryKey: ["local-trip", String(id), session?.user.id],
     queryFn: () => actionGetLocalTrip(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
@@ -171,7 +176,22 @@ export default function TripIndexScreen() {
   }, [trip, numOfDays, selectedDayIndex, selectedDayPins, selectedCategoryIds]);
 
   if (!trip) {
-    return <View style={styles.container} />;
+    return (
+      <View style={[styles.container, styles.stateContainer]}>
+        {isLocalTripPending ? (
+          <>
+            <ActivityIndicator size="small" color={getColor(colors.purple)} />
+            <TitleRegular size="sm" color={colors.textLightGrey}>
+              Loading trip...
+            </TitleRegular>
+          </>
+        ) : (
+          <TitleRegular size="md" weight="600">
+            Trip not found
+          </TitleRegular>
+        )}
+      </View>
+    );
   }
 
   return (
@@ -189,29 +209,65 @@ export default function TripIndexScreen() {
           <TitleRegular size="md" weight="600">
             Itinerary
           </TitleRegular>
-          <TouchableOpacity
-            style={styles.mapButton}
-            onPress={() => {
-              router.push({
-                pathname: "/trip/[id]/map",
-                params: {
-                  id: String(id),
-                  date: selectedDate ?? undefined,
-                },
-              });
-            }}
-            activeOpacity={0.8}
-          >
-            <MapIcon size={16} color={getColor(colors.pineGreen)} />
-            <TitleRegular size="xs" weight="600" color={colors.pineGreen}>
-              Map
-            </TitleRegular>
-          </TouchableOpacity>
+          <View style={styles.itineraryActions}>
+            <TouchableOpacity
+              style={[styles.toolbarButton, styles.mapButton]}
+              onPress={() => {
+                router.push({
+                  pathname: "/trip/[id]/map",
+                  params: {
+                    id: String(id),
+                    date: selectedDate ?? undefined,
+                  },
+                });
+              }}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Open trip map"
+            >
+              <MapIcon size={17} color={getColor(colors.pineGreen)} />
+              <TitleRegular size="xs" weight="600" color={colors.pineGreen}>
+                Map
+              </TitleRegular>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toolbarButton, styles.notesButton]}
+              onPress={() => {
+                router.push({
+                  pathname: "/notes",
+                  params: { tripId: String(id) },
+                });
+              }}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={
+                noteCount > 0 ? `Notes, ${noteCount} saved` : "Notes"
+              }
+            >
+              <StickyNoteIcon size={17} color={getColor(colors.purple)} />
+              <TitleRegular size="xs" weight="600" color={colors.purple}>
+                Notes
+              </TitleRegular>
+              {noteCount > 0 ? (
+                <View style={styles.noteBadge}>
+                  <TitleRegular size="xxs" weight="700">
+                    {noteBadgeText}
+                  </TitleRegular>
+                </View>
+              ) : null}
+            </TouchableOpacity>
+          </View>
         </View>
         <TripDaysTab tripDays={tripDays} />
       </View>
 
-      <TripPinsList tripDays={tripDays} onDayChanged={setSelectedDayIndex} />
+      <TripPinsList
+        tripDays={tripDays}
+        onDayChanged={setSelectedDayIndex}
+        onAddPin={() => setIsDialogNewPinOpen(true)}
+        hasActiveFilters={selectedCategoryIds.length > 0}
+        onClearFilters={() => setSelectedCategoryIds([])}
+      />
       <ButtonFab
         onPress={() => {
           setIsDialogNewPinOpen(true);
@@ -219,25 +275,6 @@ export default function TripIndexScreen() {
         text="New Pin"
         icon={(color) => <PlusIcon size={20} color={color} />}
       />
-      <TouchableOpacity
-        style={styles.notesFab}
-        onPress={() => {
-          router.push({
-            pathname: "/notes",
-            params: {
-              tripId: String(id),
-            },
-          });
-        }}
-        activeOpacity={0.8}
-      >
-        <SquarePenIcon size={24} color="#fff" />
-        {noteCount > 0 && (
-          <View style={styles.noteBadge}>
-            <Text style={styles.noteBadgeText}>{noteBadgeText}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
       <DialogNewPin
         tripId={String(id)}
         tripStartDate={trip.startDate}
@@ -276,31 +313,27 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: gaps.sm,
   },
-  mapButton: {
-    minHeight: 36,
+  itineraryActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: gaps.xs,
+  },
+  toolbarButton: {
+    minHeight: 44,
     flexDirection: "row",
     alignItems: "center",
     gap: gaps.xxs,
     paddingHorizontal: gaps.sm,
     paddingVertical: gaps.xxs,
-    borderRadius: 8,
+    borderRadius: 22,
+  },
+  mapButton: {
     backgroundColor: getColor(colors.pineGreen, 0.12),
   },
-  notesFab: {
-    position: "absolute",
-    bottom: 88,
-    right: 20,
-    width: 56,
-    height: 56,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: getColor(colors.purple),
-    borderRadius: 28,
+  notesButton: {
+    backgroundColor: getColor(colors.purple, 0.1),
   },
   noteBadge: {
-    position: "absolute",
-    top: -4,
-    right: -4,
     minWidth: 20,
     maxWidth: 30,
     height: 20,
@@ -310,9 +343,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: getColor(colors.waffle),
   },
-  noteBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: semanticColors.primaryActionContent,
+  stateContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: gaps.sm,
   },
 });

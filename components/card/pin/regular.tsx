@@ -23,18 +23,36 @@ export const CardPinRegular = ({
   const timeLabel = getPinTimeLabelForDate(pin, selectedDate);
 
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={onPress}
+      activeOpacity={0.82}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${getPinTitle(pin)}`}
+    >
       <View style={styles.iconContainer}>
         <IconPinCategory category={pin.category} />
       </View>
 
       <View style={styles.content}>
-        <TitleRegular size="sm" weight="500">
+        <TitleRegular size="sm" weight="600" numberOfLines={2}>
           {getPinTitle(pin)}
         </TitleRegular>
 
-        {timeLabel ? <TitleRegular size="xs">{timeLabel}</TitleRegular> : null}
-        {subtitle ? <TitleRegular size="xs">{subtitle}</TitleRegular> : null}
+        {timeLabel ? (
+          <TitleRegular size="xs" color={colors.textLightGrey}>
+            {timeLabel}
+          </TitleRegular>
+        ) : null}
+        {subtitle ? (
+          <TitleRegular
+            size="xs"
+            color={colors.textLightGrey}
+            numberOfLines={2}
+          >
+            {subtitle}
+          </TitleRegular>
+        ) : null}
         <TitleRegular size="xs" color={colors.textLightGrey}>
           {getCreatorDisplayName(pin.creator)}
         </TitleRegular>

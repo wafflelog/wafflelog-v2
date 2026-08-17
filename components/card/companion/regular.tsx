@@ -58,9 +58,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   removeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: getColor(colors.red, 0.2),
     alignItems: "center",
     justifyContent: "center",

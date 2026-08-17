@@ -1,15 +1,30 @@
 import { type FontWeight, getFontFamily } from "@/lib/helper/utils";
-import { StyleProp, StyleSheet, Text, TextStyle } from "react-native";
+import {
+  StyleProp,
+  StyleSheet,
+  Text,
+  TextProps,
+  TextStyle,
+} from "react-native";
 
-type UITextProps = {
+type UITextProps = Omit<TextProps, "style"> & {
   children: React.ReactNode;
   weight?: FontWeight;
   style?: StyleProp<TextStyle>;
 };
 
-export function UIText({ children, weight = "400", style }: UITextProps) {
+export function UIText({
+  children,
+  weight = "400",
+  style,
+  ...textProps
+}: UITextProps) {
   const fontFamily = getFontFamily(weight);
-  return <Text style={[styles.text, { fontFamily }, style]}>{children}</Text>;
+  return (
+    <Text {...textProps} style={[styles.text, { fontFamily }, style]}>
+      {children}
+    </Text>
+  );
 }
 
 const styles = StyleSheet.create({

@@ -1,6 +1,11 @@
 import { UIText } from "@/components/ui/text";
-import { colors, fontSizes, getColor } from "@/constants/theme";
-import { StyleProp, StyleSheet, TextStyle } from "react-native";
+import {
+  colors,
+  fontSizes,
+  getColor,
+  lineHeights,
+} from "@/constants/theme";
+import { StyleProp, StyleSheet, TextProps, TextStyle } from "react-native";
 
 type TitleRegularProps = {
   size?: "xxs" | "xs" | "sm" | "md" | "lg" | "xl" | "xxl";
@@ -8,6 +13,8 @@ type TitleRegularProps = {
   color?: [number, number, number];
   style?: StyleProp<TextStyle>;
   weight?: "400" | "500" | "600" | "700";
+  numberOfLines?: TextProps["numberOfLines"];
+  ellipsizeMode?: TextProps["ellipsizeMode"];
 };
 
 const fontWeights = {
@@ -23,18 +30,26 @@ const fontWeights = {
 export function TitleRegular({
   size = "md",
   children,
-  color = colors.textLightGrey,
+  color = colors.textDarkGrey,
   style,
   weight,
+  numberOfLines,
+  ellipsizeMode,
 }: TitleRegularProps) {
   return (
     <UIText
       style={[
         styles.title,
-        { fontSize: fontSizes[size], color: getColor(color) },
+        {
+          fontSize: fontSizes[size],
+          lineHeight: lineHeights[size],
+          color: getColor(color),
+        },
         style,
       ]}
       weight={weight || fontWeights[size]}
+      numberOfLines={numberOfLines}
+      ellipsizeMode={ellipsizeMode}
     >
       {children}
     </UIText>

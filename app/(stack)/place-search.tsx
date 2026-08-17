@@ -466,8 +466,10 @@ const styles = StyleSheet.create({
     borderBottomColor: semanticColors.brandDivider,
   },
   backButton: {
-    padding: 4,
-    width: 32,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerContent: {
     flex: 1,

@@ -1,6 +1,6 @@
 import { IconPinCategory } from "@/components/icon/pin-category";
 import { UIText } from "@/components/ui/text";
-import { colors, getColor } from "@/constants/theme";
+import { colors, gaps, getColor } from "@/constants/theme";
 import { type PinCategory } from "@/types/pin";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { TitleRegular } from "../title/regular";
@@ -32,7 +32,12 @@ export const TripCategoryFilter = ({
           Filter by category
         </TitleRegular>
         {selectedCategoryIds.length > 0 && (
-          <TouchableOpacity onPress={() => onSelectedCategoryIdsChange([])}>
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={() => onSelectedCategoryIdsChange([])}
+            accessibilityRole="button"
+            accessibilityLabel="Clear category filters"
+          >
             <UIText style={styles.clear} weight="600">
               Clear
             </UIText>
@@ -55,6 +60,9 @@ export const TripCategoryFilter = ({
                 isSelected && styles.itemActive,
               ]}
               onPress={() => handleToggleCategory(category.id)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: isSelected }}
+              accessibilityLabel={`Filter by ${category.name}`}
             >
               <IconPinCategory category={category} size={18} />
               <UIText style={styles.itemText} weight="500">
@@ -88,11 +96,17 @@ const styles = StyleSheet.create({
     color: getColor(colors.purple),
     fontSize: 14,
   },
+  clearButton: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: gaps.xs,
+  },
   item: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingVertical: 4,
+    minHeight: 44,
+    paddingVertical: gaps.xs,
     paddingHorizontal: 8,
     borderRadius: 24,
     borderWidth: 1,

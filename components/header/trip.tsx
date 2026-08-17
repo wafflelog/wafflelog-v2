@@ -1,3 +1,4 @@
+import { UIText } from "@/components/ui/text";
 import { colors, getColor, semanticColors } from "@/constants/theme";
 import { formatDate } from "@/lib/helper/utils";
 import { type Trip } from "@/types/trip";
@@ -9,7 +10,7 @@ import {
   ChevronLeft as ChevronLeftIcon,
   Menu as MenuIcon,
 } from "lucide-react-native";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 type HeaderTripProps = {
   trip?: Trip;
@@ -37,10 +38,12 @@ export const HeaderTrip = ({
       </TouchableOpacity>
       {trip && (
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>{trip.title}</Text>
-          <Text style={styles.headerSubtitle}>
+          <UIText style={styles.headerTitle} weight="700">
+            {trip.title}
+          </UIText>
+          <UIText style={styles.headerSubtitle}>
             {formatDate(trip.startDate)} - {formatDate(trip.endDate)}
-          </Text>
+          </UIText>
         </View>
       )}
       <TouchableOpacity style={styles.moreButton} onPress={onMorePress}>
@@ -57,12 +60,12 @@ export const HeaderTripTitle = ({ trip }: HeaderTripTitleProps) => {
 
   return (
     <View style={styles.nativeTitle}>
-      <Text style={styles.headerTitle} numberOfLines={1}>
+      <UIText style={styles.headerTitle} weight="700" numberOfLines={1}>
         {trip.title}
-      </Text>
-      <Text style={styles.headerSubtitle} numberOfLines={1}>
+      </UIText>
+      <UIText style={styles.headerSubtitle} numberOfLines={1}>
         {formatDate(trip.startDate)} - {formatDate(trip.endDate)}
-      </Text>
+      </UIText>
     </View>
   );
 };
@@ -98,7 +101,10 @@ const styles = StyleSheet.create({
     borderBottomColor: semanticColors.brandDivider,
   },
   backButton: {
-    padding: 4,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerContent: {
     flex: 1,
@@ -118,7 +124,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   moreButton: {
-    padding: 4,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   nativeButton: {
     width: 44,

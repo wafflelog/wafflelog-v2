@@ -55,6 +55,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadiuses.sm,
     alignItems: "center",
     gap: gaps.xxs,
+    minHeight: 52,
   },
   tabItemActive: {
     backgroundColor: getColor(colors.waffle),

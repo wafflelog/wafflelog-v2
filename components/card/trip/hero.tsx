@@ -19,10 +19,16 @@ export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
   const progress = getTripProgress(trip.startDate, trip.endDate);
 
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={onPress}
+      activeOpacity={0.82}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ongoing trip ${trip.title}`}
+    >
       <View style={styles.content}>
         <UIInProgressBadge containerStyle={styles.inProgress} />
-        <TitleRegular size="md" weight="600" color={colors.pineGreen}>
+        <TitleRegular size="md" weight="600" numberOfLines={2}>
           {trip.title}
         </TitleRegular>
 
@@ -53,8 +59,6 @@ export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
 const styles = StyleSheet.create({
   container: {
     paddingRight: 4,
-    // borderWidth: 2,
-    borderColor: getColor(colors.waffle),
     flexDirection: "row",
     ...getCardBasicStyle("md"),
   },

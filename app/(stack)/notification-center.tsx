@@ -285,8 +285,10 @@ const styles = StyleSheet.create({
     borderBottomColor: semanticColors.brandDivider,
   },
   backButton: {
-    padding: gaps.xs,
-    width: 40,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerContent: {
     flex: 1,
@@ -355,6 +357,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     minWidth: 92,
+    minHeight: 44,
     borderRadius: borderRadiuses.full,
     alignItems: "center",
     justifyContent: "center",

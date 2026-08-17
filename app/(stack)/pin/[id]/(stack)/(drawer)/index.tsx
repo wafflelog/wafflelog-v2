@@ -2,7 +2,6 @@ import { PinDocuments } from "@/components/pin/documents";
 import { PinExpenses } from "@/components/pin/expenses";
 import { PinImages } from "@/components/pin/images";
 import { PinLinks } from "@/components/pin/links";
-import { UIText } from "@/components/ui/text";
 import { CATEGORIES } from "@/constants/pin-categories";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionListLocalNotesByPin } from "@/lib/sqlite/model/note";
@@ -18,6 +17,7 @@ import dayjs from "dayjs";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,7 +26,10 @@ import {
   View,
 } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
@@ -50,7 +53,8 @@ import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import {
   CalendarDays as CalendarDaysIcon,
   MapPin as MapPinIcon,
-  SquarePen as SquarePenIcon,
+  Pencil as PencilIcon,
+  StickyNote as StickyNoteIcon,
   Trash2 as Trash2Icon,
 } from "lucide-react-native";
 
@@ -59,6 +63,7 @@ type NewObjectDialog = "expense" | "image" | "document" | "reference-link";
 export default function PinIndexScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { session } = useAuthSession();
   const color = getColor(colors.purple);
   const queryClient = useQueryClient();
@@ -68,7 +73,7 @@ export default function PinIndexScreen() {
   const [activeNewObjectDialog, setActiveNewObjectDialog] =
     useState<NewObjectDialog | null>(null);
 
-  const { data: localPin } = useQuery({
+  const { data: localPin, isPending: isLocalPinPending } = useQuery({
     queryKey: ["local-pin", String(id), session?.user.id],
     queryFn: () => actionGetLocalPin(String(id), session!.user.id),
     enabled: Boolean(id && session?.user.id),
@@ -244,7 +249,25 @@ export default function PinIndexScreen() {
   };
 
   if (!pin || !localPin || !session?.user.id) {
-    return <UIText>Pin not found</UIText>;
+    return (
+      <SafeAreaView
+        style={[styles.container, styles.stateContainer]}
+        edges={["bottom"]}
+      >
+        {isLocalPinPending || !session?.user.id ? (
+          <>
+            <ActivityIndicator size="small" color={getColor(colors.purple)} />
+            <TitleRegular size="sm" color={colors.textLightGrey}>
+              Loading pin...
+            </TitleRegular>
+          </>
+        ) : (
+          <TitleRegular size="md" weight="600">
+            Pin not found
+          </TitleRegular>
+        )}
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -292,7 +315,12 @@ export default function PinIndexScreen() {
             </TitleRegular>
           </View>
         )}
-        <View style={styles.content}>
+        <View
+          style={[
+            styles.content,
+            { paddingBottom: insets.bottom + 96 },
+          ]}
+        >
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <CalendarDaysIcon size={24} color={color} />
@@ -390,7 +418,7 @@ export default function PinIndexScreen() {
                 }}
                 activeOpacity={0.8}
               >
-                <SquarePenIcon size={18} color={getColor(colors.purple)} />
+                <PencilIcon size={18} color={getColor(colors.purple)} />
                 <TitleRegular size="sm" weight="600" color={colors.purple}>
                   Edit Pin
                 </TitleRegular>
@@ -411,7 +439,7 @@ export default function PinIndexScreen() {
         </View>
       </ScrollView>
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { bottom: insets.bottom + 16 }]}
         onPress={() => {
           router.push({
             pathname: "/notes",
@@ -422,8 +450,15 @@ export default function PinIndexScreen() {
           });
         }}
         activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={
+          noteCount > 0 ? `Notes, ${noteCount} saved` : "Notes"
+        }
       >
-        <SquarePenIcon size={24} color="#fff" />
+        <StickyNoteIcon size={20} color={getColor(colors.white)} />
+        <TitleRegular size="sm" weight="600" color={colors.white}>
+          Notes
+        </TitleRegular>
         {noteCount > 0 && (
           <View style={styles.noteBadge}>
             <Text style={styles.noteBadgeText}>{noteBadgeText}</Text>
@@ -508,11 +543,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: semanticColors.screen,
   },
+  stateContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
   content: {
     flex: 1,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    paddingBottom: 96,
     gap: 20,
   },
   sectionHeader: {
@@ -564,15 +603,17 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: "absolute",
-    bottom: 24,
     right: 20,
-    width: 56,
-    height: 56,
+    minHeight: 52,
+    paddingHorizontal: 16,
     alignItems: "center",
     justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
     ...getCardBasicStyle("lg"),
     backgroundColor: getColor(colors.purple),
-    borderRadius: "50%",
+    borderColor: getColor(colors.purple),
+    borderRadius: 26,
   },
   noteBadge: {
     position: "absolute",

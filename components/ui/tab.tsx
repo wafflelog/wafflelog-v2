@@ -62,6 +62,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     minWidth: 0,
+    minHeight: 44,
   },
   longContainer: {
     borderRadius: borderRadiuses.sm,

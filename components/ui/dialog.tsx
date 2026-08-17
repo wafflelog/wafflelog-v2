@@ -35,13 +35,13 @@ type DialogProps = {
   overlay?: React.ReactNode;
 };
 
-// const sizes = {
-//   xs: "30%",
-//   sm: "50%",
-//   md: "70%",
-//   lg: "80%",
-//   xl: "100%",
-// } as const;
+const maxHeights = {
+  xs: "45%",
+  sm: "55%",
+  md: "70%",
+  lg: "80%",
+  xl: "92%",
+} as const;
 
 export function Dialog({
   title,
@@ -76,7 +76,7 @@ export function Dialog({
         <SafeAreaView style={styles.container} edges={["bottom"]}>
           {overlay}
           <Pressable style={[styles.backdrop]} onPress={handleBackdropPress} />
-          <View style={[styles.dialog]}>
+          <View style={[styles.dialog, { maxHeight: maxHeights[size] }, style]}>
             <KeyboardAwareScrollView
               contentContainerStyle={styles.keyboardContainer}
             >
@@ -85,6 +85,8 @@ export function Dialog({
                   style={styles.closeButton}
                   onPress={onDismiss}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close dialog"
                 >
                   <XIcon size={24} color={getColor(colors.textDarkGrey)} />
                 </TouchableOpacity>
@@ -111,6 +113,7 @@ export function Dialog({
                 <TouchableOpacity
                   style={[styles.button, styles.cancelButton]}
                   onPress={onDismiss}
+                  accessibilityRole="button"
                 >
                   <TitleRegular
                     size="sm"
@@ -128,6 +131,7 @@ export function Dialog({
                       : styles.createButton,
                   ]}
                   onPress={onConfirm}
+                  accessibilityRole="button"
                 >
                   <TitleRegular
                     size="sm"
@@ -173,14 +177,16 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: borderRadiuses.lg,
     borderTopRightRadius: borderRadiuses.lg,
     flexDirection: "column",
-    maxHeight: "80%",
   },
   closeButton: {
     position: "absolute",
     top: gaps.md,
     right: gaps.md,
     zIndex: 5,
-    padding: gaps.xs,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   header: {
     padding: gaps.lg,
@@ -206,6 +212,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: gaps.lg,
     borderRadius: borderRadiuses.sm,
     minWidth: 80,
+    minHeight: 44,
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },

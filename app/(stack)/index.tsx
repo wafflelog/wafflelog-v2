@@ -2,6 +2,7 @@ import { ButtonFab } from "@/components/button/fab";
 import { CardTrip } from "@/components/card/trip";
 import { DialogNewTrip } from "@/components/dialog/new-trip";
 import { TitleRegular } from "@/components/title/regular";
+import { UIText } from "@/components/ui/text";
 import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { useAppNotifications } from "@/hook/use-app-notifications";
 import { useAuthSession } from "@/hook/use-auth-session";
@@ -15,6 +16,7 @@ import { Redirect, useRouter } from "expo-router";
 import {
   Bell as BellIcon,
   Calendar as CalendarIcon,
+  ChevronRight as ChevronRightIcon,
   Plane as PlaneIcon,
   Plus as PlusIcon,
   Sparkles as SparklesIcon,
@@ -24,16 +26,21 @@ import {
   ImageBackground,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 export default function IndexScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { session, isAuthenticated, isLoading } = useAuthSession();
   const [isDialogNewTripOpen, setIsDialogNewTripOpen] = useState(false);
+  const [showAllUpcomingTrips, setShowAllUpcomingTrips] = useState(false);
+  const [showAllPastTrips, setShowAllPastTrips] = useState(false);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -110,6 +117,10 @@ export default function IndexScreen() {
       .length ?? 0;
   const notificationBadgeLabel =
     unreadNotificationCount > 99 ? "99+" : String(unreadNotificationCount);
+  const visibleUpcomingTrips = showAllUpcomingTrips
+    ? upcomingTrips
+    : upcomingTrips.slice(0, 2);
+  const visiblePastTrips = showAllPastTrips ? pastTrips : pastTrips.slice(0, 2);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -126,14 +137,24 @@ export default function IndexScreen() {
             Wafflelog
           </TitleRegular>
         </View>
-        <TouchableOpacity onPress={handleSignOut}>
-          <Text style={styles.signOutText}>Sign out</Text>
+        <TouchableOpacity
+          style={styles.signOutButton}
+          onPress={handleSignOut}
+          accessibilityRole="button"
+          accessibilityLabel="Sign out"
+        >
+          <UIText style={styles.signOutText} weight="600">
+            Sign out
+          </UIText>
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollViewContent}
+        contentContainerStyle={[
+          styles.scrollViewContent,
+          { paddingBottom: insets.bottom + 96 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header Banner with Greeting */}
@@ -147,15 +168,19 @@ export default function IndexScreen() {
           <View style={styles.headerBannerOverlay} />
           <View style={styles.header}>
             <View style={styles.headerContent}>
-              <Text style={styles.greeting}>{getGreeting()}!</Text>
-              <Text style={styles.userName}>{username}</Text>
+              <UIText style={styles.greeting} weight="500">
+                {getGreeting()}!
+              </UIText>
+              <UIText style={styles.userName} weight="700">
+                {username}
+              </UIText>
               {daysUntilNextTrip !== null && daysUntilNextTrip > 0 && (
                 <View style={styles.countdownBadge}>
                   <CalendarIcon size={14} color={getColor(colors.turquoise)} />
-                  <Text style={styles.countdownText}>
+                  <UIText style={styles.countdownText} weight="600">
                     {daysUntilNextTrip} {daysUntilNextTrip > 1 ? "days" : "day"}{" "}
                     until next trip
-                  </Text>
+                  </UIText>
                 </View>
               )}
             </View>
@@ -172,14 +197,37 @@ export default function IndexScreen() {
               <BellIcon size={24} color="#fff" />
               {unreadNotificationCount > 0 ? (
                 <View style={styles.notificationBadge}>
-                  <Text style={styles.notificationBadgeText}>
+                  <UIText style={styles.notificationBadgeText} weight="700">
                     {notificationBadgeLabel}
-                  </Text>
+                  </UIText>
                 </View>
               ) : null}
             </TouchableOpacity>
           </View>
         </ImageBackground>
+
+        <TouchableOpacity
+          style={styles.plannerCard}
+          onPress={() => router.push("/ai-trip-planner")}
+          activeOpacity={0.84}
+          accessibilityRole="button"
+          accessibilityLabel="Draft a trip with the trip planner"
+        >
+          <View style={styles.plannerIcon}>
+            <SparklesIcon size={22} color={getColor(colors.purple)} />
+          </View>
+          <View style={styles.plannerContent}>
+            <TitleRegular size="sm" weight="700">
+              Draft a trip
+            </TitleRegular>
+            <TitleRegular size="xs" color={colors.textLightGrey}>
+              Need inspiration? Share an idea and get a researched plan.
+            </TitleRegular>
+          </View>
+          <View style={styles.plannerAction}>
+            <ChevronRightIcon size={18} color={getColor(colors.purple)} />
+          </View>
+        </TouchableOpacity>
 
         {/* Ongoing Trip */}
         {ongoingTrips.length > 0 && (
@@ -217,13 +265,23 @@ export default function IndexScreen() {
                 Upcoming Trips
               </TitleRegular>
               {upcomingTrips.length > 2 ? (
-                <TouchableOpacity>
-                  <Text style={styles.seeAllText}>View All</Text>
+                <TouchableOpacity
+                  style={styles.sectionHeaderAction}
+                  onPress={() => setShowAllUpcomingTrips((current) => !current)}
+                  accessibilityRole="button"
+                >
+                  <TitleRegular
+                    size="sm"
+                    weight="600"
+                    color={colors.turquoise}
+                  >
+                    {showAllUpcomingTrips ? "Show less" : "View all"}
+                  </TitleRegular>
                 </TouchableOpacity>
               ) : null}
             </View>
             <View style={styles.sectionContent}>
-              {upcomingTrips.slice(0, 2).map((trip) => (
+              {visibleUpcomingTrips.map((trip) => (
                 <CardTrip
                   key={trip.id}
                   trip={trip}
@@ -250,13 +308,23 @@ export default function IndexScreen() {
                 Past Trips
               </TitleRegular>
               {pastTrips.length > 2 ? (
-                <TouchableOpacity>
-                  <Text style={styles.seeAllText}>View All</Text>
+                <TouchableOpacity
+                  style={styles.sectionHeaderAction}
+                  onPress={() => setShowAllPastTrips((current) => !current)}
+                  accessibilityRole="button"
+                >
+                  <TitleRegular
+                    size="sm"
+                    weight="600"
+                    color={colors.purple}
+                  >
+                    {showAllPastTrips ? "Show less" : "View all"}
+                  </TitleRegular>
                 </TouchableOpacity>
               ) : null}
             </View>
             <View style={styles.sectionContent}>
-              {pastTrips.slice(0, 2).map((trip) => (
+              {visiblePastTrips.map((trip) => (
                 <CardTrip
                   key={trip.id}
                   trip={trip}
@@ -274,38 +342,42 @@ export default function IndexScreen() {
           pastTrips.length === 0 && (
             <View style={styles.emptyState}>
               <PlaneIcon size={64} color={getColor(colors.paleGrey)} />
-              <Text style={styles.emptyStateTitle}>No trips yet</Text>
-              <Text style={styles.emptyStateText}>
-                Start planning your next adventure!
-              </Text>
+              <TitleRegular size="xxl" weight="700" style={styles.emptyStateTitle}>
+                No trips yet
+              </TitleRegular>
+              <TitleRegular
+                size="md"
+                color={colors.textLightGrey}
+                style={styles.emptyStateText}
+              >
+                Create your first trip and keep every detail together.
+              </TitleRegular>
               <TouchableOpacity
                 style={styles.emptyStateButton}
-                onPress={() => {
-                  // TODO: Navigate to create trip
-                }}
+                onPress={() => setIsDialogNewTripOpen(true)}
+                accessibilityRole="button"
               >
-                <Text style={styles.emptyStateButtonText}>
+                <TitleRegular
+                  size="md"
+                  weight="600"
+                  style={styles.emptyStateButtonText}
+                >
                   Create Your First Trip
-                </Text>
+                </TitleRegular>
               </TouchableOpacity>
             </View>
           )}
       </ScrollView>
 
-      <ButtonFab
-        onPress={() => {
-          // TODO: Navigate to create trip
-          setIsDialogNewTripOpen(true);
-        }}
-        text="New Trip"
-        icon={(color) => <PlusIcon size={20} color={color} />}
-      />
-      <ButtonFab
-        onPress={() => router.push("/ai-trip-planner")}
-        text="Plan with AI"
-        icon={(color) => <SparklesIcon size={20} color={color} />}
-        style={styles.aiPlannerFab}
-      />
+      {mappedTrips.length > 0 ? (
+        <ButtonFab
+          onPress={() => {
+            setIsDialogNewTripOpen(true);
+          }}
+          text="New Trip"
+          icon={(color) => <PlusIcon size={20} color={color} />}
+        />
+      ) : null}
       <DialogNewTrip
         visible={isDialogNewTripOpen}
         onDismiss={() => setIsDialogNewTripOpen(false)}
@@ -318,10 +390,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: semanticColors.screen,
-  },
-  aiPlannerFab: {
-    bottom: gaps.xl + 64,
-    backgroundColor: getColor(colors.turquoise),
   },
   loadingContainer: {
     flex: 1,
@@ -362,15 +430,18 @@ const styles = StyleSheet.create({
   },
   signOutText: {
     fontSize: 14,
-    fontWeight: "600",
     color: getColor(colors.textLightGrey),
+  },
+  signOutButton: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: gaps.xs,
   },
   scrollView: {
     flex: 1,
   },
   scrollViewContent: {
     // gap: gaps.sm,
-    paddingBottom: gaps.xl,
   },
   headerBanner: {
     paddingTop: gaps.md,
@@ -432,7 +503,10 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   notificationButton: {
-    padding: gaps.xs,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
     position: "relative",
   },
   notificationBadge: {
@@ -464,6 +538,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: gaps.md,
   },
+  sectionHeaderAction: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: gaps.xs,
+  },
   sectionTitle: {
     borderBottomWidth: 1,
     paddingBottom: gaps.xs,
@@ -471,10 +550,42 @@ const styles = StyleSheet.create({
   sectionContent: {
     gap: gaps.md,
   },
-  seeAllText: {
-    fontSize: 14,
-    color: getColor(colors.turquoise),
-    fontWeight: "600",
+  plannerCard: {
+    marginHorizontal: gaps.md,
+    marginTop: -gaps.lg,
+    padding: gaps.md,
+    minHeight: 88,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: getColor(colors.purple, 0.2),
+    backgroundColor: semanticColors.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: gaps.sm,
+    shadowColor: getColor(colors.black),
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 2,
+    zIndex: 2,
+  },
+  plannerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: getColor(colors.purple, 0.1),
+  },
+  plannerContent: {
+    flex: 1,
+    gap: gaps.xxs,
+  },
+  plannerAction: {
+    width: 32,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   emptyState: {
     alignItems: "center",
@@ -483,15 +594,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: gaps.md,
   },
   emptyStateTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: getColor(colors.textDarkGrey),
     marginTop: gaps.md,
     marginBottom: gaps.xs,
   },
   emptyStateText: {
-    fontSize: 16,
-    color: getColor(colors.textLightGrey),
     textAlign: "center",
     marginBottom: gaps.lg,
   },
@@ -503,7 +609,5 @@ const styles = StyleSheet.create({
   },
   emptyStateButtonText: {
     color: semanticColors.primaryActionContent,
-    fontSize: 16,
-    fontWeight: "600",
   },
 });

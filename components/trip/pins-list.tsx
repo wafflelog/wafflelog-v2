@@ -1,8 +1,16 @@
 import { CardPin } from "@/components/card/pin";
+import { TitleRegular } from "@/components/title/regular";
+import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { type TripDay } from "@/types/trip";
+import dayjs from "dayjs";
+import {
+  CalendarPlus as CalendarPlusIcon,
+  ListFilter as ListFilterIcon,
+} from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   FadeInLeft,
   FadeInRight,
@@ -10,18 +18,26 @@ import Animated, {
   FadeOutRight,
   runOnJS,
 } from "react-native-reanimated";
-import { UIText } from "../ui/text";
-
 type TripPinsListProps = {
   tripDays: TripDay[];
   onDayChanged: (index: number) => void;
+  onAddPin: () => void;
+  hasActiveFilters?: boolean;
+  onClearFilters?: () => void;
 };
 
 const SWIPE_DISTANCE = 56;
 const SWIPE_DOMINANCE = 1.25;
 const TRANSITION_DURATION = 180;
 
-export const TripPinsList = ({ tripDays, onDayChanged }: TripPinsListProps) => {
+export const TripPinsList = ({
+  tripDays,
+  onDayChanged,
+  onAddPin,
+  hasActiveFilters = false,
+  onClearFilters,
+}: TripPinsListProps) => {
+  const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const [transitionDirection, setTransitionDirection] = useState<
     "next" | "previous"
@@ -86,7 +102,10 @@ export const TripPinsList = ({ tripDays, onDayChanged }: TripPinsListProps) => {
           <ScrollView
             ref={scrollViewRef}
             style={styles.scroller}
-            contentContainerStyle={styles.container}
+            contentContainerStyle={[
+              styles.container,
+              { paddingBottom: insets.bottom + 88 },
+            ]}
             showsVerticalScrollIndicator={false}
           >
             {activeDay.pins.length > 0 ? (
@@ -99,7 +118,51 @@ export const TripPinsList = ({ tripDays, onDayChanged }: TripPinsListProps) => {
                 />
               ))
             ) : (
-              <UIText>No pins found</UIText>
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIcon}>
+                  {hasActiveFilters ? (
+                    <ListFilterIcon
+                      size={24}
+                      color={getColor(colors.purple)}
+                    />
+                  ) : (
+                    <CalendarPlusIcon
+                      size={24}
+                      color={getColor(colors.purple)}
+                    />
+                  )}
+                </View>
+                <TitleRegular size="md" weight="600">
+                  {hasActiveFilters
+                    ? "No pins match these filters"
+                    : `Nothing planned for ${dayjs(activeDay.date).format("dddd")} yet`}
+                </TitleRegular>
+                <TitleRegular
+                  size="sm"
+                  color={colors.textLightGrey}
+                  style={styles.emptyMessage}
+                >
+                  {hasActiveFilters
+                    ? "Clear the filters to see everything planned for this day."
+                    : "Add a place, activity or journey to start building the day."}
+                </TitleRegular>
+                <TouchableOpacity
+                  style={styles.emptyAction}
+                  onPress={() => {
+                    if (hasActiveFilters) {
+                      onClearFilters?.();
+                      return;
+                    }
+
+                    onAddPin();
+                  }}
+                  accessibilityRole="button"
+                >
+                  <TitleRegular size="sm" weight="600">
+                    {hasActiveFilters ? "Clear filters" : "Add first pin"}
+                  </TitleRegular>
+                </TouchableOpacity>
+              </View>
             )}
           </ScrollView>
         </Animated.View>
@@ -123,7 +186,35 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 112,
     gap: 16,
+  },
+  emptyState: {
+    flex: 1,
+    minHeight: 260,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: gaps.lg,
+  },
+  emptyIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: getColor(colors.purple, 0.1),
+    marginBottom: gaps.sm,
+  },
+  emptyMessage: {
+    textAlign: "center",
+    marginTop: gaps.xs,
+  },
+  emptyAction: {
+    minHeight: 44,
+    marginTop: gaps.md,
+    paddingHorizontal: gaps.lg,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: semanticColors.primaryAction,
   },
 });

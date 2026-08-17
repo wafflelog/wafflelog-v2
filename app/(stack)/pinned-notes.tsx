@@ -183,7 +183,10 @@ const styles = StyleSheet.create({
     borderBottomColor: semanticColors.brandDivider,
   },
   backButton: {
-    padding: 4,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerContent: {
     flex: 1,
@@ -200,9 +203,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   addButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: semanticColors.primaryAction,

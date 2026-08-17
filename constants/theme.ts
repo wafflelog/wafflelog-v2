@@ -33,6 +33,16 @@ export const fontSizes = {
   xxl: 24,
 };
 
+export const lineHeights = {
+  xxs: 14,
+  xs: 17,
+  sm: 20,
+  md: 24,
+  lg: 26,
+  xl: 28,
+  xxl: 32,
+};
+
 export const gaps = {
   xxs: 4,
   xs: 8,
@@ -68,25 +78,25 @@ export const getShadowStyle = (size: "sm" | "md" | "lg" | "xl") => {
     sm: {
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
+      shadowOpacity: 0.06,
       shadowRadius: 8,
     },
     md: {
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
+      shadowOpacity: 0.08,
       shadowRadius: 8,
     },
     lg: {
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
+      shadowOpacity: 0.1,
       shadowRadius: 8,
     },
     xl: {
       shadowColor: "#000",
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.4,
+      shadowOpacity: 0.12,
       shadowRadius: 8,
     },
   } as const satisfies Record<
@@ -99,10 +109,10 @@ export const getShadowStyle = (size: "sm" | "md" | "lg" | "xl") => {
     }
   >;
   const elevations = {
-    sm: 3,
-    md: 4,
-    lg: 5,
-    xl: 6,
+    sm: 1,
+    md: 2,
+    lg: 3,
+    xl: 4,
   };
 
   return {
@@ -118,6 +128,8 @@ export const getCardBasicStyle = (size: "sm" | "md" | "lg") => {
   return {
     ...getShadowStyle(size),
     backgroundColor: semanticColors.surface,
+    borderWidth: 1,
+    borderColor: getColor(colors.whiteGrey, 0.65),
     borderRadius: borderRadiuses[size],
     padding: gaps[size],
   };

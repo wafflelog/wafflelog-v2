@@ -20,11 +20,14 @@ export const CardTripRegular = ({
 }: CardTripRegularProps) => {
   return (
     <TouchableOpacity
-      style={[styles.container, { borderColor: getColor(colors[color]) }]}
+      style={styles.container}
       onPress={onPress}
+      activeOpacity={0.82}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${trip.title}`}
     >
       <View style={styles.content}>
-        <TitleRegular size="md" weight="600" color={colors.pineGreen}>
+        <TitleRegular size="md" weight="600" numberOfLines={2}>
           {trip.title}
         </TitleRegular>
 

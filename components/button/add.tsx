@@ -47,6 +47,7 @@ const styles = StyleSheet.create({
     gap: gaps.sm,
     padding: gaps.sm,
     minWidth: 0,
+    minHeight: 44,
   },
   iconContainer: {
     flexShrink: 0,
