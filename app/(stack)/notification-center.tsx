@@ -1,4 +1,5 @@
-import { TitleRegular } from "@/components/title/regular";
+import { AppHeader } from "@/components/header/app-header";
+import { HeaderBackButton } from "@/components/header/icon-button";
 import {
   borderRadiuses,
   colors,
@@ -32,7 +33,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 type InvitationResponseInput = {
   notificationId: string;
@@ -154,25 +154,13 @@ export default function NotificationCenterScreen() {
   const notifications = notificationsQuery.data ?? [];
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color={getColor(colors.textDarkGrey)}
-          />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <TitleRegular size="lg" weight="600">
-            Notifications
-          </TitleRegular>
-        </View>
-        <View style={styles.backButton} />
-      </View>
+    <View style={styles.container}>
+      <AppHeader
+        title="Notifications"
+        leading={
+          <HeaderBackButton onPress={() => router.back()} />
+        }
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -265,7 +253,7 @@ export default function NotificationCenterScreen() {
         )}
       </ScrollView>
       <SystemMessageModal />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -273,26 +261,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: semanticColors.screen,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: gaps.md,
-    paddingVertical: gaps.md,
-    backgroundColor: semanticColors.screen,
-    borderBottomWidth: 1,
-    borderBottomColor: semanticColors.brandDivider,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerContent: {
-    flex: 1,
-    alignItems: "center",
   },
   scrollView: {
     flex: 1,

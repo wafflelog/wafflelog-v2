@@ -1,3 +1,5 @@
+import { AppHeader } from "@/components/header/app-header";
+import { HeaderBackButton } from "@/components/header/icon-button";
 import { colors, getColor, semanticColors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -8,7 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 interface PinnedNote {
   id: string;
@@ -72,33 +73,14 @@ export default function PinnedNotesScreen() {
   const handlePinPress = (pinId: string) => {};
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color={semanticColors.textPrimary}
-          />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Pinned Notes</Text>
-          <Text style={styles.headerSubtitle}>
-            {notes.length} {notes.length === 1 ? "note" : "notes"}
-          </Text>
-        </View>
-        <TouchableOpacity style={styles.addButton}>
-          <Ionicons
-            name="add-circle"
-            size={28}
-            color={semanticColors.primaryActionContent}
-          />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <AppHeader
+        title="Pinned Notes"
+        subtitle={`${notes.length} ${notes.length === 1 ? "note" : "notes"}`}
+        leading={
+          <HeaderBackButton onPress={() => router.back()} />
+        }
+      />
 
       {/* Notes List */}
       <FlatList
@@ -163,7 +145,7 @@ export default function PinnedNotesScreen() {
           </View>
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -171,44 +153,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: semanticColors.screen,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: semanticColors.screen,
-    borderBottomWidth: 1,
-    borderBottomColor: semanticColors.brandDivider,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerContent: {
-    flex: 1,
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: semanticColors.textPrimary,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: semanticColors.textSecondary,
-    marginTop: 2,
-  },
-  addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: semanticColors.primaryAction,
   },
   listContent: {
     padding: 20,

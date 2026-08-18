@@ -1,6 +1,10 @@
 import { ButtonFab } from "@/components/button/fab";
 import { CardTrip } from "@/components/card/trip";
 import { DialogNewTrip } from "@/components/dialog/new-trip";
+import {
+  AppHeader,
+  HeaderTextButton,
+} from "@/components/header/app-header";
 import { TitleRegular } from "@/components/title/regular";
 import { UIText } from "@/components/ui/text";
 import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
@@ -124,31 +128,22 @@ export default function IndexScreen() {
   const visiblePastTrips = showAllPastTrips ? pastTrips : pastTrips.slice(0, 2);
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      {/* Branding Header */}
-      <View style={styles.brandingHeader}>
-        <View style={styles.brandLockup}>
+    <View style={styles.container}>
+      <AppHeader
+        title="Wafflelog"
+        titleAlign="left"
+        leading={
           <Image
             source={require("../../assets/images/icon.png")}
             style={styles.brandLogo}
             contentFit="cover"
             accessibilityLabel="Wafflelog logo"
           />
-          <TitleRegular size="xl" style={styles.brandingText}>
-            Wafflelog
-          </TitleRegular>
-        </View>
-        <TouchableOpacity
-          style={styles.signOutButton}
-          onPress={handleSignOut}
-          accessibilityRole="button"
-          accessibilityLabel="Sign out"
-        >
-          <UIText style={styles.signOutText} weight="600">
-            Sign out
-          </UIText>
-        </TouchableOpacity>
-      </View>
+        }
+        trailing={
+          <HeaderTextButton label="Sign out" onPress={handleSignOut} />
+        }
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -385,7 +380,7 @@ export default function IndexScreen() {
         visible={isDialogNewTripOpen}
         onDismiss={() => setIsDialogNewTripOpen(false)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -400,45 +395,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: semanticColors.screen,
   },
-  brandingHeader: {
-    backgroundColor: semanticColors.screen,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: gaps.md,
-    paddingVertical: gaps.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: semanticColors.brandDivider,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  brandLockup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: gaps.sm,
-  },
   brandLogo: {
     width: 38,
     height: 38,
     borderRadius: 11,
-  },
-  brandingText: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: getColor(colors.textDarkGrey),
-    letterSpacing: -0.5,
-  },
-  signOutText: {
-    fontSize: 14,
-    color: getColor(colors.textLightGrey),
-  },
-  signOutButton: {
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: gaps.xs,
   },
   scrollView: {
     flex: 1,

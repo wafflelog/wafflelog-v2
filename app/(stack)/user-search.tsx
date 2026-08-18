@@ -1,4 +1,6 @@
 import { CardCompanionSearchResult } from "@/components/card/companion/search-result";
+import { AppHeader } from "@/components/header/app-header";
+import { HeaderCloseButton } from "@/components/header/icon-button";
 import { UIText } from "@/components/ui/text";
 import {
   colors,
@@ -21,12 +23,10 @@ import { useMemo, useState } from "react";
 import {
   FlatList,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 const MAX_COMPANIONS = 10;
 
@@ -144,27 +144,17 @@ export default function UserSearchScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color={getColor(colors.textDarkGrey)} />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Invite Companion</Text>
-          {params.tripTitle ? (
-            <Text style={styles.headerSubtitle}>{params.tripTitle}</Text>
-          ) : null}
-        </View>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="close" size={24} color={getColor(colors.textDarkGrey)} />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <AppHeader
+        title="Invite Companion"
+        subtitle={params.tripTitle}
+        trailing={
+          <HeaderCloseButton
+            accessibilityLabel="Close companion search"
+            onPress={() => router.back()}
+          />
+        }
+      />
 
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
@@ -224,7 +214,7 @@ export default function UserSearchScreen() {
       />
 
       <SystemMessageModal />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -232,35 +222,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: semanticColors.screen,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: gaps.md,
-    paddingVertical: gaps.sm,
-    backgroundColor: semanticColors.screen,
-    borderBottomWidth: 1,
-    borderBottomColor: semanticColors.brandDivider,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerContent: {
-    flex: 1,
-    alignItems: "center",
-    gap: gaps.xxs,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: getColor(colors.textDarkGrey),
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: getColor(colors.textLightGrey),
   },
   searchContainer: {
     paddingHorizontal: gaps.md,

@@ -9,6 +9,8 @@ import {
   AiPlannerRefinementConversation,
   type AiPlannerRefinementMessage,
 } from "@/components/ai-trip-planner/refinement-conversation";
+import { AppHeader } from "@/components/header/app-header";
+import { HeaderCloseButton } from "@/components/header/icon-button";
 import { TitleRegular } from "@/components/title/regular";
 import { Dialog } from "@/components/ui/dialog";
 import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
@@ -45,7 +47,7 @@ import {
 } from "@/types/ai-trip-planner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { CalendarDays, MessageCircle, X } from "lucide-react-native";
+import { CalendarDays, MessageCircle } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -853,38 +855,36 @@ export default function AiTripPlannerScreen() {
           : "New";
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={styles.frame}>
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => router.back()}
-              accessibilityLabel="Close AI trip planner"
-            >
-              <X size={22} color={getColor(colors.textDarkGrey)} />
-            </TouchableOpacity>
-            <View style={styles.headerTitle}>
-              <TitleRegular size="md" weight="700" color={colors.textDarkGrey}>
-                Plan with AI
-              </TitleRegular>
-              <TitleRegular size="xxs" color={colors.textLightGrey}>
-                {showRecovery
-                  ? "Planning saved on this device"
-                  : planningContext
-                    ? `${planningContext.answers.destination} planning session`
-                    : "New planning session"}
-              </TitleRegular>
-            </View>
-            <View style={styles.revisionBadge}>
-              <TitleRegular size="xxs" weight="600" color={colors.purple}>
-                {headerBadge}
-              </TitleRegular>
-            </View>
-          </View>
+          <AppHeader
+            title="Plan with AI"
+            subtitle={
+              showRecovery
+                ? "Planning saved on this device"
+                : planningContext
+                  ? `${planningContext.answers.destination} planning session`
+                  : "New planning session"
+            }
+            sideWidth={72}
+            leading={
+              <HeaderCloseButton
+                accessibilityLabel="Close AI trip planner"
+                onPress={() => router.back()}
+              />
+            }
+            trailing={
+              <View style={styles.revisionBadge}>
+                <TitleRegular size="xxs" weight="600" color={colors.purple}>
+                  {headerBadge}
+                </TitleRegular>
+              </View>
+            }
+          />
 
           <View style={styles.tabsWrapper}>
             <View style={styles.tabs}>
@@ -1069,24 +1069,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     backgroundColor: "#F7F7FA",
   },
-  header: {
-    minHeight: 60,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: gaps.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: getColor(colors.whiteGrey, 0.65),
-    backgroundColor: getColor(colors.white),
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: borderRadiuses.full,
-    backgroundColor: getColor(colors.whiteGrey, 0.35),
-  },
-  headerTitle: { flex: 1, alignItems: "center", gap: 2 },
   revisionBadge: {
     minWidth: 64,
     alignItems: "center",

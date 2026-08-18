@@ -1,5 +1,7 @@
 import { CardNoteRegular } from "@/components/card/note/regular";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
+import { AppHeader } from "@/components/header/app-header";
+import { HeaderCloseButton } from "@/components/header/icon-button";
 import { TitleRegular } from "@/components/title/regular";
 import { UIInputText } from "@/components/ui/input/text";
 import {
@@ -17,13 +19,11 @@ import {
   actionSoftDeleteLocalNote,
 } from "@/lib/sqlite/model/note";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   FlatList,
-  Platform,
   Pressable,
-  StatusBar,
   StyleSheet,
   View,
 } from "react-native";
@@ -51,6 +51,7 @@ const useGradualAnimation = () => {
 };
 
 export default function NotesScreen() {
+  const router = useRouter();
   const { tripId, pinId } = useLocalSearchParams<{
     tripId?: string;
     pinId?: string;
@@ -151,6 +152,15 @@ export default function NotesScreen() {
 
   return (
     <View style={styles.container}>
+      <AppHeader
+        title="Notes"
+        trailing={
+          <HeaderCloseButton
+            accessibilityLabel="Close notes"
+            onPress={() => router.back()}
+          />
+        }
+      />
       <FlatList
         data={notes}
         renderItem={({ item, index }) => (
@@ -219,7 +229,6 @@ export default function NotesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
     backgroundColor: semanticColors.screen,
   },
   listStyle: {

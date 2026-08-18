@@ -9,9 +9,7 @@ export default function Layout() {
     <Stack
       screenOptions={{
         contentStyle: { backgroundColor: semanticColors.screen },
-        headerStyle: { backgroundColor: semanticColors.screen },
-        headerTintColor: semanticColors.textPrimary,
-        headerShadowVisible: false,
+        headerShown: false,
       }}
     >
       <Stack.Protected guard={isAuthenticated}>
@@ -26,7 +24,6 @@ export default function Layout() {
         <Stack.Screen
           name="notes"
           options={{
-            headerShown: true,
             presentation: "modal",
             title: "Notes",
           }}
@@ -52,14 +49,12 @@ export default function Layout() {
           name="image-viewer"
           options={{
             presentation: "fullScreenModal",
-            headerShown: true,
           }}
         />
         <Stack.Screen
           name="web-viewer"
           options={{
             presentation: "modal",
-            headerShown: true,
           }}
         />
       </Stack.Protected>

@@ -1,3 +1,5 @@
+import { AppHeader } from "@/components/header/app-header";
+import { HeaderBackButton } from "@/components/header/icon-button";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
@@ -8,7 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function UserScreen() {
   const router = useRouter();
@@ -102,22 +103,13 @@ export default function UserScreen() {
   const netBalance = totalTheyOweMe - totalIOweThem;
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Profile</Text>
-        </View>
-        <TouchableOpacity style={styles.moreButton}>
-          <Ionicons name="ellipsis-vertical" size={24} color="#333" />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <AppHeader
+        title="Profile"
+        leading={
+          <HeaderBackButton onPress={() => router.back()} />
+        }
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -372,7 +364,7 @@ export default function UserScreen() {
         {/* Bottom Spacing */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -380,31 +372,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F5F7FA",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerContent: {
-    flex: 1,
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  moreButton: {
-    padding: 4,
   },
   scrollView: {
     flex: 1,

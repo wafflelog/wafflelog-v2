@@ -1,3 +1,5 @@
+import { AppHeader } from "@/components/header/app-header";
+import { HeaderBackButton } from "@/components/header/icon-button";
 import { colors, getColor, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
@@ -18,7 +20,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 // Replace with your Google Places API key
 // For production, use environment variables or secure storage
@@ -239,24 +240,13 @@ export default function PlaceSearchScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color={semanticColors.textPrimary}
-          />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Search Places</Text>
-        </View>
-        <View style={styles.backButton} />
-      </View>
+    <View style={styles.container}>
+      <AppHeader
+        title="Search Places"
+        leading={
+          <HeaderBackButton onPress={() => router.back()} />
+        }
+      />
 
       {/* Search Input */}
       <View style={styles.searchContainer}>
@@ -446,7 +436,7 @@ export default function PlaceSearchScreen() {
         </View>
       )}
       <SystemMessageModal />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -454,31 +444,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: semanticColors.screen,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: semanticColors.screen,
-    borderBottomWidth: 1,
-    borderBottomColor: semanticColors.brandDivider,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerContent: {
-    flex: 1,
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: semanticColors.textPrimary,
   },
   searchContainer: {
     padding: 20,

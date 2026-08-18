@@ -1,9 +1,5 @@
 import { DrawerTrip } from "@/components/drawer/trip";
-import {
-  HeaderTripBackButton,
-  HeaderTripMenuButton,
-  HeaderTripTitle,
-} from "@/components/header/trip";
+import { HeaderTrip } from "@/components/header/trip";
 import { semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
@@ -11,7 +7,6 @@ import { DrawerActions } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
-import { StyleSheet } from "react-native";
 
 const tripSectionTitles: Record<string, string> = {
   checklist: "Checklist",
@@ -43,32 +38,15 @@ export default function Layout() {
         drawerPosition: "right",
         drawerStyle: { backgroundColor: semanticColors.screen },
         sceneStyle: { backgroundColor: semanticColors.screen },
-        headerStyle: {
-          backgroundColor: semanticColors.screen,
-          borderBottomColor: semanticColors.neutralDivider,
-          borderBottomWidth: StyleSheet.hairlineWidth,
-        },
-        headerLeftContainerStyle: { paddingLeft: 8 },
-        headerRightContainerStyle: { paddingRight: 8 },
-        headerTintColor: semanticColors.textPrimary,
         headerShadowVisible: false,
-        headerTitle: () => (
-          <HeaderTripTitle
+        header: () => (
+          <HeaderTrip
             trip={localTrip}
             sectionTitle={tripSectionTitles[route.name]}
-          />
-        ),
-        headerLeft: (props) => (
-          <HeaderTripBackButton
-            {...props}
-            onPress={() => {
+            onBackPress={() => {
               router.back();
             }}
-          />
-        ),
-        headerRight: () => (
-          <HeaderTripMenuButton
-            onPress={() => {
+            onMenuPress={() => {
               navigation.dispatch(DrawerActions.toggleDrawer());
             }}
           />

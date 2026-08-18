@@ -1,9 +1,5 @@
 import { DrawerPin } from "@/components/drawer/pin";
-import {
-  HeaderPinBackButton,
-  HeaderPinMenuButton,
-  HeaderPinTitle,
-} from "@/components/header/pin";
+import { HeaderPin } from "@/components/header/pin";
 import { semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionGetLocalPin } from "@/lib/sqlite/model/pin";
@@ -11,7 +7,6 @@ import { DrawerActions } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
-import { StyleSheet } from "react-native";
 
 export default function Layout() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -33,27 +28,14 @@ export default function Layout() {
         drawerPosition: "right",
         drawerStyle: { backgroundColor: semanticColors.screen },
         sceneStyle: { backgroundColor: semanticColors.screen },
-        headerStyle: {
-          backgroundColor: semanticColors.screen,
-          borderBottomColor: semanticColors.neutralDivider,
-          borderBottomWidth: StyleSheet.hairlineWidth,
-        },
-        headerLeftContainerStyle: { paddingLeft: 8 },
-        headerRightContainerStyle: { paddingRight: 8 },
-        headerTintColor: semanticColors.textPrimary,
         headerShadowVisible: false,
-        headerTitle: (props) => <HeaderPinTitle {...props} pin={localPin} />,
-        headerLeft: (props) => (
-          <HeaderPinBackButton
-            {...props}
-            onPress={() => {
+        header: () => (
+          <HeaderPin
+            pin={localPin}
+            onBackPress={() => {
               router.back();
             }}
-          />
-        ),
-        headerRight: () => (
-          <HeaderPinMenuButton
-            onPress={() => {
+            onMenuPress={() => {
               navigation.dispatch(DrawerActions.toggleDrawer());
             }}
           />

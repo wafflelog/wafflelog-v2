@@ -1,10 +1,21 @@
 import { colors, getColor, semanticColors } from "@/constants/theme";
-import { type LucideIcon } from "lucide-react-native";
+import {
+  ChevronLeft as ChevronLeftIcon,
+  Menu as MenuIcon,
+  X as XIcon,
+  type LucideIcon,
+} from "lucide-react-native";
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 
 type HeaderIconButtonProps = {
   accessibilityLabel: string;
   icon: LucideIcon;
+  onPress: () => void;
+  style?: StyleProp<ViewStyle>;
+};
+
+type SemanticHeaderButtonProps = {
+  accessibilityLabel?: string;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
 };
@@ -36,6 +47,45 @@ export const HeaderIconButton = ({
   );
 };
 
+export const HeaderBackButton = ({
+  accessibilityLabel = "Go back",
+  onPress,
+  style,
+}: SemanticHeaderButtonProps) => (
+  <HeaderIconButton
+    accessibilityLabel={accessibilityLabel}
+    icon={ChevronLeftIcon}
+    onPress={onPress}
+    style={style}
+  />
+);
+
+export const HeaderCloseButton = ({
+  accessibilityLabel = "Close",
+  onPress,
+  style,
+}: SemanticHeaderButtonProps) => (
+  <HeaderIconButton
+    accessibilityLabel={accessibilityLabel}
+    icon={XIcon}
+    onPress={onPress}
+    style={style}
+  />
+);
+
+export const HeaderMenuButton = ({
+  accessibilityLabel = "Open menu",
+  onPress,
+  style,
+}: SemanticHeaderButtonProps) => (
+  <HeaderIconButton
+    accessibilityLabel={accessibilityLabel}
+    icon={MenuIcon}
+    onPress={onPress}
+    style={style}
+  />
+);
+
 const styles = StyleSheet.create({
   button: {
     width: 44,
@@ -46,6 +96,5 @@ const styles = StyleSheet.create({
   },
   buttonPressed: {
     backgroundColor: getColor(colors.waffle, 0.16),
-    transform: [{ scale: 0.96 }],
   },
 });

@@ -1,15 +1,14 @@
-import { TitleRegular } from "@/components/title/regular";
+import { AppHeader } from "@/components/header/app-header";
+import { HeaderCloseButton } from "@/components/header/icon-button";
 import { colors, getColor, semanticColors } from "@/constants/theme";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { X as XIcon } from "lucide-react-native";
 import { useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
 export default function WebViewerScreen() {
@@ -17,70 +16,59 @@ export default function WebViewerScreen() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const url = params.url || "";
+  const header = (
+    <AppHeader
+      title={params.title || "Link"}
+      trailing={
+        <HeaderCloseButton
+          accessibilityLabel="Close web viewer"
+          onPress={() => router.back()}
+        />
+      }
+    />
+  );
 
   if (!url) {
     return (
       <SafeAreaView style={styles.container} edges={["bottom"]}>
+        {header}
         <View style={styles.errorContainer} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaProvider>
-      <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-        <View style={styles.header}>
-          <TitleRegular size="md" weight="600" style={styles.headerTitle}>
-            {params.title}
-          </TitleRegular>
-          <TouchableOpacity onPress={() => router.back()}>
-            <XIcon size={24} color={semanticColors.textPrimary} />
-          </TouchableOpacity>
-        </View>
-        <WebView
-          source={{ uri: url }}
-          style={styles.webview}
-          onLoadStart={() => setLoading(true)}
-          onLoadEnd={() => setLoading(false)}
-          onError={(error) => {
-            setLoading(false);
-            console.error("Error loading web view", error);
-          }}
-          startInLoadingState={true}
-          renderLoading={() => (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={getColor(colors.purple)} />
-            </View>
-          )}
-        />
-        {loading && (
-          <View style={styles.loadingOverlay}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
+      {header}
+      <WebView
+        source={{ uri: url }}
+        style={styles.webview}
+        onLoadStart={() => setLoading(true)}
+        onLoadEnd={() => setLoading(false)}
+        onError={(error) => {
+          setLoading(false);
+          console.error("Error loading web view", error);
+        }}
+        startInLoadingState={true}
+        renderLoading={() => (
+          <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={getColor(colors.purple)} />
           </View>
         )}
-      </SafeAreaView>
-    </SafeAreaProvider>
+      />
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={getColor(colors.purple)} />
+        </View>
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
     backgroundColor: semanticColors.screen,
-    borderBottomWidth: 1,
-    borderBottomColor: semanticColors.brandDivider,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: semanticColors.textPrimary,
   },
   webview: {},
   loadingContainer: {
