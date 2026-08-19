@@ -1,17 +1,14 @@
 import { ButtonFab } from "@/components/button/fab";
 import { CardTrip } from "@/components/card/trip";
 import { DialogNewTrip } from "@/components/dialog/new-trip";
-import {
-  AppHeader,
-  HeaderTextButton,
-} from "@/components/header/app-header";
+import { AppHeader } from "@/components/header/app-header";
+import { HeaderSettingsButton } from "@/components/header/icon-button";
 import { TitleRegular } from "@/components/title/regular";
 import { UIText } from "@/components/ui/text";
 import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { useAppNotifications } from "@/hook/use-app-notifications";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionListLocalTrips } from "@/lib/sqlite/model/trip";
-import { supabase } from "@/lib/supabase/client";
 import { type Trip } from "@/types/trip";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -46,10 +43,6 @@ export default function IndexScreen() {
   const [isDialogNewTripOpen, setIsDialogNewTripOpen] = useState(false);
   const [showAllUpcomingTrips, setShowAllUpcomingTrips] = useState(false);
   const [showAllPastTrips, setShowAllPastTrips] = useState(false);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-  };
 
   const { data: tripData = [] } = useQuery({
     queryKey: ["local-trips", session?.user.id],
@@ -141,7 +134,9 @@ export default function IndexScreen() {
           />
         }
         trailing={
-          <HeaderTextButton label="Sign out" onPress={handleSignOut} />
+          <HeaderSettingsButton
+            onPress={() => router.push("/settings")}
+          />
         }
       />
 

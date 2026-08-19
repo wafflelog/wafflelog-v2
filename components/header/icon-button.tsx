@@ -2,6 +2,7 @@ import { colors, getColor, semanticColors } from "@/constants/theme";
 import {
   ChevronLeft as ChevronLeftIcon,
   Menu as MenuIcon,
+  Settings as SettingsIcon,
   X as XIcon,
   type LucideIcon,
 } from "lucide-react-native";
@@ -81,6 +82,19 @@ export const HeaderMenuButton = ({
   <HeaderIconButton
     accessibilityLabel={accessibilityLabel}
     icon={MenuIcon}
+    onPress={onPress}
+    style={style}
+  />
+);
+
+export const HeaderSettingsButton = ({
+  accessibilityLabel = "Open settings",
+  onPress,
+  style,
+}: SemanticHeaderButtonProps) => (
+  <HeaderIconButton
+    accessibilityLabel={accessibilityLabel}
+    icon={SettingsIcon}
     onPress={onPress}
     style={style}
   />
