@@ -1,19 +1,22 @@
+import {
+  PlaceSearchResultCard,
+  type PlaceSearchResult,
+} from "@/components/card/place/search-result";
 import { AppHeader } from "@/components/header/app-header";
 import { HeaderBackButton } from "@/components/header/icon-button";
 import { colors, getColor, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { persistLocalPlaceImage } from "@/lib/media/place";
 import { canEditPinLocation } from "@/lib/helper/permissions";
 import { actionGetLocalPin } from "@/lib/sqlite/model/pin";
 import { actionUpsertLocalPinLocation } from "@/lib/sqlite/model/pin-location";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
-  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -25,44 +28,6 @@ import {
 // For production, use environment variables or secure storage
 const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-interface Review {
-  authorAttribution: {
-    displayName: string;
-  };
-  text: {
-    text: string;
-  };
-  rating: number;
-  publishTime: string;
-}
-
-interface Photo {
-  name: string;
-  widthPx?: number;
-  heightPx?: number;
-  authorAttributions?: {
-    displayName: string;
-    uri: string;
-  }[];
-}
-
-interface PlaceResult {
-  id: string;
-  displayName: {
-    text: string;
-    languageCode: string;
-  };
-  formattedAddress: string;
-  location: {
-    latitude: number;
-    longitude: number;
-  };
-  rating?: number;
-  userRatingCount?: number;
-  reviews?: Review[];
-  photos?: Photo[];
-}
-
 export default function PlaceSearchScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ pinId?: string }>();
@@ -70,16 +35,13 @@ export default function PlaceSearchScreen() {
   const queryClient = useQueryClient();
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<PlaceResult[]>([]);
+  const [searchResults, setSearchResults] = useState<PlaceSearchResult[]>([]);
+  const [savingPlaceId, setSavingPlaceId] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const pinId = params.pinId ?? "";
-
-  const buildPlaceImageUrl = (photoName: string) =>
-    `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=200&maxWidthPx=200&key=${GOOGLE_PLACES_API_KEY}`;
 
   // Google Places API Text Search (New)
   // Documentation: https://developers.google.com/maps/documentation/places/web-service/text-search
@@ -90,13 +52,16 @@ export default function PlaceSearchScreen() {
       return;
     }
 
-    if (!query.trim()) {
+    const trimmedQuery = query.trim();
+
+    if (trimmedQuery.length < 3) {
       setSearchResults([]);
-      setError(null);
+      setError("Enter at least 3 characters to search");
       return;
     }
 
     setIsSearching(true);
+    setHasSearched(true);
     setError(null);
 
     try {
@@ -108,11 +73,11 @@ export default function PlaceSearchScreen() {
             "Content-Type": "application/json",
             "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
             "X-Goog-FieldMask":
-              "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.reviews,places.photos",
+              "places.id,places.displayName,places.formattedAddress,places.location,places.primaryTypeDisplayName",
           },
           body: JSON.stringify({
-            textQuery: query,
-            pageSize: 3,
+            textQuery: trimmedQuery,
+            pageSize: 10,
           }),
         },
       );
@@ -124,9 +89,11 @@ export default function PlaceSearchScreen() {
         );
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as {
+        places?: PlaceSearchResult[];
+      };
 
-      setSearchResults(data.places || []);
+      setSearchResults(data.places ?? []);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to search places";
@@ -138,30 +105,14 @@ export default function PlaceSearchScreen() {
     }
   };
 
-  const handleSearch = (text: string) => {
+  const handleSearchQueryChange = (text: string) => {
     setSearchQuery(text);
-
-    // Clear existing timeout
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-
-    // Set new timeout for debounced search
-    debounceTimeoutRef.current = setTimeout(() => {
-      searchPlaces(text);
-    }, 1000); // 1000ms debounce delay
+    setSearchResults([]);
+    setHasSearched(false);
+    setError(null);
   };
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const handleSelectPlace = async (place: PlaceResult) => {
+  const handleSelectPlace = async (place: PlaceSearchResult) => {
     if (!session?.user.id) {
       showMessage("You must be signed in to save a location", "error");
       return;
@@ -173,7 +124,7 @@ export default function PlaceSearchScreen() {
     }
 
     try {
-      setIsSaving(true);
+      setSavingPlaceId(place.id);
       const localPin = await actionGetLocalPin(pinId, session.user.id);
 
       if (
@@ -186,27 +137,16 @@ export default function PlaceSearchScreen() {
         return;
       }
 
-      const imageUrl = place.photos?.[0]?.name
-        ? buildPlaceImageUrl(place.photos[0].name)
-        : null;
-      const localImageUri = imageUrl
-        ? await persistLocalPlaceImage({
-            pinId,
-            placeId: place.id,
-            imageUrl,
-          }).catch(() => null)
-        : null;
-
       await actionUpsertLocalPinLocation({
         pinId,
         userId: session.user.id,
         placeId: place.id,
         displayName: place.displayName.text,
         formattedAddress: place.formattedAddress,
-        imageUrl,
-        localImageUri,
-        rating: place.rating ?? null,
-        reviewCount: place.userRatingCount ?? null,
+        imageUrl: null,
+        localImageUri: null,
+        rating: null,
+        reviewCount: null,
         latitude: place.location.latitude,
         longitude: place.location.longitude,
       });
@@ -235,9 +175,11 @@ export default function PlaceSearchScreen() {
           : "Failed to save this location";
       showMessage(message, "error");
     } finally {
-      setIsSaving(false);
+      setSavingPlaceId(null);
     }
   };
+
+  const isSearchDisabled = searchQuery.trim().length < 3 || isSearching;
 
   return (
     <View style={styles.container}>
@@ -250,35 +192,64 @@ export default function PlaceSearchScreen() {
 
       {/* Search Input */}
       <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons
-            name="search"
-            size={20}
-            color={semanticColors.textSecondary}
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search for a place..."
-            placeholderTextColor={getColor(colors.paleGrey)}
-            value={searchQuery}
-            onChangeText={handleSearch}
-            autoFocus
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={() => {
-                setSearchQuery("");
-                setSearchResults([]);
-              }}
-            >
-              <Ionicons
-                name="close-circle"
-                size={20}
-                color={getColor(colors.paleGrey)}
+        <View style={styles.searchRow}>
+          <View style={styles.searchInputContainer}>
+            <Ionicons
+              name="search"
+              size={20}
+              color={semanticColors.textSecondary}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Place name or address"
+              placeholderTextColor={getColor(colors.paleGrey)}
+              value={searchQuery}
+              onChangeText={handleSearchQueryChange}
+              onSubmitEditing={() => void searchPlaces(searchQuery)}
+              autoFocus
+              autoCorrect={false}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 ? (
+              <TouchableOpacity
+                accessibilityLabel="Clear place search"
+                accessibilityRole="button"
+                hitSlop={8}
+                onPress={() => handleSearchQueryChange("")}
+              >
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color={getColor(colors.paleGrey)}
+                />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <TouchableOpacity
+            accessibilityLabel="Search places"
+            accessibilityRole="button"
+            activeOpacity={0.8}
+            disabled={isSearchDisabled}
+            onPress={() => void searchPlaces(searchQuery)}
+            style={[
+              styles.searchButton,
+              isSearchDisabled && styles.searchButtonDisabled,
+            ]}
+          >
+            {isSearching ? (
+              <ActivityIndicator
+                color={semanticColors.primaryActionContent}
+                size="small"
               />
-            </TouchableOpacity>
-          )}
+            ) : (
+              <Ionicons
+                name="search"
+                size={21}
+                color={semanticColors.primaryActionContent}
+              />
+            )}
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -300,108 +271,14 @@ export default function PlaceSearchScreen() {
           <FlatList
             data={searchResults}
             keyExtractor={(item) => item.id}
+            keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.resultCard}
-                onPress={() => void handleSelectPlace(item)}
-                disabled={isSaving}
-                activeOpacity={0.85}
-              >
-                <View style={styles.resultHeader}>
-                  {/* Thumbnail */}
-                  {item.photos && item.photos.length > 0 ? (
-                    <View style={styles.thumbnailContainer}>
-                      <Image
-                        source={{
-                          uri: buildPlaceImageUrl(item.photos[0].name),
-                        }}
-                        style={styles.thumbnail}
-                      />
-                    </View>
-                  ) : (
-                    <View style={styles.thumbnailPlaceholder}>
-                      <Ionicons
-                        name="image-outline"
-                        size={24}
-                        color={getColor(colors.paleGrey)}
-                      />
-                    </View>
-                  )}
-                  <View style={styles.resultInfo}>
-                    <Text style={styles.resultName}>
-                      {item.displayName.text}
-                    </Text>
-                    <Text style={styles.resultAddress}>
-                      {item.formattedAddress}
-                    </Text>
-                    {item.rating && (
-                      <View style={styles.ratingContainer}>
-                        <Ionicons
-                          name="star"
-                          size={16}
-                          color={getColor(colors.waffle)}
-                        />
-                        <Text style={styles.ratingText}>{item.rating}</Text>
-                        {item.userRatingCount && (
-                          <Text style={styles.reviewCount}>
-                            ({item.userRatingCount} reviews)
-                          </Text>
-                        )}
-                      </View>
-                    )}
-                  </View>
-                </View>
-
-                {/* Reviews */}
-                {item.reviews && item.reviews.length > 0 && (
-                  <View style={styles.reviewsContainer}>
-                    <Text style={styles.reviewsTitle}>Latest Reviews</Text>
-                    {item.reviews.slice(0, 3).map((review, index) => (
-                      <View key={index} style={styles.reviewItem}>
-                        <View style={styles.reviewHeader}>
-                          <Text style={styles.reviewAuthor}>
-                            {review.authorAttribution.displayName}
-                          </Text>
-                          {review.rating && (
-                            <View style={styles.reviewRating}>
-                              <Ionicons
-                                name="star"
-                                size={12}
-                                color={getColor(colors.waffle)}
-                              />
-                              <Text style={styles.reviewRatingText}>
-                                {review.rating}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                        {review.text?.text && (
-                          <Text style={styles.reviewText} numberOfLines={3}>
-                            {review.text.text}
-                          </Text>
-                        )}
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                <View style={styles.coordinatesContainer}>
-                  <View style={styles.coordinateItem}>
-                    <Ionicons name="location" size={14} color="#666" />
-                    <Text style={styles.coordinateLabel}>Latitude:</Text>
-                    <Text style={styles.coordinateValue}>
-                      {item.location.latitude}
-                    </Text>
-                  </View>
-                  <View style={styles.coordinateItem}>
-                    <Ionicons name="location" size={14} color="#666" />
-                    <Text style={styles.coordinateLabel}>Longitude:</Text>
-                    <Text style={styles.coordinateValue}>
-                      {item.location.longitude}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
+              <PlaceSearchResultCard
+                place={item}
+                isDisabled={savingPlaceId !== null}
+                isSaving={savingPlaceId === item.id}
+                onConfirm={() => void handleSelectPlace(item)}
+              />
             )}
             style={styles.resultsList}
             contentContainerStyle={styles.resultsListContent}
@@ -410,31 +287,34 @@ export default function PlaceSearchScreen() {
       )}
 
       {/* Empty State */}
-      {searchQuery.length === 0 && (
+      {!isSearching && !hasSearched && searchResults.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons
             name="search-outline"
             size={64}
             color={getColor(colors.paleGrey)}
           />
-          <Text style={styles.emptyStateText}>Search for places</Text>
+          <Text style={styles.emptyStateText}>Find the right place</Text>
           <Text style={styles.emptyStateSubtext}>
-            Enter a place name or address to find locations
+            Search by a place name or address, then choose the best match for
+            your pin.
           </Text>
         </View>
-      )}
+      ) : null}
 
-      {/* Loading State */}
-      {isSearching && (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Searching...</Text>
+      {!isSearching && hasSearched && searchResults.length === 0 && !error ? (
+        <View style={styles.emptyState}>
+          <Ionicons
+            name="location-outline"
+            size={56}
+            color={getColor(colors.paleGrey)}
+          />
+          <Text style={styles.emptyStateText}>No matching places</Text>
+          <Text style={styles.emptyStateSubtext}>
+            Try a more specific name, town or address.
+          </Text>
         </View>
-      )}
-      {isSaving && (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Saving location...</Text>
-        </View>
-      )}
+      ) : null}
       <SystemMessageModal />
     </View>
   );
@@ -446,27 +326,46 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.screen,
   },
   searchContainer: {
-    padding: 20,
+    padding: 16,
     backgroundColor: semanticColors.screen,
     borderBottomWidth: 1,
-    borderBottomColor: semanticColors.brandDivider,
+    borderBottomColor: semanticColors.neutralDivider,
+  },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   searchInputContainer: {
+    flex: 1,
+    minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: semanticColors.surface,
+    borderWidth: 1,
+    borderColor: semanticColors.neutralDivider,
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
+    paddingHorizontal: 12,
+    gap: 8,
   },
   searchIcon: {
-    marginRight: 4,
+    flexShrink: 0,
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
     color: semanticColors.textPrimary,
+  },
+  searchButton: {
+    width: 48,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    backgroundColor: semanticColors.primaryAction,
+  },
+  searchButtonDisabled: {
+    opacity: 0.45,
   },
   resultsContainer: {
     flex: 1,
@@ -476,150 +375,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   resultsListContent: {
-    padding: 20,
-    gap: 12,
-  },
-  resultCard: {
-    backgroundColor: semanticColors.surface,
-    borderRadius: 12,
     padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  resultHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 12,
-  },
-  thumbnailContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    overflow: "hidden",
-    marginRight: 12,
-  },
-  thumbnail: {
-    width: "100%",
-    height: "100%",
-    backgroundColor: getColor(colors.whiteGrey, 0.5),
-  },
-  thumbnailPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    backgroundColor: getColor(colors.whiteGrey, 0.5),
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  resultIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#E8F2FF",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  resultInfo: {
-    flex: 1,
-  },
-  resultName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: semanticColors.textPrimary,
-    marginBottom: 4,
-  },
-  resultAddress: {
-    fontSize: 14,
-    color: semanticColors.textSecondary,
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  ratingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 4,
-  },
-  ratingText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: semanticColors.textPrimary,
-  },
-  reviewCount: {
-    fontSize: 12,
-    color: getColor(colors.paleGrey),
-  },
-  reviewsContainer: {
-    marginTop: 12,
-    marginBottom: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: semanticColors.neutralDivider,
-  },
-  reviewsTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: semanticColors.textPrimary,
-    marginBottom: 8,
-  },
-  reviewItem: {
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: semanticColors.neutralDivider,
-  },
-  reviewHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  reviewAuthor: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: semanticColors.textPrimary,
-  },
-  reviewRating: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-  },
-  reviewRatingText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: semanticColors.textSecondary,
-  },
-  reviewText: {
-    fontSize: 13,
-    color: semanticColors.textSecondary,
-    lineHeight: 18,
-  },
-  coordinatesContainer: {
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: semanticColors.neutralDivider,
-    gap: 8,
-  },
-  coordinateItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  coordinateLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: semanticColors.textSecondary,
-    minWidth: 70,
-  },
-  coordinateValue: {
-    fontSize: 13,
-    color: semanticColors.textPrimary,
-    fontFamily: "monospace",
+    paddingBottom: 32,
+    gap: 12,
   },
   emptyState: {
     flex: 1,
@@ -639,20 +397,13 @@ const styles = StyleSheet.create({
     color: getColor(colors.paleGrey),
     textAlign: "center",
   },
-  loadingContainer: {
-    padding: 20,
-    alignItems: "center",
-  },
-  loadingText: {
-    fontSize: 14,
-    color: semanticColors.textSecondary,
-  },
   errorContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: getColor(colors.red, 0.12),
-    padding: 16,
-    margin: 20,
+    padding: 12,
+    marginHorizontal: 16,
+    marginTop: 16,
     borderRadius: 8,
     gap: 8,
   },

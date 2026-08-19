@@ -115,8 +115,9 @@ export default function AiTripPlannerScreen() {
   const [localRefinementError, setLocalRefinementError] = useState<
     string | null
   >(null);
-  const [latestPlan, setLatestPlan] =
-    useState<AiPlannerPlanViewModel | null>(null);
+  const [latestPlan, setLatestPlan] = useState<AiPlannerPlanViewModel | null>(
+    null,
+  );
   const [latestPlanningResult, setLatestPlanningResult] =
     useState<PlanningResult | null>(null);
   const [reviewVisible, setReviewVisible] = useState(false);
@@ -141,9 +142,9 @@ export default function AiTripPlannerScreen() {
   );
   const isCheckingRecovery = Boolean(
     userId &&
-      localPlanningSessions.isPending &&
-      !recoveryDismissed &&
-      !planningContext,
+    localPlanningSessions.isPending &&
+    !recoveryDismissed &&
+    !planningContext,
   );
   const planningJob = usePlanningJob(planningContext?.jobId, userId, {
     enabled: Boolean(planningContext),
@@ -186,7 +187,7 @@ export default function AiTripPlannerScreen() {
   const resolvedPlanningResult =
     job?.status === "completed"
       ? job.result
-      : planningSession.data?.currentRevision?.result ?? null;
+      : (planningSession.data?.currentRevision?.result ?? null);
   const planningResult = resolvedPlanningResult ?? latestPlanningResult;
 
   useEffect(() => {
@@ -327,9 +328,7 @@ export default function AiTripPlannerScreen() {
     if (
       refinementAttempt &&
       (!refinementAttempt.messageId ||
-        !messages.some(
-          (message) => message.id === refinementAttempt.messageId,
-        ))
+        !messages.some((message) => message.id === refinementAttempt.messageId))
     ) {
       messages.push({
         id: refinementAttempt.messageId ?? refinementAttempt.idempotencyKey,
@@ -350,10 +349,7 @@ export default function AiTripPlannerScreen() {
     !cancelPlanningJob.isPending;
 
   useEffect(() => {
-    if (
-      job?.status === "completed" &&
-      openedDraftJobId !== job.id
-    ) {
+    if (job?.status === "completed" && openedDraftJobId !== job.id) {
       setOpenedDraftJobId(job.id);
       setActiveView("draft");
     }
@@ -551,9 +547,7 @@ export default function AiTripPlannerScreen() {
     }
   };
 
-  const handleSubmitRefinement = (
-    request: CreatePlanningRefinementRequest,
-  ) => {
+  const handleSubmitRefinement = (request: CreatePlanningRefinementRequest) => {
     if (!canSubmitRefinement) {
       return;
     }
@@ -722,9 +716,7 @@ export default function AiTripPlannerScreen() {
           onPress: planningJob.resumePolling,
         };
         secondaryAction = {
-          label: cancelPlanningJob.isPending
-            ? "Cancelling…"
-            : "Cancel update",
+          label: cancelPlanningJob.isPending ? "Cancelling…" : "Cancel update",
           onPress: handleCancelPlanning,
           disabled: cancelPlanningJob.isPending,
         };
@@ -736,9 +728,7 @@ export default function AiTripPlannerScreen() {
           onPress: () => void planningJob.refetch(),
         };
         secondaryAction = {
-          label: cancelPlanningJob.isPending
-            ? "Cancelling…"
-            : "Cancel update",
+          label: cancelPlanningJob.isPending ? "Cancelling…" : "Cancel update",
           onPress: handleCancelPlanning,
           disabled: cancelPlanningJob.isPending,
         };
@@ -750,9 +740,7 @@ export default function AiTripPlannerScreen() {
             ? job.progress.message
             : "Your draft update is queued.";
         secondaryAction = {
-          label: cancelPlanningJob.isPending
-            ? "Cancelling…"
-            : "Cancel update",
+          label: cancelPlanningJob.isPending ? "Cancelling…" : "Cancel update",
           onPress: handleCancelPlanning,
           disabled: cancelPlanningJob.isPending,
         };
@@ -855,7 +843,7 @@ export default function AiTripPlannerScreen() {
           : "New";
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
