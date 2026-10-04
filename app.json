@@ -25,6 +25,7 @@
       "expo-image",
       "expo-web-browser",
       "expo-status-bar",
+      "expo-notifications",
       [
         "expo-splash-screen",
         {

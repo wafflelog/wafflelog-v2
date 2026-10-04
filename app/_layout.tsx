@@ -1,4 +1,5 @@
 import { GlobalDbSync } from "@/components/global/db-sync";
+import { GlobalAppNotifications } from "@/components/global/app-notifications";
 import { AuthSessionProvider } from "@/hook/use-auth-session";
 import { initializeDatabase } from "@/lib/sqlite/init";
 import {
@@ -40,6 +41,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <AuthSessionProvider>
         <GlobalDbSync />
+        <GlobalAppNotifications />
         <KeyboardProvider>
           <Stack>
             <Stack.Screen name="(stack)" options={{ headerShown: false }} />
