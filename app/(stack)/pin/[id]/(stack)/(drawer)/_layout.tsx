@@ -3,10 +3,10 @@ import { HeaderPin } from "@/components/header/pin";
 import { semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionGetLocalPin } from "@/lib/sqlite/model/pin";
-import { DrawerActions } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
+import { DrawerActions } from "expo-router/react-navigation";
 
 export default function Layout() {
   const { id } = useLocalSearchParams<{ id: string }>();

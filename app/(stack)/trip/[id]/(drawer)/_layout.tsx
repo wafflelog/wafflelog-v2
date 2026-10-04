@@ -3,10 +3,10 @@ import { HeaderTrip } from "@/components/header/trip";
 import { semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
-import { DrawerActions } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
+import { DrawerActions } from "expo-router/react-navigation";
 
 const tripSectionTitles: Record<string, string> = {
   checklist: "Checklist",

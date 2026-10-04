@@ -1,8 +1,8 @@
+import { router, usePathname } from "expo-router";
 import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
-} from "@react-navigation/drawer";
-import { router, usePathname } from "expo-router";
+} from "expo-router/drawer";
 import { StyleSheet, View } from "react-native";
 
 import {

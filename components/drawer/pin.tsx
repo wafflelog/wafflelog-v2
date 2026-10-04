@@ -1,10 +1,10 @@
-import {
-  DrawerContentComponentProps,
-  DrawerContentScrollView,
-} from "@react-navigation/drawer";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useRouter } from "expo-router";
+import {
+  DrawerContentComponentProps,
+  DrawerContentScrollView,
+} from "expo-router/drawer";
 import { MapPinIcon } from "lucide-react-native";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -12,8 +12,8 @@ import { DrawerItemRegular } from "@/components/drawer/item/regular";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
-import { formatDate } from "@/lib/helper/utils";
 import { getPinTitle } from "@/lib/helper/pin";
+import { formatDate } from "@/lib/helper/utils";
 import {
   actionGetLocalPin,
   actionListLocalPinsByTripAndDate,
@@ -100,11 +100,7 @@ export function DrawerPin({ id }: DrawerPinProps) {
               icon: (color) => (
                 <MapPinIcon
                   size={20}
-                  color={
-                    id === pin.id
-                      ? color
-                      : getColor(colors.textLightGrey)
-                  }
+                  color={id === pin.id ? color : getColor(colors.textLightGrey)}
                 />
               ),
             }}
