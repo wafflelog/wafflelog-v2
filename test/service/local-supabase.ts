@@ -48,11 +48,10 @@ export async function createTestUser(label: string) {
     throw error ?? new Error("Failed to create test user");
   }
 
-  const { data: sessionData, error: signInError } = await createClient<Database>(
-    url,
-    publishableKey,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  ).auth.signInWithPassword({ email, password });
+  const { data: sessionData, error: signInError } =
+    await createClient<Database>(url, publishableKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    }).auth.signInWithPassword({ email, password });
 
   if (signInError || !sessionData.session) {
     throw signInError ?? new Error("Failed to sign in test user");
