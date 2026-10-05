@@ -29,7 +29,10 @@ type ExpoPushMessage = {
   data: Record<string, string>;
 };
 
-const pushEnabledNotificationTypes = new Set(["trip_invited"]);
+const pushEnabledNotificationTypes = new Set([
+  "trip_invited",
+  "trip_invite_accepted",
+]);
 const expoPushUrl = "https://exp.host/--/api/v2/push/send";
 
 const jsonResponse = (body: unknown, status = 200) =>

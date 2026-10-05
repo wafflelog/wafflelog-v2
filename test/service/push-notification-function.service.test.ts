@@ -85,30 +85,33 @@ describe("push notification Edge Function", () => {
   it("skips notification types that are not push-enabled", async () => {
     const { response, body } = await invokeFunction(
       secretKey,
-      createWebhookPayload(crypto.randomUUID(), "trip_invite_accepted"),
+      createWebhookPayload(crypto.randomUUID(), "trip_invite_rejected"),
     );
 
     expect(response.status).toBe(200);
     expect(body).toEqual({
       ok: true,
       skipped: "notification_type_not_push_enabled",
-      notificationType: "trip_invite_accepted",
+      notificationType: "trip_invite_rejected",
       targetedDevices: 0,
     });
   });
 
-  it("skips an invitation when the recipient has no registered devices", async () => {
-    const recipient = await createTestUser("push_recipient");
-    const { response, body } = await invokeFunction(
-      secretKey,
-      createWebhookPayload(recipient.id),
-    );
+  it.each(["trip_invited", "trip_invite_accepted"])(
+    "skips a %s notification when the recipient has no registered devices",
+    async (notificationType) => {
+      const recipient = await createTestUser("push_recipient");
+      const { response, body } = await invokeFunction(
+        secretKey,
+        createWebhookPayload(recipient.id, notificationType),
+      );
 
-    expect(response.status).toBe(200);
-    expect(body).toEqual({
-      ok: true,
-      skipped: "no_registered_devices",
-      targetedDevices: 0,
-    });
-  });
+      expect(response.status).toBe(200);
+      expect(body).toEqual({
+        ok: true,
+        skipped: "no_registered_devices",
+        targetedDevices: 0,
+      });
+    },
+  );
 });
