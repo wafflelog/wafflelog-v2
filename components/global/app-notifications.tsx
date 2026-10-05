@@ -48,8 +48,9 @@ async function registerForPushNotifications() {
     throw new Error("Expo project ID is not configured");
   }
 
-  const { data: expoPushToken } =
-    await Notifications.getExpoPushTokenAsync({ projectId });
+  const { data: expoPushToken } = await Notifications.getExpoPushTokenAsync({
+    projectId,
+  });
 
   return expoPushToken;
 }
@@ -60,15 +61,14 @@ export function GlobalAppNotifications() {
   useEffect(() => {
     const platform = Platform.OS;
 
-    if (
-      !session?.user.id ||
-      (platform !== "ios" && platform !== "android")
-    ) {
+    if (!session?.user.id || (platform !== "ios" && platform !== "android")) {
       return;
     }
 
     void registerForPushNotifications()
       .then((expoPushToken) => {
+        console.log("Expo push token:", expoPushToken);
+
         if (!expoPushToken) {
           return;
         }
