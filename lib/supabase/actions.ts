@@ -99,11 +99,17 @@ export type CreateTripInvitationInput = {
   inviteeUserId: string;
 };
 
+export type UpsertPushDeviceInput = {
+  expoPushToken: string;
+  platform: "ios" | "android";
+};
+
 export type TripRow = Tables<"trip">;
 export type PublicUserRow = Tables<"user">;
 export type AppNotificationRow = Tables<"app_notification">;
 export type TripInvitationRow = Tables<"trip_invitation">;
 export type TripMemberRow = Tables<"trip_member">;
+export type PushDeviceRow = Tables<"user_push_device">;
 
 export type AppNotification = AppNotificationRow & {
   invitationStatus: string | null;
@@ -1115,6 +1121,44 @@ export async function actionCreateTripInvitation(
       invitee_user_id: input.inviteeUserId,
       status: "pending",
     })
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function actionUpsertPushDevice(
+  input: UpsertPushDeviceInput,
+  client: SupabaseClient<Database> = supabase,
+): Promise<PushDeviceRow> {
+  const {
+    data: { user },
+    error: authError,
+  } = await client.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to register a push device");
+  }
+
+  const { data, error } = await client
+    .from("user_push_device")
+    .upsert(
+      {
+        user_id: user.id,
+        expo_push_token: input.expoPushToken,
+        platform: input.platform,
+        last_seen_at: new Date().toISOString(),
+      },
+      { onConflict: "expo_push_token" },
+    )
     .select()
     .single();
 

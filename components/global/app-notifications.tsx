@@ -1,3 +1,5 @@
+import { useAuthSession } from "@/hook/use-auth-session";
+import { actionUpsertPushDevice } from "@/lib/supabase/actions";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { useEffect } from "react";
@@ -53,11 +55,30 @@ async function registerForPushNotifications() {
 }
 
 export function GlobalAppNotifications() {
+  const { session } = useAuthSession();
+
   useEffect(() => {
-    void registerForPushNotifications().catch((error) => {
-      console.warn("Unable to register for push notifications", error);
-    });
-  }, []);
+    const platform = Platform.OS;
+
+    if (
+      !session?.user.id ||
+      (platform !== "ios" && platform !== "android")
+    ) {
+      return;
+    }
+
+    void registerForPushNotifications()
+      .then((expoPushToken) => {
+        if (!expoPushToken) {
+          return;
+        }
+
+        return actionUpsertPushDevice({ expoPushToken, platform });
+      })
+      .catch((error) => {
+        console.warn("Unable to register for push notifications", error);
+      });
+  }, [session?.user.id]);
 
   return null;
 }

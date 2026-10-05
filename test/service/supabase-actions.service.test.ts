@@ -27,6 +27,7 @@ import {
   actionSoftDeleteRemoteReferenceLink,
   actionSoftDeleteRemoteTrip,
   actionUpdateRemoteChecklistItemFromLocal,
+  actionUpsertPushDevice,
   actionUpsertRemoteChecklistItemFromLocal,
   actionUpsertRemoteDocumentFromLocal,
   actionUpsertRemoteExpenseFromLocal,
@@ -47,6 +48,36 @@ vi.mock("expo-secure-store", () => ({
 }));
 
 describe("Supabase actions", () => {
+  it("upserts one push-device row for the same Expo token", async () => {
+    const user = await createTestUser("push_device");
+    const expoPushToken = `ExpoPushToken[${crypto.randomUUID()}]`;
+
+    const firstRegistration = await actionUpsertPushDevice(
+      { expoPushToken, platform: "ios" },
+      user.client,
+    );
+    const secondRegistration = await actionUpsertPushDevice(
+      { expoPushToken, platform: "ios" },
+      user.client,
+    );
+
+    expect(secondRegistration.id).toBe(firstRegistration.id);
+
+    const { data: storedDevices, error } = await user.client
+      .from("user_push_device")
+      .select("user_id, expo_push_token, platform")
+      .eq("expo_push_token", expoPushToken);
+
+    expect(error).toBeNull();
+    expect(storedDevices).toEqual([
+      {
+        user_id: user.id,
+        expo_push_token: expoPushToken,
+        platform: "ios",
+      },
+    ]);
+  });
+
   it("syncs expense allocations atomically", async () => {
     const owner = await createTestUser("shared_expense");
     const tripId = crypto.randomUUID();
