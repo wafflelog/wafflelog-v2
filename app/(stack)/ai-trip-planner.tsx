@@ -53,6 +53,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type PlannerView = "chat" | "draft";
 
@@ -91,6 +92,7 @@ function getPlanningErrorMessage(error: unknown) {
 export default function AiTripPlannerScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
   const { session } = useAuthSession();
   const userId = session?.user.id ?? null;
   const createPlanningSession = useCreatePlanningSession();
@@ -812,7 +814,7 @@ export default function AiTripPlannerScreen() {
           : "New";
 
   return (
-    <View style={[styles.safeArea]}>
+    <View style={[styles.safeArea, { paddingBottom: insets.bottom }]}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -1016,7 +1018,6 @@ export default function AiTripPlannerScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: getColor(colors.textDarkGrey, 0.16),
   },
   keyboardView: { flex: 1 },
   frame: {

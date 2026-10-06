@@ -29,7 +29,7 @@ import {
   Pencil,
   Sparkles,
 } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -87,11 +87,7 @@ function UserBubble({ children }: { children: React.ReactNode }) {
   return (
     <View style={[styles.messageRow, styles.userMessageRow]}>
       <View style={[styles.bubble, styles.userBubble]}>
-        <TitleRegular
-          size="sm"
-          color={colors.white}
-          style={styles.messageText}
-        >
+        <TitleRegular size="sm" color={colors.white} style={styles.messageText}>
           {children}
         </TitleRegular>
       </View>
@@ -250,8 +246,7 @@ export function AiPlannerIntakeConversation({
 }: AiPlannerIntakeConversationProps) {
   const scrollRef = useRef<ScrollView>(null);
   const [answers, setAnswers] = useState<Partial<AiPlannerIntakeAnswers>>({});
-  const [activeField, setActiveField] =
-    useState<IntakeField>("destination");
+  const [activeField, setActiveField] = useState<IntakeField>("destination");
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -262,13 +257,14 @@ export function AiPlannerIntakeConversation({
     answers.durationDays !== undefined &&
     answers.tripBrief !== undefined;
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    }, 50);
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     console.log("Scrolling to end of intake conversation");
+  //     scrollRef.current?.scrollToEnd({ animated: true });
+  //   }, 50);
 
-    return () => clearTimeout(timer);
-  }, [activeField, answers, error, isEditing, planningProgress]);
+  //   return () => clearTimeout(timer);
+  // }, [activeField, answers, error, isEditing, planningProgress]);
 
   const advanceAfterAnswer = (nextAnswers: Partial<AiPlannerIntakeAnswers>) => {
     if (isEditing) {
@@ -285,6 +281,8 @@ export function AiPlannerIntakeConversation({
     } else if (nextAnswers.tripBrief === undefined) {
       setActiveField("tripBrief");
     }
+
+    scrollRef.current?.scrollToEnd({ animated: true });
   };
 
   const handleSubmit = () => {
@@ -499,7 +497,7 @@ export function AiPlannerIntakeConversation({
               </TitleRegular>
             ) : (
               <TitleRegular size="xxs" color={colors.textLightGrey}>
-                UI prototype · answers stay on this device
+                {""}
               </TitleRegular>
             )}
             {inputLimit ? (
@@ -526,10 +524,7 @@ export function AiPlannerIntakeConversation({
                 />
               </View>
               <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  !input && styles.sendButtonDisabled,
-                ]}
+                style={[styles.sendButton, !input && styles.sendButtonDisabled]}
                 onPress={handleSubmit}
                 disabled={!input}
                 accessibilityLabel="Confirm start date"
@@ -551,9 +546,7 @@ export function AiPlannerIntakeConversation({
                 keyboardType={
                   activeField === "durationDays" ? "number-pad" : "default"
                 }
-                inputMode={
-                  activeField === "durationDays" ? "numeric" : "text"
-                }
+                inputMode={activeField === "durationDays" ? "numeric" : "text"}
                 multiline={activeField === "tripBrief"}
                 maxLength={inputLimit}
                 autoFocus
