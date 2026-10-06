@@ -1,34 +1,9 @@
-import {
-  type AiPlannerConversationMessage,
-  type AiPlannerPlanViewModel,
-} from "@/types/ai-trip-planner";
+import { type AiPlannerPlanViewModel } from "@/types/ai-trip-planner";
 
 export const AI_PLANNER_PROMPT_SUGGESTIONS = [
   "A relaxed food weekend",
   "Nature without a car",
   "Family-friendly city break",
-];
-
-export const AI_PLANNER_INITIAL_MESSAGES: AiPlannerConversationMessage[] = [
-  {
-    id: "welcome",
-    role: "assistant",
-    body: "Tell me what you have in mind. A destination is helpful, but you can also start with a mood, budget, pace, or the sort of memories you want to make.",
-    time: "10:31",
-  },
-  {
-    id: "request",
-    role: "user",
-    body: "Plan a relaxed four-day food and culture trip to Osaka for two adults. We love independent restaurants and local neighbourhoods, but want limited nightlife and no more than three activities per day.",
-    time: "10:32",
-  },
-  {
-    id: "draft-ready",
-    role: "assistant",
-    body: "I’ve put together a neighbourhood-led first draft with plenty of breathing room. It begins around old Osaka, keeps one day for nature, and leaves the final afternoon flexible.",
-    time: "10:34",
-    draftRevision: 2,
-  },
 ];
 
 export const AI_PLANNER_PROTOTYPE_PLAN: AiPlannerPlanViewModel = {

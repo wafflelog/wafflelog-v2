@@ -33,14 +33,6 @@ export type AiPlannerPlanViewModel = {
   days: AiPlannerDayViewModel[];
 };
 
-export type AiPlannerConversationMessage = {
-  id: string;
-  role: "assistant" | "user";
-  body: string;
-  time: string;
-  draftRevision?: number;
-};
-
 export type AiPlannerIntakeAnswers = {
   destination: string;
   startDate: string;

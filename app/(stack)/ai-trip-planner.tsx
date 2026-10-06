@@ -47,8 +47,6 @@ import { CalendarDays, MessageCircle } from "lucide-react-native";
 import { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -815,152 +813,143 @@ export default function AiTripPlannerScreen() {
 
   return (
     <View style={[styles.safeArea, { paddingBottom: insets.bottom }]}>
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <View style={styles.frame}>
-          <AppHeader
-            title="Plan with AI"
-            subtitle={
-              showRecovery
-                ? "Planning saved on this device"
-                : planningContext
-                  ? `${planningContext.answers.destination} planning session`
-                  : "New planning session"
-            }
-            sideWidth={72}
-            leading={
-              <HeaderCloseButton
-                accessibilityLabel="Close AI trip planner"
-                onPress={() => router.back()}
-              />
-            }
-            trailing={
-              <View style={styles.revisionBadge}>
-                <TitleRegular size="xxs" weight="600" color={colors.purple}>
-                  {headerBadge}
-                </TitleRegular>
-              </View>
-            }
-          />
-
-          <View style={styles.tabsWrapper}>
-            <View style={styles.tabs}>
-              <TouchableOpacity
-                style={[styles.tab, activeView === "chat" && styles.activeTab]}
-                onPress={() => selectView("chat")}
-              >
-                <MessageCircle
-                  size={17}
-                  color={getColor(
-                    activeView === "chat"
-                      ? colors.purple
-                      : colors.textLightGrey,
-                  )}
-                />
-                <TitleRegular
-                  size="sm"
-                  weight="600"
-                  color={
-                    activeView === "chat" ? colors.purple : colors.textLightGrey
-                  }
-                >
-                  Chat
-                </TitleRegular>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  activeView === "draft" && styles.activeTab,
-                  !livePlan && styles.disabledTab,
-                ]}
-                onPress={() => selectView("draft")}
-                disabled={!livePlan}
-              >
-                <CalendarDays
-                  size={17}
-                  color={getColor(
-                    activeView === "draft"
-                      ? colors.purple
-                      : colors.textLightGrey,
-                  )}
-                />
-                <TitleRegular
-                  size="sm"
-                  weight="600"
-                  color={
-                    activeView === "draft"
-                      ? colors.purple
-                      : colors.textLightGrey
-                  }
-                >
-                  Trip draft
-                </TitleRegular>
-                {livePlan ? (
-                  <View style={styles.itemCount}>
-                    <TitleRegular size="xxs" weight="700" color={colors.purple}>
-                      {itineraryItemCount}
-                    </TitleRegular>
-                  </View>
-                ) : null}
-              </TouchableOpacity>
+      <View style={styles.frame}>
+        <AppHeader
+          title="Plan with AI"
+          subtitle={
+            showRecovery
+              ? "Planning saved on this device"
+              : planningContext
+                ? `${planningContext.answers.destination} planning session`
+                : "New planning session"
+          }
+          sideWidth={72}
+          leading={
+            <HeaderCloseButton
+              accessibilityLabel="Close AI trip planner"
+              onPress={() => router.back()}
+            />
+          }
+          trailing={
+            <View style={styles.revisionBadge}>
+              <TitleRegular size="xxs" weight="600" color={colors.purple}>
+                {headerBadge}
+              </TitleRegular>
             </View>
-          </View>
+          }
+        />
 
-          <View style={styles.body}>
+        <View style={styles.tabsWrapper}>
+          <View style={styles.tabs}>
+            <TouchableOpacity
+              style={[styles.tab, activeView === "chat" && styles.activeTab]}
+              onPress={() => selectView("chat")}
+            >
+              <MessageCircle
+                size={17}
+                color={getColor(
+                  activeView === "chat" ? colors.purple : colors.textLightGrey,
+                )}
+              />
+              <TitleRegular
+                size="sm"
+                weight="600"
+                color={
+                  activeView === "chat" ? colors.purple : colors.textLightGrey
+                }
+              >
+                Chat
+              </TitleRegular>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.tab,
+                activeView === "draft" && styles.activeTab,
+                !livePlan && styles.disabledTab,
+              ]}
+              onPress={() => selectView("draft")}
+              disabled={!livePlan}
+            >
+              <CalendarDays
+                size={17}
+                color={getColor(
+                  activeView === "draft"
+                    ? colors.purple
+                    : colors.textLightGrey,
+                )}
+              />
+              <TitleRegular
+                size="sm"
+                weight="600"
+                color={
+                  activeView === "draft" ? colors.purple : colors.textLightGrey
+                }
+              >
+                Trip draft
+              </TitleRegular>
+              {livePlan ? (
+                <View style={styles.itemCount}>
+                  <TitleRegular size="xxs" weight="700" color={colors.purple}>
+                    {itineraryItemCount}
+                  </TitleRegular>
+                </View>
+              ) : null}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.body}>
+          <View
+            style={[
+              styles.viewPane,
+              activeView !== "chat" && styles.hiddenPane,
+            ]}
+          >
+            {isCheckingRecovery ? (
+              <View style={styles.recoveryLoading}>
+                <ActivityIndicator color={getColor(colors.purple)} />
+              </View>
+            ) : showRecovery && recoverableSession ? (
+              <AiPlannerPlanningSessionRecovery
+                session={recoverableSession}
+                onContinue={handleContinueRecovery}
+                onStartNew={handleStartNewFromRecovery}
+              />
+            ) : livePlan ? (
+              <AiPlannerRefinementConversation
+                draftRevision={livePlan.revision}
+                messages={refinementMessages}
+                canSubmit={canSubmitRefinement}
+                planningProgress={planningProgress}
+                onSubmit={handleSubmitRefinement}
+              />
+            ) : (
+              <AiPlannerIntakeConversation
+                canEdit={canEdit}
+                isPlanningStarted={isPlanningStarted}
+                planningProgress={planningProgress}
+                onEditAnswers={handleEditAnswers}
+                onStartPlanning={handleStartPlanning}
+              />
+            )}
+          </View>
+          {livePlan ? (
             <View
               style={[
                 styles.viewPane,
-                activeView !== "chat" && styles.hiddenPane,
+                activeView !== "draft" && styles.hiddenPane,
               ]}
             >
-              {isCheckingRecovery ? (
-                <View style={styles.recoveryLoading}>
-                  <ActivityIndicator color={getColor(colors.purple)} />
-                </View>
-              ) : showRecovery && recoverableSession ? (
-                <AiPlannerPlanningSessionRecovery
-                  session={recoverableSession}
-                  onContinue={handleContinueRecovery}
-                  onStartNew={handleStartNewFromRecovery}
-                />
-              ) : livePlan ? (
-                <AiPlannerRefinementConversation
-                  draftRevision={livePlan.revision}
-                  messages={refinementMessages}
-                  canSubmit={canSubmitRefinement}
-                  planningProgress={planningProgress}
-                  onSubmit={handleSubmitRefinement}
-                />
-              ) : (
-                <AiPlannerIntakeConversation
-                  canEdit={canEdit}
-                  isPlanningStarted={isPlanningStarted}
-                  planningProgress={planningProgress}
-                  onEditAnswers={handleEditAnswers}
-                  onStartPlanning={handleStartPlanning}
-                />
-              )}
+              <AiPlannerPlanPreview
+                key={`draft-${livePlan.revision}`}
+                plan={livePlan}
+                onAskForChanges={() => selectView("chat")}
+                onReview={handleReviewDraft}
+              />
             </View>
-            {livePlan ? (
-              <View
-                style={[
-                  styles.viewPane,
-                  activeView !== "draft" && styles.hiddenPane,
-                ]}
-              >
-                <AiPlannerPlanPreview
-                  key={`draft-${livePlan.revision}`}
-                  plan={livePlan}
-                  onAskForChanges={() => selectView("chat")}
-                  onReview={handleReviewDraft}
-                />
-              </View>
-            ) : null}
-          </View>
+          ) : null}
         </View>
-      </KeyboardAvoidingView>
+      </View>
 
       <Dialog
         title="Review your trip"
@@ -1019,7 +1008,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  keyboardView: { flex: 1 },
   frame: {
     flex: 1,
     width: "100%",
