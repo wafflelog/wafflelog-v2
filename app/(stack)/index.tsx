@@ -7,6 +7,10 @@ import { TitleRegular } from "@/components/title/regular";
 import { UIText } from "@/components/ui/text";
 import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { useAppNotifications } from "@/hook/use-app-notifications";
+import {
+  selectLatestRecoverableAiPlanningSession,
+  useLocalAiPlanningSessions,
+} from "@/hook/use-ai-trip-planning";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionListLocalTrips } from "@/lib/sqlite/model/trip";
 import { type Trip } from "@/types/trip";
@@ -46,6 +50,7 @@ export default function IndexScreen() {
     queryFn: () => actionListLocalTrips(session!.user.id),
     enabled: Boolean(session?.user.id),
   });
+  const localPlanningSessions = useLocalAiPlanningSessions(session?.user.id);
   const notificationsQuery = useAppNotifications(session?.user.id);
   if (isLoading) {
     return (
@@ -112,6 +117,10 @@ export default function IndexScreen() {
       .length ?? 0;
   const notificationBadgeLabel =
     unreadNotificationCount > 99 ? "99+" : String(unreadNotificationCount);
+  const unfinishedPlanningSession =
+    selectLatestRecoverableAiPlanningSession(
+      localPlanningSessions.data ?? [],
+    );
   const visibleUpcomingTrips = showAllUpcomingTrips
     ? upcomingTrips
     : upcomingTrips.slice(0, 2);
@@ -199,17 +208,33 @@ export default function IndexScreen() {
           ]}
           onPress={() => router.push("/ai-trip-planner")}
           accessibilityRole="button"
-          accessibilityLabel="Draft a trip with the trip planner"
+          accessibilityLabel={
+            unfinishedPlanningSession
+              ? `Continue unfinished trip plan for ${unfinishedPlanningSession.destination}`
+              : "Draft a trip with the trip planner"
+          }
         >
           <View style={styles.plannerIcon}>
             <SparklesIcon size={22} color={getColor(colors.purple)} />
           </View>
           <View style={styles.plannerContent}>
+            {unfinishedPlanningSession ? (
+              <View style={styles.unfinishedPlanBadge}>
+                <View style={styles.unfinishedPlanDot} />
+                <TitleRegular size="xxs" weight="700" color={colors.purple}>
+                  UNFINISHED PLAN
+                </TitleRegular>
+              </View>
+            ) : null}
             <TitleRegular size="sm" weight="700">
-              Draft a trip
+              {unfinishedPlanningSession
+                ? "Continue your trip plan"
+                : "Draft a trip"}
             </TitleRegular>
             <TitleRegular size="xs" color={colors.textLightGrey}>
-              Need inspiration? Share an idea and get a researched plan.
+              {unfinishedPlanningSession
+                ? `${unfinishedPlanningSession.destination} · Pick up where you left off.`
+                : "Need inspiration? Share an idea and get a researched plan."}
             </TitleRegular>
           </View>
           <View style={styles.plannerAction}>
@@ -535,6 +560,22 @@ const styles = StyleSheet.create({
   plannerContent: {
     flex: 1,
     gap: gaps.xxs,
+  },
+  unfinishedPlanBadge: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: gaps.xs,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: getColor(colors.purple, 0.1),
+  },
+  unfinishedPlanDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: getColor(colors.purple),
   },
   plannerAction: {
     width: 32,

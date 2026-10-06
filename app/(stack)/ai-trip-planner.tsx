@@ -53,7 +53,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type PlannerView = "chat" | "draft";
 
@@ -93,7 +92,6 @@ export default function AiTripPlannerScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { session } = useAuthSession();
-  const insets = useSafeAreaInsets();
   const userId = session?.user.id ?? null;
   const createPlanningSession = useCreatePlanningSession();
   const createPlanningRefinement = useCreatePlanningRefinement();
