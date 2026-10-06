@@ -10,7 +10,7 @@ import {
   actionUpdateLocalTrip,
 } from "@/lib/sqlite/model/trip";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { newTripFormSchema } from "./schema";
 
@@ -28,34 +28,54 @@ type DialogNewTripProps = {
 
 export const DialogNewTrip = ({
   visible,
+  ...props
+}: DialogNewTripProps) => {
+  const formKey =
+    props.mode === "edit" && props.initialTrip
+      ? [
+          "edit",
+          props.initialTrip.id,
+          props.initialTrip.title,
+          props.initialTrip.startDate,
+          props.initialTrip.endDate,
+        ].join(":")
+      : "create";
+
+  return <DialogNewTripVisible key={formKey} {...props} visible={visible} />;
+};
+
+const DialogNewTripVisible = ({
+  visible,
   onDismiss,
   mode = "create",
   initialTrip,
 }: DialogNewTripProps) => {
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
-  const [tripName, setTripName] = useState("");
-  const [tripStartDate, setTripStartDate] = useState("");
-  const [tripEndDate, setTripEndDate] = useState("");
-  const { showMessage, SystemMessageModal } = useSystemMessage();
   const isEditMode = mode === "edit";
+  const [tripName, setTripName] = useState(
+    isEditMode && initialTrip ? initialTrip.title : "",
+  );
+  const [tripStartDate, setTripStartDate] = useState(
+    isEditMode && initialTrip ? initialTrip.startDate : "",
+  );
+  const [tripEndDate, setTripEndDate] = useState(
+    isEditMode && initialTrip ? initialTrip.endDate : "",
+  );
+  const { showMessage, SystemMessageModal } = useSystemMessage();
 
-  useEffect(() => {
-    if (!visible) {
-      return;
-    }
+  const resetForm = () => {
+    setTripName(isEditMode && initialTrip ? initialTrip.title : "");
+    setTripStartDate(
+      isEditMode && initialTrip ? initialTrip.startDate : "",
+    );
+    setTripEndDate(isEditMode && initialTrip ? initialTrip.endDate : "");
+  };
 
-    if (isEditMode && initialTrip) {
-      setTripName(initialTrip.title);
-      setTripStartDate(initialTrip.startDate);
-      setTripEndDate(initialTrip.endDate);
-      return;
-    }
-
-    setTripName("");
-    setTripStartDate("");
-    setTripEndDate("");
-  }, [visible, isEditMode, initialTrip]);
+  const handleDismiss = () => {
+    resetForm();
+    onDismiss();
+  };
 
   const createTripMutation = useMutation({
     mutationFn: actionCreateLocalTrip,
@@ -73,10 +93,7 @@ export const DialogNewTrip = ({
             queryKey: ["local-trips", session?.user.id],
           });
         });
-      setTripName("");
-      setTripStartDate("");
-      setTripEndDate("");
-      onDismiss();
+      handleDismiss();
       showMessage("Trip saved locally", "info");
     },
     onError: (error) => {
@@ -104,7 +121,7 @@ export const DialogNewTrip = ({
         ]);
       }
 
-      onDismiss();
+      handleDismiss();
       showMessage("Trip updated locally", "info");
 
       try {
@@ -180,7 +197,7 @@ export const DialogNewTrip = ({
     <>
       <Dialog
         visible={visible}
-        onDismiss={onDismiss}
+        onDismiss={handleDismiss}
         title={isEditMode ? "Edit Trip" : "New Trip"}
         confirmText={isEditMode ? "Save" : "Create"}
         onConfirm={handleConfirm}

@@ -110,22 +110,13 @@ export default function TripMapScreen() {
     return isTodayWithinTrip ? today : localTrip.startDate;
   }, [date, localTrip]);
 
-  const [selectedDate, setSelectedDate] = useState(initialDate);
+  const [selectedDateOverride, setSelectedDate] = useState<string | null>(
+    date ? String(date) : null,
+  );
+  const selectedDate = selectedDateOverride ?? initialDate;
   const [selectedPinId, setSelectedPinId] = useState<string | null>(
     pinId ? String(pinId) : null,
   );
-
-  useEffect(() => {
-    if (initialDate) {
-      setSelectedDate(initialDate);
-    }
-  }, [initialDate]);
-
-  useEffect(() => {
-    if (pinId) {
-      setSelectedPinId(String(pinId));
-    }
-  }, [pinId]);
 
   const { data: pins = [] } = useQuery({
     queryKey: ["local-pin-locations", tripId, selectedDate, session?.user.id],
@@ -270,14 +261,6 @@ export default function TripMapScreen() {
       animated: true,
     });
   }, [selectedPinIndex]);
-
-  useEffect(() => {
-    if (selectedPinId && pins.some((pin) => pin.id === selectedPinId)) {
-      return;
-    }
-
-    setSelectedPinId(pins[0]?.id ?? null);
-  }, [pins, selectedPinId]);
 
   return (
     <View style={styles.container}>

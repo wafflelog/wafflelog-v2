@@ -2,9 +2,11 @@
 
 ## Status
 
-Draft for review.
+Parked for later implementation.
 
-Last updated: 16 August 2026.
+Last reviewed: 6 October 2026.
+
+The current product priority is UI polish, end-to-end testing, and general release readiness. Payment implementation should resume only after the app is in a stable state. This document is the handoff record for restarting that work.
 
 This document proposes a sustainable first monetisation model for Wafflelog. The immediate goal is not to maximise profit. It is to prevent recurring infrastructure and AI costs from growing faster than revenue while keeping the core product approachable.
 
@@ -17,6 +19,20 @@ Use a hybrid model made up of:
 3. Consumable `AI Trip Passes` or `AI Generations` for usage that creates a variable cost.
 
 A one-off purchase must not grant a renewing monthly AI allowance. Five new AI requests every month would create an unlimited future liability from a single payment. Lifetime Plus may include a fixed one-time AI bonus, but all later AI usage should be funded by another purchase or another recurring source of revenue.
+
+## Current Delivery Decision
+
+The business model remains valid, but it should not be delivered as one large release.
+
+The recommended implementation order is:
+
+1. Measure the real cost of initial plans and refinements.
+2. Establish the RevenueCat purchase foundation.
+3. Launch a consumable AI Trip Pass as the first payment vertical slice.
+4. Add Lifetime Plus after the purchase and entitlement pipeline is stable.
+5. Treat advertising and UK/EEA advertising consent as a separate later project.
+
+The first paid product should be the AI Trip Pass because AI is the feature that currently creates a direct variable cost. Lifetime Plus has less immediate value until Wafflelog has advertising or more permanent premium organisation features. No monthly subscription is proposed.
 
 ## Product Principles
 
@@ -251,6 +267,8 @@ RevenueCat is the recommended first integration because it can unify StoreKit an
 
 Use the authenticated Supabase user UUID as the stable RevenueCat app user ID. Define and test account-switching, sign-out, anonymous-user, merge, and restore-purchase behaviour before release.
 
+Configure RevenueCat only after the authenticated Supabase UUID is available. Prefer identified customers rather than anonymous RevenueCat users. When switching between Wafflelog accounts on one device, identify the next Supabase UUID directly and ensure that the previous account's entitlements or balances cannot appear in the new account.
+
 Real in-app purchase testing requires an Expo development build. Expo Go can be used for UI previewing but not for completing real store transactions.
 
 ### Entitlement storage
@@ -263,24 +281,22 @@ The co-edit invitation or enablement endpoint must check the trip owner's entitl
 
 ### Credit ledger
 
-Use either RevenueCat virtual currency or an append-only server-side ledger. A Wafflelog-owned ledger provides maximum control over reservation and refund behaviour.
+Use RevenueCat In-App Currency as the recommended first source of truth for AI Trip Pass balances. RevenueCat can grant currency from verified consumable purchases, reject spending when the balance is insufficient, and make backend adjustments idempotent.
 
-Suggested logical records:
+Represent one purchased planning allowance as one `TRIP_PASS` unit. Only the trusted planning backend may spend or refund this balance through RevenueCat's secret-key API. The Expo application may display the balance but must never receive the secret key or be able to mutate the balance directly.
 
-- current balance or a derived balance;
-- purchase grant;
-- trial grant;
-- job reservation;
-- consumption;
-- failure refund;
-- support adjustment;
-- provider transaction or webhook identifier;
-- planning job and idempotency identifiers;
+The planning API should still retain compact audit and reconciliation records containing:
+
+- RevenueCat customer ID, derived from the Supabase UUID;
+- planning session and job IDs;
+- logical request idempotency key;
+- charge and refund idempotency keys;
+- charge, refund, and reconciliation status;
 - timestamps and reason codes.
 
-The client should have read-only access to its balance. Credit grants, deductions, and refunds must be performed by a trusted backend operation. Any Supabase table exposed through the Data API must use RLS with ownership checks; alternatively, keep the ledger in a non-exposed schema and provide a narrow authenticated API.
+This local record is not a second customer balance. RevenueCat remains authoritative for the balance, while the planning service records why a pass was spent or refunded and can recover safely from partial failures.
 
-Use unique constraints for provider transaction IDs and logical idempotency keys so duplicate webhooks, retries, or concurrent taps cannot grant or deduct twice.
+If RevenueCat In-App Currency is unavailable or unsuitable when implementation resumes, the fallback is an append-only Wafflelog-owned ledger with unique provider transaction IDs and logical idempotency keys.
 
 ### Planning API changes
 
@@ -320,66 +336,128 @@ Even with paid credits, protect the service from unexpectedly expensive jobs:
 - monitor cost by model version and deploy a server-side kill switch;
 - never advertise unlimited AI while the cost remains usage-based.
 
-## Implementation Phases
+## Implementation Roadmap
 
-### Phase 0: cost discovery and product decisions
+### Phase 0: freeze the product rules and measure cost
 
-- Add privacy-safe per-job cost measurement.
-- Run representative initial and refinement prompts across supported trip lengths.
-- Calculate median, 95th-percentile, and maximum observed costs.
-- Decide whether the customer buys Trip Passes or general generation packs.
-- Define the exact free trial and cancellation/refund policy.
-- Select initial Lifetime Plus and AI pack price hypotheses.
+- Add privacy-safe cost telemetry to the separate planning API.
+- Measure initial plans and refinements separately across representative trip lengths.
+- Calculate median, 95th-percentile, and maximum observed Trip Pass cost.
+- Confirm that one Trip Pass funds one initial plan plus a fixed maximum number of refinements.
+- Confirm the once-per-account starter Trip Pass.
+- Define exactly when a pass is spent, when it is refunded, and how user cancellation behaves.
+- Grandfather planning sessions created before charging is enabled.
+- Select the first price only after cost data is usable.
 
-No paywall should be finalised before this phase provides usable cost data.
+No production paywall or allowance should be finalised before this phase is complete.
 
-### Phase 1: purchase foundation
+Estimated development effort: 1–2 days, followed by cost-data collection.
 
-- Configure Apple and Google merchant agreements and tax information.
+### Phase 1: store and RevenueCat configuration
+
+- Complete Apple and Google merchant, banking, and tax configuration.
 - Enrol in applicable small-developer fee programmes.
-- Create RevenueCat projects, apps, products, offerings, and entitlements.
-- Add the RevenueCat Expo SDK and development-build configuration.
-- Use the Supabase user UUID as the RevenueCat identity.
-- Build purchase, restore, pending, cancellation, and error states.
-- Add a server webhook endpoint with signature/authenticity validation and replay protection.
+- Create the RevenueCat project and its iOS and Android apps.
+- Configure `TRIP_PASS` as an in-app currency.
+- Create a consumable product such as `wafflelog_ai_trip_pass_1`.
+- Create a RevenueCat offering that grants one Trip Pass.
+- Begin with RevenueCat Test Store, then configure Apple and Google sandbox products.
 
-### Phase 2: Lifetime Plus and collaboration
+Estimated development effort: approximately 1 day, excluding external account and approval delays.
 
-- Add a Plus entitlement query and cache.
-- Gate ad removal and owner-enabled co-editing.
-- Enforce the co-edit entitlement in the trusted server/database operation.
-- Decide how existing collaborative trips are grandfathered.
-- Add a purchase screen that clearly distinguishes permanent Plus features from consumable AI usage.
-- Test restore purchases and account switching on iOS and Android.
+### Phase 2: RevenueCat client foundation
 
-### Phase 3: credit ledger and AI enforcement
+- Install pinned `react-native-purchases` and, if useful, `react-native-purchases-ui` versions.
+- Add platform RevenueCat public API keys to `.env.example` and the build configuration.
+- Rebuild the Expo development client.
+- Configure RevenueCat after the Supabase session is known.
+- Add TanStack Query hooks for offerings, customer information, entitlement status, and Trip Pass balance.
+- Add purchase and restore mutations.
+- Handle account switching and prevent cross-account entitlement leakage.
 
-- Create the append-only ledger or configure RevenueCat virtual currency.
-- Process consumable purchase grants idempotently.
-- Add trial grants.
-- Add atomic reservation, consumption, and refund operations.
-- Integrate the planning-session and refinement endpoints.
-- Expose balance and transaction status safely to the app.
-- Add insufficient-balance UI and the AI purchase screen.
+Estimated development effort: 1–2 days.
+
+### Phase 3: payment UI
+
+- Add a reusable Wafflelog-styled purchase or paywall modal route.
+- Display localised product names and prices from the store rather than hardcoding them.
+- Explain clearly what one Trip Pass includes.
+- Display the current Trip Pass balance.
+- Handle loading, user cancellation, pending purchase, unavailable product, failure, and success states.
+- Add Restore Purchases and purchase status to Settings.
+- Include required legal and privacy links before store submission.
+
+Estimated development effort: 2–3 days.
+
+### Phase 4: planning API charging and enforcement
+
+- Authenticate the Supabase JWT and derive the RevenueCat customer from the Supabase UUID.
+- Spend one `TRIP_PASS` using a deterministic idempotency key before accepting a new planning job.
+- Persist the charge reference against the planning session and job.
+- Return the existing charge and job for duplicate logical requests.
+- Refund exactly once when an internal failure produces no usable first draft.
+- Enforce the included refinement limit on the server.
+- Add reconciliation for charged-but-not-started and refund-pending jobs.
+- Return stable errors such as `AI_TRIP_PASS_REQUIRED`, `AI_TRIP_PASS_SERVICE_UNAVAILABLE`, and `AI_REFINEMENT_LIMIT_REACHED`.
+- Update the OpenAPI contract and regenerate the frontend TypeScript types.
 - Verify that direct API calls cannot bypass charging.
 
-### Phase 4: advertising
+Estimated development effort: 3–5 days in the planning API project.
 
-- Select an Expo-compatible advertising SDK and configure native builds.
-- Add the UK/EEA consent-management flow and privacy-settings entry point.
-- Implement one approved banner placement.
-- Suppress advertising immediately when Plus is active.
-- Verify layout, accessibility, offline behaviour, and failed-ad loading.
-- Measure whether advertising revenue justifies its product and compliance cost before expanding placements.
+### Phase 5: connect the AI-planning frontend
 
-### Phase 5: controlled rollout
+- Show the available Trip Pass balance before the first planning request.
+- Keep the planning API authoritative even when the client believes a pass is available.
+- Open the purchase UI when the API returns `AI_TRIP_PASS_REQUIRED`.
+- Refresh the balance after purchase and retry safely.
+- Display the number of included refinements remaining.
+- Preserve the current polling, cancellation, recovery, review, and local import behaviour.
+- Confirm that accepting and importing a generated trip does not spend another pass.
 
-- Launch to internal and store sandbox testers.
-- Verify real purchase, pending, cancellation, refund, restore, and webhook flows.
-- Release to a small percentage or test audience.
-- Monitor costs, conversion, failed purchases, credit discrepancies, and support requests.
-- Adjust allowances and prices remotely where store tooling permits.
-- Expand only after ledger reconciliation and unit economics remain reliable.
+Estimated development effort: 2–3 days.
+
+### Phase 6: Lifetime Plus and collaboration
+
+- Create `wafflelog_plus_lifetime` as a non-consumable product.
+- Define a RevenueCat `plus` entitlement.
+- Add a RevenueCat webhook endpoint with HMAC validation and event-ID replay protection.
+- Mirror Plus into a server-owned Supabase entitlement table with RLS and no client mutation path.
+- Add an authenticated entitlement-sync endpoint so a new purchase does not depend solely on webhook delivery time.
+- Show Plus state, purchase, and restore controls in Settings.
+- Enforce owner-enabled co-editing in Supabase database policy or another trusted operation.
+- Preserve accepted collaborators and decide how pending invitations and existing free owners are grandfathered.
+- Apply later low-marginal-cost Plus benefits, including ad removal when advertising exists.
+
+Estimated development effort: 3–5 days.
+
+### Phase 7: sandbox testing and controlled rollout
+
+- Test first with RevenueCat Test Store.
+- Test real iOS purchases through Apple Sandbox and TestFlight.
+- Test real Android purchases through Google Play internal testing.
+- Verify purchase, cancellation, pending, refund, restore, reinstall, multiple-device, and account-switching flows.
+- Verify insufficient balance, concurrent submissions, idempotent retry, one-time refund, and refinement-limit enforcement.
+- Verify duplicate, delayed, and out-of-order RevenueCat webhooks before enabling Plus enforcement.
+- Release to a small audience and monitor purchase failures, balance discrepancies, AI contribution, and support demand.
+
+Estimated development effort: 3–5 days, excluding store review and propagation delays.
+
+### Phase 8: advertising, separately
+
+- Select an Expo-compatible advertising SDK.
+- Add the UK/EEA consent-management and privacy-settings flows.
+- Implement one restrained banner placement.
+- Suppress advertising for Plus users.
+- Measure whether revenue justifies the UX and compliance cost before expanding placements.
+
+Advertising is not part of the initial payment integration estimate.
+
+### Overall estimate
+
+- AI Trip Pass payment MVP: approximately 9–14 focused development days.
+- Lifetime Plus and collaboration enforcement: approximately 3–5 additional days.
+- Cross-platform sandbox and release hardening: approximately 3–5 days.
+- Realistic solo-development total: approximately 15–24 days, excluding store-account approval and cost-data collection.
 
 ## Testing Requirements
 
@@ -475,34 +553,47 @@ Mitigation: perform credit reservation in the planning backend, use authenticate
 
 Mitigation: retain hard limits, model-routing controls, cost monitoring, a server kill switch, and remotely configurable product allowances where possible.
 
-## Decisions Required Before Implementation
+## Remaining Decisions Required Before Implementation
 
-1. Should the paid AI unit be a complete Trip Pass or a general generation balance?
-2. How many initial drafts and refinements should the free trial include?
-3. Should Lifetime Plus include a one-time AI bonus?
-4. What is the initial Lifetime Plus price hypothesis?
-5. Does Free allow one collaborative trip, or is owner-enabled co-editing entirely a Plus feature?
-6. How should existing collaborative trips and early users be grandfathered?
-7. Which failures qualify for an automatic credit refund?
-8. Should user-requested cancellation after research begins consume the generation?
-9. Will credits remain indefinitely, and how will refunds or chargebacks affect already consumed balances?
-10. Should advertising launch with purchases or wait until there is enough active usage to measure it meaningfully?
-11. Will web purchases be supported initially or only native iOS and Android purchases?
-12. Should RevenueCat or Wafflelog's backend be the source of truth for AI balances?
+1. How many refinements should one Trip Pass include?
+2. How many refinements should the once-per-account starter pass include?
+3. What is the Trip Pass price after measured cost and store fees?
+4. Which internal failures qualify for an automatic Trip Pass refund?
+5. Should user-requested cancellation after material research begins consume the pass?
+6. Should unused Trip Passes remain indefinitely?
+7. Should Lifetime Plus include a one-time Trip Pass bonus? The current recommendation is no for v1.
+8. What is the initial Lifetime Plus price hypothesis?
+9. Does Free allow one collaborative trip, or is owner-enabled co-editing entirely a Plus feature?
+10. How should existing collaborative trips, pending invitations, and early users be grandfathered?
+11. Will web purchases be supported later, or only native iOS and Android purchases?
+12. Does RevenueCat In-App Currency still meet Wafflelog's technical and commercial needs when implementation resumes?
 
 ## Recommended Starting Decisions
 
 Unless cost data suggests otherwise:
 
-1. Launch with Trip Passes rather than abstract credits.
-2. Give each authenticated user one bounded starter trip once.
-3. Make Lifetime Plus a permanent ad-free and owner-collaboration entitlement.
-4. Include at most one fixed AI welcome bonus with Plus; do not renew it monthly.
-5. Let invited companions edit a Plus owner's trip for free.
-6. Keep ads out of the AI and active trip-planning experience.
-7. Use RevenueCat for purchase validation and entitlements.
-8. Keep AI charging authoritative in a trusted backend ledger or RevenueCat virtual currency.
-9. Implement cost measurement before deciding pack sizes and prices.
+1. Launch the AI Trip Pass payment vertical slice before Lifetime Plus or advertising.
+2. Give each authenticated user one bounded starter Trip Pass once.
+3. Make one Trip Pass fund one initial plan and a fixed number of refinements.
+4. Use RevenueCat for purchase validation, Plus entitlements, and the authoritative Trip Pass balance.
+5. Spend and refund Trip Passes only through the trusted planning API.
+6. Do not include a Plus AI bonus in the first payment release.
+7. Make Lifetime Plus a permanent ad-free and owner-collaboration entitlement when those benefits are ready.
+8. Let invited companions edit a Plus owner's trip for free.
+9. Keep ads out of the AI and active trip-planning experience.
+10. Implement cost measurement before deciding allowance sizes and prices.
+
+## Resume Point
+
+When payment work resumes:
+
+1. Re-check current Apple, Google, Expo, RevenueCat, and Supabase documentation and pricing.
+2. Confirm that the app's UI, E2E tests, authentication, notifications, and AI-planning happy path remain stable.
+3. Implement privacy-safe planning-cost telemetry.
+4. Freeze the Trip Pass refinement, refund, cancellation, and expiry rules.
+5. Create the RevenueCat Test Store configuration before installing or wiring the production store products.
+
+Do not begin by gating collaboration or adding advertising. Establish and test the purchase foundation and AI Trip Pass vertical slice first.
 
 ## Reference Material
 
@@ -512,7 +603,11 @@ Unless cost data suggests otherwise:
 - [Google Play one-time product types](https://support.google.com/googleplay/android-developer/answer/14590082?hl=en-EN)
 - [Google Play service fees](https://support.google.com/googleplay/android-developer/answer/112622?hl=en)
 - [RevenueCat Expo integration](https://www.revenuecat.com/docs/getting-started/installation/expo)
-- [RevenueCat virtual-currency source of truth](https://www.revenuecat.com/docs/offerings/virtual-currency/faq/balance-source-of-truth)
+- [RevenueCat customer identity](https://www.revenuecat.com/docs/customers/identifying-customers)
+- [RevenueCat In-App Currency](https://www.revenuecat.com/docs/offerings/virtual-currency)
+- [RevenueCat In-App Currency source of truth](https://www.revenuecat.com/docs/offerings/virtual-currency/faq/balance-source-of-truth)
+- [RevenueCat webhook security and delivery](https://www.revenuecat.com/docs/integrations/webhooks)
+- [RevenueCat pricing](https://www.revenuecat.com/pricing)
 - [Google AdMob consent management](https://support.google.com/admob/answer/7666519?hl=en)
 - [Wanderlog Pro](https://wanderlog.com/pro)
 - [TripIt Pro pricing](https://www.tripit.com/web/pro/pricing)

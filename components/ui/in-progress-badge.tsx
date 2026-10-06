@@ -1,5 +1,5 @@
 import { colors, getColor } from "@/constants/theme";
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Animated, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { UIText } from "./text";
 
@@ -12,7 +12,7 @@ export function UIInProgressBadge({
   text = "In Progress",
   containerStyle,
 }: UIInProgressBadgeProps) {
-  const opacity = useRef(new Animated.Value(1)).current;
+  const [opacity] = useState(() => new Animated.Value(1));
 
   useEffect(() => {
     const flickerAnimation = Animated.loop(

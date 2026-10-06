@@ -156,7 +156,7 @@ export function Dialog({
 
 const styles = StyleSheet.create({
   background: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: getColor(colors.black, 0.5),
   },
   container: {
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     // flex: 1,
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   dialog: {
     position: "absolute",

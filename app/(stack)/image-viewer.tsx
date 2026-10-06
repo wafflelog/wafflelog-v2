@@ -2,7 +2,7 @@ import { colors, getColor } from "@/constants/theme";
 import { Image as ExpoImage } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { X as XIcon } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -49,12 +49,12 @@ export default function ImageZoomScreen() {
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
 
   const resetTransform = useCallback(() => {
-    scale.value = withTiming(MIN_SCALE, { duration: ZOOM_ANIMATION_DURATION });
-    translateX.value = withTiming(0, { duration: ZOOM_ANIMATION_DURATION });
-    translateY.value = withTiming(0, { duration: ZOOM_ANIMATION_DURATION });
-    savedScale.value = MIN_SCALE;
-    savedTranslateX.value = 0;
-    savedTranslateY.value = 0;
+    scale.set(withTiming(MIN_SCALE, { duration: ZOOM_ANIMATION_DURATION }));
+    translateX.set(withTiming(0, { duration: ZOOM_ANIMATION_DURATION }));
+    translateY.set(withTiming(0, { duration: ZOOM_ANIMATION_DURATION }));
+    savedScale.set(MIN_SCALE);
+    savedTranslateX.set(0);
+    savedTranslateY.set(0);
   }, [
     scale,
     translateX,
@@ -63,11 +63,6 @@ export default function ImageZoomScreen() {
     savedTranslateX,
     savedTranslateY,
   ]);
-
-  useEffect(() => {
-    setImageSize({ width: 0, height: 0 });
-    resetTransform();
-  }, [imageUrl, resetTransform]);
 
   const handleImageLoad = useCallback(
     (event: { source: { width: number; height: number } }) => {
@@ -80,44 +75,54 @@ export default function ImageZoomScreen() {
     [resetTransform],
   );
 
+  const handleSelectImage = useCallback(
+    (nextImageUrl: string) => {
+      setImageSize({ width: 0, height: 0 });
+      resetTransform();
+      setImageUrl(nextImageUrl);
+    },
+    [resetTransform],
+  );
+
   // Pinch gesture for zoom
   const pinchGesture = Gesture.Pinch()
     .onUpdate((event) => {
       const newScale = Math.max(
         MIN_SCALE,
-        Math.min(MAX_SCALE, savedScale.value * event.scale),
+        Math.min(MAX_SCALE, savedScale.get() * event.scale),
       );
-      scale.value = newScale;
+      scale.set(newScale);
 
       // Center image if scale is at minimum
       if (newScale <= MIN_SCALE) {
-        translateX.value = 0;
-        translateY.value = 0;
-        savedTranslateX.value = 0;
-        savedTranslateY.value = 0;
+        translateX.set(0);
+        translateY.set(0);
+        savedTranslateX.set(0);
+        savedTranslateY.set(0);
       }
     })
     .onEnd(() => {
-      savedScale.value = scale.value;
-      if (scale.value < MIN_SCALE) {
-        scale.value = withTiming(MIN_SCALE, {
-          duration: ZOOM_ANIMATION_DURATION,
-        });
-        savedScale.value = MIN_SCALE;
+      const currentScale = scale.get();
+      savedScale.set(currentScale);
+      if (currentScale < MIN_SCALE) {
+        scale.set(
+          withTiming(MIN_SCALE, { duration: ZOOM_ANIMATION_DURATION }),
+        );
+        savedScale.set(MIN_SCALE);
       }
-      if (scale.value > MAX_SCALE) {
-        scale.value = withTiming(MAX_SCALE, {
-          duration: ZOOM_ANIMATION_DURATION,
-        });
-        savedScale.value = MAX_SCALE;
+      if (currentScale > MAX_SCALE) {
+        scale.set(
+          withTiming(MAX_SCALE, { duration: ZOOM_ANIMATION_DURATION }),
+        );
+        savedScale.set(MAX_SCALE);
       }
 
       // Center image if scale is at minimum
-      if (scale.value <= MIN_SCALE) {
-        translateX.value = withTiming(0, { duration: ZOOM_ANIMATION_DURATION });
-        translateY.value = withTiming(0, { duration: ZOOM_ANIMATION_DURATION });
-        savedTranslateX.value = 0;
-        savedTranslateY.value = 0;
+      if (currentScale <= MIN_SCALE) {
+        translateX.set(withTiming(0, { duration: ZOOM_ANIMATION_DURATION }));
+        translateY.set(withTiming(0, { duration: ZOOM_ANIMATION_DURATION }));
+        savedTranslateX.set(0);
+        savedTranslateY.set(0);
       }
     });
 
@@ -125,9 +130,9 @@ export default function ImageZoomScreen() {
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
       // Don't allow panning when at minimum scale
-      if (scale.value <= MIN_SCALE) {
-        translateX.value = 0;
-        translateY.value = 0;
+      if (scale.get() <= MIN_SCALE) {
+        translateX.set(0);
+        translateY.set(0);
         return;
       }
 
@@ -137,32 +142,36 @@ export default function ImageZoomScreen() {
 
       const maxTranslateX = Math.max(
         0,
-        (imageSize.width * scale.value - SCREEN_WIDTH) / 2,
+        (imageSize.width * scale.get() - SCREEN_WIDTH) / 2,
       );
       const maxTranslateY = Math.max(
         0,
-        (imageSize.height * scale.value - SCREEN_HEIGHT) / 2,
+        (imageSize.height * scale.get() - SCREEN_HEIGHT) / 2,
       );
 
-      translateX.value = Math.max(
-        -maxTranslateX,
-        Math.min(maxTranslateX, savedTranslateX.value + event.translationX),
+      translateX.set(
+        Math.max(
+          -maxTranslateX,
+          Math.min(maxTranslateX, savedTranslateX.get() + event.translationX),
+        ),
       );
-      translateY.value = Math.max(
-        -maxTranslateY,
-        Math.min(maxTranslateY, savedTranslateY.value + event.translationY),
+      translateY.set(
+        Math.max(
+          -maxTranslateY,
+          Math.min(maxTranslateY, savedTranslateY.get() + event.translationY),
+        ),
       );
     })
     .onEnd(() => {
       // Center if at minimum scale
-      if (scale.value <= MIN_SCALE) {
-        translateX.value = 0;
-        translateY.value = 0;
-        savedTranslateX.value = 0;
-        savedTranslateY.value = 0;
+      if (scale.get() <= MIN_SCALE) {
+        translateX.set(0);
+        translateY.set(0);
+        savedTranslateX.set(0);
+        savedTranslateY.set(0);
       } else {
-        savedTranslateX.value = translateX.value;
-        savedTranslateY.value = translateY.value;
+        savedTranslateX.set(translateX.get());
+        savedTranslateY.set(translateY.get());
       }
     });
 
@@ -174,23 +183,23 @@ export default function ImageZoomScreen() {
         return;
       }
 
-      if (scale.value > MIN_SCALE) {
+      if (scale.get() > MIN_SCALE) {
         // Zoom out - center the image
-        scale.value = withTiming(MIN_SCALE, {
-          duration: ZOOM_ANIMATION_DURATION,
-        });
-        translateX.value = withTiming(0, { duration: ZOOM_ANIMATION_DURATION });
-        translateY.value = withTiming(0, { duration: ZOOM_ANIMATION_DURATION });
-        savedScale.value = MIN_SCALE;
-        savedTranslateX.value = 0;
-        savedTranslateY.value = 0;
+        scale.set(
+          withTiming(MIN_SCALE, { duration: ZOOM_ANIMATION_DURATION }),
+        );
+        translateX.set(withTiming(0, { duration: ZOOM_ANIMATION_DURATION }));
+        translateY.set(withTiming(0, { duration: ZOOM_ANIMATION_DURATION }));
+        savedScale.set(MIN_SCALE);
+        savedTranslateX.set(0);
+        savedTranslateY.set(0);
       } else {
         // Zoom in to 2x at tap location
         const targetScale = 2;
-        scale.value = withTiming(targetScale, {
-          duration: ZOOM_ANIMATION_DURATION,
-        });
-        savedScale.value = targetScale;
+        scale.set(
+          withTiming(targetScale, { duration: ZOOM_ANIMATION_DURATION }),
+        );
+        savedScale.set(targetScale);
 
         // Calculate translation to center on tap point
         const focalX = event.x - SCREEN_WIDTH / 2;
@@ -205,17 +214,28 @@ export default function ImageZoomScreen() {
           (imageSize.height * targetScale - SCREEN_HEIGHT) / 2,
         );
 
-        translateX.value = withTiming(
-          Math.max(-maxTranslateX, Math.min(maxTranslateX, -focalX * 0.5)),
-          { duration: ZOOM_ANIMATION_DURATION },
+        const targetTranslateX = Math.max(
+          -maxTranslateX,
+          Math.min(maxTranslateX, -focalX * 0.5),
         );
-        translateY.value = withTiming(
-          Math.max(-maxTranslateY, Math.min(maxTranslateY, -focalY * 0.5)),
-          { duration: ZOOM_ANIMATION_DURATION },
+        const targetTranslateY = Math.max(
+          -maxTranslateY,
+          Math.min(maxTranslateY, -focalY * 0.5),
         );
 
-        savedTranslateX.value = translateX.value;
-        savedTranslateY.value = translateY.value;
+        translateX.set(
+          withTiming(targetTranslateX, {
+            duration: ZOOM_ANIMATION_DURATION,
+          }),
+        );
+        translateY.set(
+          withTiming(targetTranslateY, {
+            duration: ZOOM_ANIMATION_DURATION,
+          }),
+        );
+
+        savedTranslateX.set(targetTranslateX);
+        savedTranslateY.set(targetTranslateY);
       }
     });
 
@@ -226,14 +246,15 @@ export default function ImageZoomScreen() {
 
   const animatedStyle = useAnimatedStyle(() => {
     // Always center when scale is at minimum
-    const finalTranslateX = scale.value <= MIN_SCALE ? 0 : translateX.value;
-    const finalTranslateY = scale.value <= MIN_SCALE ? 0 : translateY.value;
+    const currentScale = scale.get();
+    const finalTranslateX = currentScale <= MIN_SCALE ? 0 : translateX.get();
+    const finalTranslateY = currentScale <= MIN_SCALE ? 0 : translateY.get();
 
     return {
       transform: [
         { translateX: finalTranslateX },
         { translateY: finalTranslateY },
-        { scale: scale.value },
+        { scale: currentScale },
       ],
     };
   });
@@ -266,7 +287,7 @@ export default function ImageZoomScreen() {
           style={styles.thumbnails}
           data={images}
           renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => setImageUrl(item)}>
+            <TouchableOpacity onPress={() => handleSelectImage(item)}>
               <ExpoImage source={item} style={styles.thumbnail} />
             </TouchableOpacity>
           )}

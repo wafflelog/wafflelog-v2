@@ -101,11 +101,9 @@ export default function UserSearchScreen() {
     },
   });
 
-  const availableUsers = useMemo(() => {
-    const publicUsers = usersQuery.data ?? [];
-
-    return publicUsers.filter((user) => user.id !== session?.user.id);
-  }, [session?.user.id, usersQuery.data]);
+  const availableUsers = (usersQuery.data ?? []).filter(
+    (user) => user.id !== session?.user.id,
+  );
 
   const handleInviteUser = async (user: { id: string; username: string }) => {
     if (invitedUserIds.length + inTripUserIds.length >= MAX_COMPANIONS) {

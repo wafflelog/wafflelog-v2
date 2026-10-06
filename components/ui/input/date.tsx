@@ -8,7 +8,7 @@ import {
 } from "@/constants/theme";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Dialog } from "../dialog";
 
@@ -43,11 +43,6 @@ export const UIInputDate = ({
   const [showPicker, setShowPicker] = useState(false);
   const [date, setDate] = useState<Date>(() => toPickerDate(value));
 
-  // Sync date when value prop changes
-  useEffect(() => {
-    setDate(toPickerDate(value));
-  }, [value]);
-
   const displayValue = value ? dayjs(value).format("DD/MM/YYYY") : "";
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
@@ -75,6 +70,7 @@ export const UIInputDate = ({
   };
 
   const handleInputPress = () => {
+    setDate(toPickerDate(value));
     setShowPicker(true);
   };
 

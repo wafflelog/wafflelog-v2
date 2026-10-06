@@ -37,18 +37,16 @@ import {
 } from "@/lib/ai-trip-planning/trip-import";
 import {
   type CreatePlanningRefinementRequest,
-  type PlanningResult,
 } from "@/lib/ai-trip-planning/types";
 import { type LocalAiPlanningSession } from "@/lib/sqlite/model/ai-planning-session";
 import {
   type AiPlannerDraftSelection,
   type AiPlannerIntakeAnswers,
-  type AiPlannerPlanViewModel,
 } from "@/types/ai-trip-planner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { CalendarDays, MessageCircle } from "lucide-react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -101,11 +99,11 @@ export default function AiTripPlannerScreen() {
   const createPlanningSession = useCreatePlanningSession();
   const createPlanningRefinement = useCreatePlanningRefinement();
   const cancelPlanningJob = useCancelPlanningJob(userId ?? "");
-  const [activeView, setActiveView] = useState<PlannerView>("chat");
+  const [requestedView, setRequestedView] = useState<PlannerView>("chat");
   const [recoveryDismissed, setRecoveryDismissed] = useState(false);
   const [submissionAttempt, setSubmissionAttempt] =
     useState<SubmissionAttempt | null>(null);
-  const [planningContext, setPlanningContext] =
+  const [basePlanningContext, setPlanningContext] =
     useState<ActivePlanningContext | null>(null);
   const [refinementAttempt, setRefinementAttempt] =
     useState<RefinementAttempt | null>(null);
@@ -115,11 +113,6 @@ export default function AiTripPlannerScreen() {
   const [localRefinementError, setLocalRefinementError] = useState<
     string | null
   >(null);
-  const [latestPlan, setLatestPlan] = useState<AiPlannerPlanViewModel | null>(
-    null,
-  );
-  const [latestPlanningResult, setLatestPlanningResult] =
-    useState<PlanningResult | null>(null);
   const [reviewVisible, setReviewVisible] = useState(false);
   const [reviewSelection, setReviewSelection] =
     useState<AiPlannerDraftSelection>({
@@ -138,23 +131,56 @@ export default function AiTripPlannerScreen() {
     [localPlanningSessions.data],
   );
   const showRecovery = Boolean(
-    recoverableSession && !recoveryDismissed && !planningContext,
+    recoverableSession && !recoveryDismissed && !basePlanningContext,
   );
   const isCheckingRecovery = Boolean(
     userId &&
     localPlanningSessions.isPending &&
     !recoveryDismissed &&
-    !planningContext,
+    !basePlanningContext,
   );
-  const planningJob = usePlanningJob(planningContext?.jobId, userId, {
-    enabled: Boolean(planningContext),
+  const planningJob = usePlanningJob(basePlanningContext?.jobId, userId, {
+    enabled: Boolean(basePlanningContext),
   });
   const planningSession = usePlanningSession(
-    planningContext?.sessionId ??
+    basePlanningContext?.sessionId ??
       (showRecovery ? recoverableSession?.id : undefined),
-    Boolean(planningContext) || showRecovery,
+    Boolean(basePlanningContext) || showRecovery,
   );
   const job = planningJob.data;
+  const planningContext = useMemo(() => {
+    const current = basePlanningContext;
+    const apiSession = planningSession.data;
+
+    if (!current?.recovered || !apiSession || current.sessionId !== apiSession.id) {
+      return current;
+    }
+
+    return {
+      ...current,
+      answers: {
+        destination: apiSession.initialRequest.destination,
+        durationDays: apiSession.initialRequest.durationDays,
+        startDate: current.answers.startDate,
+        tripBrief: apiSession.initialRequest.tripBrief,
+      },
+      operation: inferRecoveredPlanningOperation(
+        current.jobId,
+        apiSession.messages,
+      ),
+    };
+  }, [basePlanningContext, planningSession.data]);
+  const activeView =
+    job?.status === "completed" && openedDraftJobId !== job.id
+      ? "draft"
+      : requestedView;
+  const selectView = (view: PlannerView) => {
+    if (job?.status === "completed") {
+      setOpenedDraftJobId(job.id);
+    }
+
+    setRequestedView(view);
+  };
 
   const completedJobPlan = useMemo(() => {
     if (job?.status !== "completed" || !planningContext) {
@@ -182,56 +208,11 @@ export default function AiTripPlannerScreen() {
     });
   }, [planningContext, planningSession.data?.currentRevision]);
 
-  const resolvedPlan = completedJobPlan ?? sessionPlan;
-  const livePlan = resolvedPlan ?? latestPlan;
-  const resolvedPlanningResult =
+  const livePlan = completedJobPlan ?? sessionPlan;
+  const planningResult =
     job?.status === "completed"
       ? job.result
       : (planningSession.data?.currentRevision?.result ?? null);
-  const planningResult = resolvedPlanningResult ?? latestPlanningResult;
-
-  useEffect(() => {
-    if (resolvedPlan && resolvedPlanningResult) {
-      setLatestPlan(resolvedPlan);
-      setLatestPlanningResult(resolvedPlanningResult);
-    }
-  }, [resolvedPlan, resolvedPlanningResult]);
-
-  useEffect(() => {
-    if (!planningSession.data) {
-      return;
-    }
-
-    const apiSession = planningSession.data;
-
-    setPlanningContext((current) => {
-      if (!current?.recovered || current.sessionId !== apiSession.id) {
-        return current;
-      }
-
-      const operation = inferRecoveredPlanningOperation(
-        current.jobId,
-        apiSession.messages,
-      );
-      const answers = {
-        destination: apiSession.initialRequest.destination,
-        durationDays: apiSession.initialRequest.durationDays,
-        startDate: current.answers.startDate,
-        tripBrief: apiSession.initialRequest.tripBrief,
-      };
-
-      if (
-        current.operation === operation &&
-        current.answers.destination === answers.destination &&
-        current.answers.durationDays === answers.durationDays &&
-        current.answers.tripBrief === answers.tripBrief
-      ) {
-        return current;
-      }
-
-      return { ...current, answers, operation };
-    });
-  }, [planningSession.data]);
 
   const importTrip = useMutation({
     mutationFn: actionImportAiPlanningResult,
@@ -348,13 +329,6 @@ export default function AiTripPlannerScreen() {
     !isRefinementBusy &&
     !cancelPlanningJob.isPending;
 
-  useEffect(() => {
-    if (job?.status === "completed" && openedDraftJobId !== job.id) {
-      setOpenedDraftJobId(job.id);
-      setActiveView("draft");
-    }
-  }, [job, openedDraftJobId]);
-
   const executeSubmission = async (attempt: SubmissionAttempt) => {
     if (!userId) {
       setLocalSubmissionError("You must be signed in to plan a trip.");
@@ -400,8 +374,6 @@ export default function AiTripPlannerScreen() {
       setSubmissionAttempt(attempt);
       setPlanningContext(null);
       setRefinementAttempt(null);
-      setLatestPlan(null);
-      setLatestPlanningResult(null);
       setOpenedDraftJobId(null);
       setLocalRefinementError(null);
       setLocalImportError(null);
@@ -436,8 +408,6 @@ export default function AiTripPlannerScreen() {
     setSubmissionAttempt(null);
     setPlanningContext(null);
     setRefinementAttempt(null);
-    setLatestPlan(null);
-    setLatestPlanningResult(null);
     setOpenedDraftJobId(null);
     setLocalSubmissionError(null);
     setLocalRefinementError(null);
@@ -470,8 +440,6 @@ export default function AiTripPlannerScreen() {
     setRecoveryDismissed(true);
     setSubmissionAttempt(null);
     setRefinementAttempt(null);
-    setLatestPlan(null);
-    setLatestPlanningResult(null);
     setOpenedDraftJobId(null);
     setLocalSubmissionError(null);
     setLocalRefinementError(null);
@@ -687,7 +655,7 @@ export default function AiTripPlannerScreen() {
         progressMessage = "Your feedback has been applied to the itinerary.";
         primaryAction = {
           label: "View draft",
-          onPress: () => setActiveView("draft"),
+          onPress: () => selectView("draft"),
         };
       } else if (job?.status === "failed") {
         progressVariant = "failed";
@@ -771,7 +739,7 @@ export default function AiTripPlannerScreen() {
       progressVariant = "completed";
       primaryAction = {
         label: "View draft",
-        onPress: () => setActiveView("draft"),
+        onPress: () => selectView("draft"),
       };
     } else if (job?.status === "failed") {
       progressVariant = "failed";
@@ -878,7 +846,7 @@ export default function AiTripPlannerScreen() {
             <View style={styles.tabs}>
               <TouchableOpacity
                 style={[styles.tab, activeView === "chat" && styles.activeTab]}
-                onPress={() => setActiveView("chat")}
+                onPress={() => selectView("chat")}
               >
                 <MessageCircle
                   size={17}
@@ -904,7 +872,7 @@ export default function AiTripPlannerScreen() {
                   activeView === "draft" && styles.activeTab,
                   !livePlan && styles.disabledTab,
                 ]}
-                onPress={() => setActiveView("draft")}
+                onPress={() => selectView("draft")}
                 disabled={!livePlan}
               >
                 <CalendarDays
@@ -982,7 +950,7 @@ export default function AiTripPlannerScreen() {
                 <AiPlannerPlanPreview
                   key={`draft-${livePlan.revision}`}
                   plan={livePlan}
-                  onAskForChanges={() => setActiveView("chat")}
+                  onAskForChanges={() => selectView("chat")}
                   onReview={handleReviewDraft}
                 />
               </View>

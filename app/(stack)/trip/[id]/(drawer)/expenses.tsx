@@ -19,7 +19,7 @@ import { type Currency } from "@/types/pin";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { Plus as PlusIcon } from "lucide-react-native";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 
 export default function TripExpensesScreen() {
@@ -65,14 +65,13 @@ export default function TripExpensesScreen() {
     );
   }, [localExpenses]);
 
-  useEffect(() => {
-    if (!activeCurrency && availableCurrencies.length > 0) {
-      setActiveCurrency(availableCurrencies[0]);
-    }
-  }, [activeCurrency, availableCurrencies]);
+  const selectedCurrency =
+    activeCurrency && availableCurrencies.includes(activeCurrency)
+      ? activeCurrency
+      : (availableCurrencies[0] ?? null);
 
-  const filteredExpenses = activeCurrency
-    ? localExpenses.filter((expense) => expense.currency === activeCurrency)
+  const filteredExpenses = selectedCurrency
+    ? localExpenses.filter((expense) => expense.currency === selectedCurrency)
     : localExpenses;
 
   const ledgers = useMemo(
@@ -92,7 +91,7 @@ export default function TripExpensesScreen() {
     [localExpenses],
   );
   const activeLedger = ledgers.find(
-    (ledger) => ledger.currency === activeCurrency,
+    (ledger) => ledger.currency === selectedCurrency,
   );
   const total = activeLedger
     ? activeLedger.balances
@@ -128,7 +127,7 @@ export default function TripExpensesScreen() {
   const tabs = availableCurrencies.map((currency) => ({
     id: currency,
     label: currency,
-    isActive: activeCurrency === currency,
+    isActive: selectedCurrency === currency,
   }));
 
   if (!trip) {
@@ -154,7 +153,7 @@ export default function TripExpensesScreen() {
       <View style={styles.content}>
         <View style={styles.summary}>
           <TripExpenseSummary
-            currency={activeCurrency ?? "N/A"}
+            currency={selectedCurrency ?? "N/A"}
             total={total}
             youPaid={currentUserPaid}
             yourBalance={currentUserBalance}

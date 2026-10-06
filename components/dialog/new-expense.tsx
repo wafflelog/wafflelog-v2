@@ -14,7 +14,7 @@ import {
 import { Currency } from "@/types/pin";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckSquare, Square } from "lucide-react-native";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { newExpenseFormSchema } from "./new-expense/schema";
 
@@ -28,6 +28,13 @@ type DialogNewExpenseProps = {
 };
 
 export const DialogNewExpense = ({
+  visible,
+  ...props
+}: DialogNewExpenseProps) => {
+  return <DialogNewExpenseVisible {...props} visible={visible} />;
+};
+
+const DialogNewExpenseVisible = ({
   pinId,
   tripId,
   visible,
@@ -40,10 +47,12 @@ export const DialogNewExpense = ({
   const [expenseCurrency, setExpenseCurrency] = useState<Currency>("EUR");
   const [expenseAmount, setExpenseAmount] = useState("");
   const [expenseDescription, setExpenseDescription] = useState("");
-  const [paidByUserId, setPaidByUserId] = useState<string | null>(null);
-  const [participantUserIds, setParticipantUserIds] = useState<string[]>([]);
-  const [hasInitializedParticipants, setHasInitializedParticipants] =
-    useState(false);
+  const [paidByUserIdOverride, setPaidByUserIdOverride] = useState<
+    string | null | undefined
+  >(undefined);
+  const [participantUserIdsOverride, setParticipantUserIdsOverride] = useState<
+    string[] | null
+  >(null);
 
   const { data: splitParticipants = [] } = useQuery({
     queryKey: ["local-expense-split-participants", tripId],
@@ -51,24 +60,28 @@ export const DialogNewExpense = ({
     enabled: Boolean(visible && tripId),
   });
 
-  useEffect(() => {
-    if (!visible) {
-      setHasInitializedParticipants(false);
-      return;
-    }
+  const participantUserIds =
+    participantUserIdsOverride ??
+    splitParticipants.map((participant) => participant.userId);
+  const defaultPaidByUserId = splitParticipants.some(
+    (participant) => participant.userId === session?.user.id,
+  )
+    ? (session?.user.id ?? null)
+    : (splitParticipants[0]?.userId ?? null);
+  const paidByUserId = paidByUserIdOverride ?? defaultPaidByUserId;
 
-    if (hasInitializedParticipants || splitParticipants.length === 0) {
-      return;
-    }
+  const resetForm = () => {
+    setExpenseCurrency("EUR");
+    setExpenseAmount("");
+    setExpenseDescription("");
+    setPaidByUserIdOverride(undefined);
+    setParticipantUserIdsOverride(null);
+  };
 
-    setParticipantUserIds(splitParticipants.map((participant) => participant.userId));
-    setPaidByUserId(
-      splitParticipants.some((participant) => participant.userId === session?.user.id)
-        ? session?.user.id ?? null
-        : splitParticipants[0].userId,
-    );
-    setHasInitializedParticipants(true);
-  }, [hasInitializedParticipants, session?.user.id, splitParticipants, visible]);
+  const handleDismiss = () => {
+    resetForm();
+    onDismiss();
+  };
 
   const createExpenseMutation = useMutation({
     mutationFn: actionCreateLocalExpense,
@@ -91,12 +104,7 @@ export const DialogNewExpense = ({
         await Promise.all(invalidations);
       }
 
-      setExpenseCurrency("EUR");
-      setExpenseAmount("");
-      setExpenseDescription("");
-      setPaidByUserId(null);
-      setParticipantUserIds([]);
-      onDismiss();
+      handleDismiss();
       onShowMessage("Expense saved locally", "info");
     },
     onError: (error) => {
@@ -164,10 +172,10 @@ export const DialogNewExpense = ({
   };
 
   const toggleParticipant = (userId: string) => {
-    setParticipantUserIds((current) =>
-      current.includes(userId)
-        ? current.filter((id) => id !== userId)
-        : [...current, userId],
+    setParticipantUserIdsOverride(
+      participantUserIds.includes(userId)
+        ? participantUserIds.filter((id) => id !== userId)
+        : [...participantUserIds, userId],
     );
   };
 
@@ -190,7 +198,7 @@ export const DialogNewExpense = ({
   return (
     <Dialog
       visible={visible}
-      onDismiss={onDismiss}
+      onDismiss={handleDismiss}
       title="New Expense"
       size="md"
       onConfirm={handleConfirm}
@@ -223,7 +231,7 @@ export const DialogNewExpense = ({
                   ? "You"
                   : `@${participant.username ?? "unknown"}`,
             }))}
-            onValueChange={setPaidByUserId}
+            onValueChange={setPaidByUserIdOverride}
           />
         </View>
         <View style={styles.section}>

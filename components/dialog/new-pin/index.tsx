@@ -21,7 +21,7 @@ import {
 } from "@/lib/sqlite/model/pin";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { newPinFormSchema } from "./schema";
 
@@ -52,6 +52,28 @@ type DialogNewPinProps = {
 };
 
 export const DialogNewPin = ({
+  visible,
+  ...props
+}: DialogNewPinProps) => {
+  const formKey = props.initialPin
+    ? [
+        "edit",
+        props.initialPin.id,
+        props.initialPin.name,
+        props.initialPin.startDate,
+        props.initialPin.endDate,
+        props.initialPin.time,
+        props.initialPin.endTime,
+        props.initialPin.categoryId,
+        props.initialPin.metadataJson.departure,
+        props.initialPin.metadataJson.destination,
+      ].join(":")
+    : `create:${props.initialStartDate ?? ""}`;
+
+  return <DialogNewPinVisible key={formKey} {...props} visible={visible} />;
+};
+
+const DialogNewPinVisible = ({
   tripId,
   tripStartDate,
   tripEndDate,
@@ -64,47 +86,79 @@ export const DialogNewPin = ({
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
   const { showMessage, SystemMessageModal } = useSystemMessage();
-  const [pinName, setPinName] = useState("");
-  const [pinCategoryId, setPinCategoryId] = useState("");
-  const [pinStartDate, setPinStartDate] = useState("");
-  const [pinEndDate, setPinEndDate] = useState("");
-  const [pinTime, setPinTime] = useState("");
-  const [pinEndTime, setPinEndTime] = useState("");
-  const [transportDeparture, setTransportDeparture] = useState("");
-  const [transportDestination, setTransportDestination] = useState("");
-  const [step, setStep] = useState<DialogNewPinStep>("category");
   const isEditMode = mode === "edit";
+  const [pinName, setPinName] = useState(
+    isEditMode && initialPin ? (initialPin.name ?? "") : "",
+  );
+  const [pinCategoryId, setPinCategoryId] = useState(
+    isEditMode && initialPin ? initialPin.categoryId : "",
+  );
+  const [pinStartDate, setPinStartDate] = useState(
+    isEditMode && initialPin
+      ? initialPin.startDate
+      : (initialStartDate ?? ""),
+  );
+  const [pinEndDate, setPinEndDate] = useState(
+    isEditMode && initialPin
+      ? (initialPin.endDate ?? "")
+      : (initialStartDate ?? ""),
+  );
+  const [pinTime, setPinTime] = useState(
+    isEditMode && initialPin ? (initialPin.time ?? "") : "",
+  );
+  const [pinEndTime, setPinEndTime] = useState(
+    isEditMode && initialPin ? (initialPin.endTime ?? "") : "",
+  );
+  const [transportDeparture, setTransportDeparture] = useState(
+    isEditMode && initialPin
+      ? (initialPin.metadataJson.departure ?? "")
+      : "",
+  );
+  const [transportDestination, setTransportDestination] = useState(
+    isEditMode && initialPin
+      ? (initialPin.metadataJson.destination ?? "")
+      : "",
+  );
+  const [step, setStep] = useState<DialogNewPinStep>(
+    isEditMode && initialPin ? "details" : "category",
+  );
   const isTransport = pinCategoryId === "transport";
   const isRangePin = isRangePinCategory(pinCategoryId);
 
-  useEffect(() => {
-    if (!visible) {
-      return;
-    }
+  const resetForm = () => {
+    setPinName(isEditMode && initialPin ? (initialPin.name ?? "") : "");
+    setPinCategoryId(isEditMode && initialPin ? initialPin.categoryId : "");
+    setPinStartDate(
+      isEditMode && initialPin
+        ? initialPin.startDate
+        : (initialStartDate ?? ""),
+    );
+    setPinEndDate(
+      isEditMode && initialPin
+        ? (initialPin.endDate ?? "")
+        : (initialStartDate ?? ""),
+    );
+    setPinTime(isEditMode && initialPin ? (initialPin.time ?? "") : "");
+    setPinEndTime(
+      isEditMode && initialPin ? (initialPin.endTime ?? "") : "",
+    );
+    setTransportDeparture(
+      isEditMode && initialPin
+        ? (initialPin.metadataJson.departure ?? "")
+        : "",
+    );
+    setTransportDestination(
+      isEditMode && initialPin
+        ? (initialPin.metadataJson.destination ?? "")
+        : "",
+    );
+    setStep(isEditMode && initialPin ? "details" : "category");
+  };
 
-    if (isEditMode && initialPin) {
-      setPinName(initialPin.name ?? "");
-      setPinCategoryId(initialPin.categoryId);
-      setPinStartDate(initialPin.startDate);
-      setPinEndDate(initialPin.endDate ?? "");
-      setPinTime(initialPin.time ?? "");
-      setPinEndTime(initialPin.endTime ?? "");
-      setTransportDeparture(initialPin.metadataJson.departure ?? "");
-      setTransportDestination(initialPin.metadataJson.destination ?? "");
-      setStep("details");
-      return;
-    }
-
-    setPinName("");
-    setPinCategoryId("");
-    setPinStartDate(initialStartDate ?? "");
-    setPinEndDate(initialStartDate ?? "");
-    setPinTime("");
-    setPinEndTime("");
-    setTransportDeparture("");
-    setTransportDestination("");
-    setStep("category");
-  }, [visible, isEditMode, initialPin, initialStartDate]);
+  const handleDismiss = () => {
+    resetForm();
+    onDismiss();
+  };
 
   const createPinMutation = useMutation({
     mutationFn: actionCreateLocalPin,
@@ -116,16 +170,7 @@ export const DialogNewPin = ({
           }),
         ]);
       }
-      setPinName("");
-      setPinCategoryId("");
-      setPinStartDate("");
-      setPinEndDate("");
-      setPinTime("");
-      setPinEndTime("");
-      setTransportDeparture("");
-      setTransportDestination("");
-      setStep("category");
-      onDismiss();
+      handleDismiss();
       showMessage("Pin saved locally", "info");
 
       try {
@@ -165,7 +210,7 @@ export const DialogNewPin = ({
         ]);
       }
 
-      onDismiss();
+      handleDismiss();
       showMessage("Pin updated locally", "info");
 
       try {
@@ -192,10 +237,6 @@ export const DialogNewPin = ({
       showMessage(message, "error");
     },
   });
-
-  const handleDismiss = () => {
-    onDismiss();
-  };
 
   const handleConfirm = () => {
     if (!session?.user.id) {
