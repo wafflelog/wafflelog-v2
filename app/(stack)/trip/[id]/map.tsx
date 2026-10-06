@@ -7,8 +7,8 @@ import {
   semanticColors,
 } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
-import { formatDate } from "@/lib/helper/utils";
 import { getPinTimeLabelForDate, getPinTitle } from "@/lib/helper/pin";
+import { formatDate } from "@/lib/helper/utils";
 import {
   actionListLocalPinLocationsByTripAndDate,
   type LocalPinWithLocation,
@@ -39,10 +39,7 @@ import MapView, {
   type LatLng,
   type Region,
 } from "react-native-maps";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const DEFAULT_REGION = {
   latitude: 51.5074,
@@ -291,10 +288,12 @@ export default function TripMapScreen() {
         })}
       </MapView>
 
-      <SafeAreaView
+      <View
         pointerEvents="box-none"
-        style={StyleSheet.absoluteFill}
-        edges={["top", "bottom"]}
+        style={[
+          StyleSheet.absoluteFill,
+          { paddingTop: insets.top, paddingBottom: insets.bottom },
+        ]}
       >
         <View style={[styles.topControls, { top: insets.top }]}>
           <TouchableOpacity
@@ -428,7 +427,7 @@ export default function TripMapScreen() {
             </View>
           ) : null}
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }

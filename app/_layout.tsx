@@ -1,5 +1,5 @@
-import { GlobalDbSync } from "@/components/global/db-sync";
 import { GlobalAppNotifications } from "@/components/global/app-notifications";
+import { GlobalDbSync } from "@/components/global/db-sync";
 import { AuthSessionProvider } from "@/hook/use-auth-session";
 import { initializeDatabase } from "@/lib/sqlite/init";
 import {

@@ -3,17 +3,14 @@ import { HeaderCloseButton } from "@/components/header/icon-button";
 import { colors, getColor, semanticColors } from "@/constants/theme";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  StyleSheet,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
 export default function WebViewerScreen() {
   const params = useLocalSearchParams<{ url?: string; title?: string }>();
   const [loading, setLoading] = useState(true);
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const url = params.url || "";
   const header = (
@@ -30,15 +27,15 @@ export default function WebViewerScreen() {
 
   if (!url) {
     return (
-      <SafeAreaView style={styles.container} edges={["bottom"]}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         {header}
         <View style={styles.errorContainer} />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       {header}
       <WebView
         source={{ uri: url }}
@@ -61,7 +58,7 @@ export default function WebViewerScreen() {
           <ActivityIndicator size="large" color={getColor(colors.purple)} />
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

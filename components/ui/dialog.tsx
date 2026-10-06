@@ -18,7 +18,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type DialogProps = {
   visible: boolean;
@@ -57,6 +57,8 @@ export function Dialog({
   confirmVariant = "primary",
   overlay,
 }: DialogProps) {
+  const insets = useSafeAreaInsets();
+
   const handleBackdropPress = () => {
     if (dismissible && onDismiss) {
       onDismiss();
@@ -73,10 +75,10 @@ export function Dialog({
         statusBarTranslucent
         onRequestClose={onDismiss}
       >
-        <SafeAreaView style={styles.container} edges={["bottom"]}>
+        <View style={[styles.container, { paddingBottom: insets.bottom }]}>
           {overlay}
           <Pressable style={[styles.backdrop]} onPress={handleBackdropPress} />
-          <View style={[styles.dialog, { maxHeight: maxHeights[size] }, style]}>
+          <View style={[styles.dialog, style]}>
             <KeyboardAwareScrollView
               contentContainerStyle={styles.keyboardContainer}
             >
@@ -148,7 +150,7 @@ export function Dialog({
               </View>
             </KeyboardAwareScrollView>
           </View>
-        </SafeAreaView>
+        </View>
       </Modal>
     </>
   );
@@ -177,6 +179,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: borderRadiuses.lg,
     borderTopRightRadius: borderRadiuses.lg,
     flexDirection: "column",
+    height: maxHeights.lg,
   },
   closeButton: {
     position: "absolute",

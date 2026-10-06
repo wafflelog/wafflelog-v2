@@ -26,10 +26,7 @@ import {
   View,
 } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CardPinLocationRegular } from "@/components/card/pin/location/regular";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
@@ -250,9 +247,12 @@ export default function PinIndexScreen() {
 
   if (!pin || !localPin || !session?.user.id) {
     return (
-      <SafeAreaView
-        style={[styles.container, styles.stateContainer]}
-        edges={["bottom"]}
+      <View
+        style={[
+          styles.container,
+          styles.stateContainer,
+          { paddingBottom: insets.bottom },
+        ]}
       >
         {isLocalPinPending || !session?.user.id ? (
           <>
@@ -266,12 +266,12 @@ export default function PinIndexScreen() {
             Pin not found
           </TitleRegular>
         )}
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {mapPreview ? (
           <Pressable
@@ -315,12 +315,7 @@ export default function PinIndexScreen() {
             </TitleRegular>
           </View>
         )}
-        <View
-          style={[
-            styles.content,
-            { paddingBottom: insets.bottom + 96 },
-          ]}
-        >
+        <View style={[styles.content, { paddingBottom: insets.bottom + 96 }]}>
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <CalendarDaysIcon size={24} color={color} />
@@ -534,7 +529,7 @@ export default function PinIndexScreen() {
         systemMessageOverlay={<SystemMessageModal />}
       />
       {activeNewObjectDialog ? null : <SystemMessageModal />}
-    </SafeAreaView>
+    </View>
   );
 }
 

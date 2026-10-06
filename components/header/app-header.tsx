@@ -2,7 +2,7 @@ import { UIText } from "@/components/ui/text";
 import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type AppHeaderProps = {
   leading?: ReactNode;
@@ -28,9 +28,10 @@ export const AppHeader = ({
   trailing,
 }: AppHeaderProps) => {
   const isLeftAligned = titleAlign === "left";
+  const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.safeArea}>
+    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
       <View style={styles.content}>
         <View
           style={[
@@ -43,9 +44,7 @@ export const AppHeader = ({
         <View
           style={[
             styles.titleContainer,
-            isLeftAligned
-              ? styles.leftAlignedTitle
-              : styles.centeredTitle,
+            isLeftAligned ? styles.leftAlignedTitle : styles.centeredTitle,
           ]}
         >
           <UIText
@@ -71,7 +70,7 @@ export const AppHeader = ({
           {trailing}
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 

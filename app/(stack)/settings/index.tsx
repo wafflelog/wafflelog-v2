@@ -22,7 +22,7 @@ import {
 } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const notificationStatusLabels: Record<NotificationPermissionState, string> = {
   loading: "Checking…",
@@ -34,12 +34,10 @@ const notificationStatusLabels: Record<NotificationPermissionState, string> = {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { session } = useAuthSession();
-  const {
-    permissionState,
-    isManagingPermission,
-    managePermission,
-  } = useNotificationPermission();
+  const { permissionState, isManagingPermission, managePermission } =
+    useNotificationPermission();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const username = session?.user.user_metadata.username || "Traveler";
@@ -55,7 +53,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <AppHeader
         title="Settings"
         leading={<HeaderBackButton onPress={() => router.back()} />}
@@ -157,7 +155,7 @@ export default function SettingsScreen() {
           </UIText>
         </Pressable>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

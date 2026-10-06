@@ -11,11 +11,12 @@ import { Link, Redirect, router } from "expo-router";
 import { LockKeyhole, Mail, UserRound } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const USERNAME_PATTERN = /^[a-z0-9_]+$/;
 
 export default function RegisterScreen() {
+  const insets = useSafeAreaInsets();
   const { isAuthenticated, isLoading } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const emailInputRef = useRef<TextInput>(null);
@@ -90,11 +91,11 @@ export default function RegisterScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingScreen}>
+      <View style={[styles.loadingScreen, { paddingTop: insets.top }]}>
         <TitleRegular size="lg" color={colors.textDarkGrey}>
           Loading...
         </TitleRegular>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -169,11 +170,7 @@ export default function RegisterScreen() {
             </TitleRegular>
             <Link href="/login" asChild replace>
               <Pressable style={styles.switchButton} hitSlop={8}>
-                <TitleRegular
-                  size="sm"
-                  color={colors.purple}
-                  weight="700"
-                >
+                <TitleRegular size="sm" color={colors.purple} weight="700">
                   Log in
                 </TitleRegular>
               </Pressable>

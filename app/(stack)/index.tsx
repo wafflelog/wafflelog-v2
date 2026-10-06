@@ -31,10 +31,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function IndexScreen() {
   const router = useRouter();
@@ -52,11 +49,11 @@ export default function IndexScreen() {
   const notificationsQuery = useAppNotifications(session?.user.id);
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer} edges={["top"]}>
+      <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
         <TitleRegular size="lg" color={colors.textDarkGrey}>
           Loading...
         </TitleRegular>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -134,9 +131,7 @@ export default function IndexScreen() {
           />
         }
         trailing={
-          <HeaderSettingsButton
-            onPress={() => router.push("/settings")}
-          />
+          <HeaderSettingsButton onPress={() => router.push("/settings")} />
         }
       />
 
@@ -263,11 +258,7 @@ export default function IndexScreen() {
                   onPress={() => setShowAllUpcomingTrips((current) => !current)}
                   accessibilityRole="button"
                 >
-                  <TitleRegular
-                    size="sm"
-                    weight="600"
-                    color={colors.turquoise}
-                  >
+                  <TitleRegular size="sm" weight="600" color={colors.turquoise}>
                     {showAllUpcomingTrips ? "Show less" : "View all"}
                   </TitleRegular>
                 </TouchableOpacity>
@@ -306,11 +297,7 @@ export default function IndexScreen() {
                   onPress={() => setShowAllPastTrips((current) => !current)}
                   accessibilityRole="button"
                 >
-                  <TitleRegular
-                    size="sm"
-                    weight="600"
-                    color={colors.purple}
-                  >
+                  <TitleRegular size="sm" weight="600" color={colors.purple}>
                     {showAllPastTrips ? "Show less" : "View all"}
                   </TitleRegular>
                 </TouchableOpacity>
@@ -335,7 +322,11 @@ export default function IndexScreen() {
           pastTrips.length === 0 && (
             <View style={styles.emptyState}>
               <PlaneIcon size={64} color={getColor(colors.paleGrey)} />
-              <TitleRegular size="xxl" weight="700" style={styles.emptyStateTitle}>
+              <TitleRegular
+                size="xxl"
+                weight="700"
+                style={styles.emptyStateTitle}
+              >
                 No trips yet
               </TitleRegular>
               <TitleRegular

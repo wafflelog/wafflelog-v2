@@ -20,7 +20,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -31,6 +31,7 @@ const ZOOM_ANIMATION_DURATION = 300;
 export default function ImageZoomScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ url?: string; urls?: string }>();
+  const insets = useSafeAreaInsets();
 
   const images = params.urls
     ? JSON.parse(params.urls)
@@ -105,15 +106,11 @@ export default function ImageZoomScreen() {
       const currentScale = scale.get();
       savedScale.set(currentScale);
       if (currentScale < MIN_SCALE) {
-        scale.set(
-          withTiming(MIN_SCALE, { duration: ZOOM_ANIMATION_DURATION }),
-        );
+        scale.set(withTiming(MIN_SCALE, { duration: ZOOM_ANIMATION_DURATION }));
         savedScale.set(MIN_SCALE);
       }
       if (currentScale > MAX_SCALE) {
-        scale.set(
-          withTiming(MAX_SCALE, { duration: ZOOM_ANIMATION_DURATION }),
-        );
+        scale.set(withTiming(MAX_SCALE, { duration: ZOOM_ANIMATION_DURATION }));
         savedScale.set(MAX_SCALE);
       }
 
@@ -185,9 +182,7 @@ export default function ImageZoomScreen() {
 
       if (scale.get() > MIN_SCALE) {
         // Zoom out - center the image
-        scale.set(
-          withTiming(MIN_SCALE, { duration: ZOOM_ANIMATION_DURATION }),
-        );
+        scale.set(withTiming(MIN_SCALE, { duration: ZOOM_ANIMATION_DURATION }));
         translateX.set(withTiming(0, { duration: ZOOM_ANIMATION_DURATION }));
         translateY.set(withTiming(0, { duration: ZOOM_ANIMATION_DURATION }));
         savedScale.set(MIN_SCALE);
@@ -261,7 +256,7 @@ export default function ImageZoomScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.closeButton}
           onPress={() => router.back()}
@@ -292,7 +287,7 @@ export default function ImageZoomScreen() {
             </TouchableOpacity>
           )}
         />
-      </SafeAreaView>
+      </View>
     </GestureHandlerRootView>
   );
 }

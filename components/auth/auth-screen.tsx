@@ -8,7 +8,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type AuthScreenProps = {
   eyebrow: string;
@@ -23,8 +23,15 @@ export function AuthScreen({
   subtitle,
   children,
 }: AuthScreenProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+    <View
+      style={[
+        styles.safeArea,
+        { paddingTop: insets.top, paddingBottom: insets.bottom },
+      ]}
+    >
       <View style={styles.topAccent} pointerEvents="none" />
       <View style={styles.bottomAccent} pointerEvents="none" />
 
@@ -98,7 +105,7 @@ export function AuthScreen({
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

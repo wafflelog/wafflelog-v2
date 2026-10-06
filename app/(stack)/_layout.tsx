@@ -20,22 +20,23 @@ export default function Layout() {
           options={{ headerShown: false }}
         />
         <Stack.Screen name="trip/[id]/map" options={{ headerShown: false }} />
-        <Stack.Screen name="pin/[id]/(stack)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="pin/[id]/(stack)"
+          options={{ headerShown: false }}
+        />
         <Stack.Screen
           name="notes"
           options={{
-            presentation: "modal",
-            title: "Notes",
+            headerShown: false,
+            presentation: "fullScreenModal",
+            animation: "slide_from_bottom",
           }}
         />
         <Stack.Screen
           name="notification-center"
           options={{ headerShown: false }}
         />
-        <Stack.Screen
-          name="settings/index"
-          options={{ headerShown: false }}
-        />
+        <Stack.Screen name="settings/index" options={{ headerShown: false }} />
         <Stack.Screen
           name="ai-trip-planner"
           options={{
@@ -46,19 +47,27 @@ export default function Layout() {
         />
         <Stack.Screen
           name="user-search"
-          options={{ headerShown: false, presentation: "modal" }}
+          options={{
+            headerShown: false,
+            presentation: "fullScreenModal",
+            animation: "slide_from_bottom",
+          }}
         />
         {/* <Stack.Screen name="(stack)" options={{ headerShown: false }} /> */}
         <Stack.Screen
           name="image-viewer"
           options={{
+            headerShown: false,
             presentation: "fullScreenModal",
+            animation: "slide_from_bottom",
           }}
         />
         <Stack.Screen
           name="web-viewer"
           options={{
-            presentation: "modal",
+            headerShown: false,
+            presentation: "fullScreenModal",
+            animation: "slide_from_bottom",
           }}
         />
       </Stack.Protected>

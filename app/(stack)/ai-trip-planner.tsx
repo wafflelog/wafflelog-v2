@@ -35,9 +35,7 @@ import {
   actionImportAiPlanningResult,
   actionSyncImportedAiTrip,
 } from "@/lib/ai-trip-planning/trip-import";
-import {
-  type CreatePlanningRefinementRequest,
-} from "@/lib/ai-trip-planning/types";
+import { type CreatePlanningRefinementRequest } from "@/lib/ai-trip-planning/types";
 import { type LocalAiPlanningSession } from "@/lib/sqlite/model/ai-planning-session";
 import {
   type AiPlannerDraftSelection,
@@ -55,7 +53,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type PlannerView = "chat" | "draft";
 
@@ -95,6 +93,7 @@ export default function AiTripPlannerScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { session } = useAuthSession();
+  const insets = useSafeAreaInsets();
   const userId = session?.user.id ?? null;
   const createPlanningSession = useCreatePlanningSession();
   const createPlanningRefinement = useCreatePlanningRefinement();
@@ -152,7 +151,11 @@ export default function AiTripPlannerScreen() {
     const current = basePlanningContext;
     const apiSession = planningSession.data;
 
-    if (!current?.recovered || !apiSession || current.sessionId !== apiSession.id) {
+    if (
+      !current?.recovered ||
+      !apiSession ||
+      current.sessionId !== apiSession.id
+    ) {
       return current;
     }
 
@@ -811,7 +814,7 @@ export default function AiTripPlannerScreen() {
           : "New";
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+    <View style={[styles.safeArea]}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -1008,7 +1011,7 @@ export default function AiTripPlannerScreen() {
           ) : null}
         </View>
       </Dialog>
-    </SafeAreaView>
+    </View>
   );
 }
 
