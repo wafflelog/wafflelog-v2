@@ -9,6 +9,7 @@ type PinSectionTemplateProps = {
   title: string;
   icon: ReactNode;
   children: ReactNode;
+  hasContent?: boolean;
   onAdd: () => void;
   addText: string;
   addButtonStyle?: StyleProp<ViewStyle>;
@@ -18,6 +19,7 @@ export const PinSectionTemplate = ({
   title,
   icon,
   children,
+  hasContent = true,
   onAdd,
   addText,
   addButtonStyle,
@@ -31,7 +33,9 @@ export const PinSectionTemplate = ({
         </TitleRegular>
       </View>
 
-      <View style={styles.sectionCard}>{children}</View>
+      {hasContent ? (
+        <View style={styles.sectionCard}>{children}</View>
+      ) : null}
 
       <ButtonAdd
         text={addText}

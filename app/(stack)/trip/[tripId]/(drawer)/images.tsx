@@ -1,8 +1,15 @@
 import { ButtonFab } from "@/components/button/fab";
 import { CardImageRegular } from "@/components/card/image/regular";
 import { DialogNewImage } from "@/components/dialog/new-image";
+import { EmptyState } from "@/components/ui/empty-state";
 import { UIText } from "@/components/ui/text";
-import { gaps, getCardBasicStyle, semanticColors } from "@/constants/theme";
+import {
+  colors,
+  gaps,
+  getCardBasicStyle,
+  getColor,
+  semanticColors,
+} from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { getPinTitle } from "@/lib/helper/pin";
@@ -10,7 +17,10 @@ import { actionListLocalImagesByTrip } from "@/lib/sqlite/model/image";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Plus as PlusIcon } from "lucide-react-native";
+import {
+  Image as ImageIcon,
+  Plus as PlusIcon,
+} from "lucide-react-native";
 import { useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 
@@ -71,6 +81,13 @@ export default function TripImagesScreen() {
         data={images}
         numColumns={2}
         keyExtractor={(item) => item.id}
+        ListEmptyComponent={
+          <EmptyState
+            icon={<ImageIcon size={24} color={getColor(colors.purple)} />}
+            title="No images added yet"
+            message="Add photos or visual references for this trip."
+          />
+        }
         renderItem={({ item }) => (
           <View key={item.id} style={styles.item}>
             <CardImageRegular
@@ -120,6 +137,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.screen,
   },
   images: {
+    flexGrow: 1,
     gap: gaps.md,
     padding: gaps.md,
   },

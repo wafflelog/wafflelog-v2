@@ -2,8 +2,15 @@ import { ButtonFab } from "@/components/button/fab";
 import { CardDocument } from "@/components/card/document";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { DialogNewDocument } from "@/components/dialog/new-document";
+import { EmptyState } from "@/components/ui/empty-state";
 import { UIText } from "@/components/ui/text";
-import { gaps, getCardBasicStyle, semanticColors } from "@/constants/theme";
+import {
+  colors,
+  gaps,
+  getCardBasicStyle,
+  getColor,
+  semanticColors,
+} from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { getPinTitle } from "@/lib/helper/pin";
@@ -14,7 +21,10 @@ import {
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Plus as PlusIcon } from "lucide-react-native";
+import {
+  FileText as FileTextIcon,
+  Plus as PlusIcon,
+} from "lucide-react-native";
 import { useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 
@@ -124,6 +134,13 @@ export default function TripDocumentsScreen() {
         contentContainerStyle={styles.documents}
         data={documents}
         keyExtractor={(item) => item.id}
+        ListEmptyComponent={
+          <EmptyState
+            icon={<FileTextIcon size={24} color={getColor(colors.purple)} />}
+            title="No documents added yet"
+            message="Keep bookings, tickets and travel files in one place."
+          />
+        }
         renderItem={({ item }) => (
           <View key={item.id} style={styles.item}>
             <View style={styles.document}>
@@ -195,6 +212,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.screen,
   },
   documents: {
+    flexGrow: 1,
     gap: gaps.md,
     padding: gaps.md,
   },

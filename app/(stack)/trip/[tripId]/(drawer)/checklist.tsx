@@ -2,8 +2,9 @@ import { ButtonFab } from "@/components/button/fab";
 import { CardTripChecklistItem } from "@/components/card/checklist-item";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { DialogNewChecklistItem } from "@/components/dialog/new-checklist-item";
+import { EmptyState } from "@/components/ui/empty-state";
 import { UITab } from "@/components/ui/tab";
-import { gaps, semanticColors } from "@/constants/theme";
+import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import {
   actionListLocalChecklistItems,
@@ -14,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import {
   Plus as PlusIcon,
+  ListChecks as ListChecksIcon,
   User as UserIcon,
   Users as UsersIcon,
 } from "lucide-react-native";
@@ -85,6 +87,9 @@ export default function TripChecklistScreen() {
       icon: (color: string) => <UsersIcon size={24} color={color} />,
     },
   ];
+  const visibleChecklistItems = (checklistData ?? []).filter(
+    (item) => activeTab === "public" || item.userId === session?.user.id,
+  );
 
   return (
     <View style={styles.container}>
@@ -103,8 +108,25 @@ export default function TripChecklistScreen() {
 
       <FlatList
         contentContainerStyle={styles.checklist}
-        data={checklistData}
+        data={visibleChecklistItems}
         keyExtractor={(item) => item.id}
+        ListEmptyComponent={
+          <EmptyState
+            icon={
+              <ListChecksIcon size={24} color={getColor(colors.purple)} />
+            }
+            title={
+              activeTab === "my"
+                ? "Nothing on your checklist yet"
+                : "No shared checklist items yet"
+            }
+            message={
+              activeTab === "my"
+                ? "Add anything you want to remember for this trip."
+                : "Checklist items shared within this trip will appear here."
+            }
+          />
+        }
         renderItem={({ item }) => (
           <CardTripChecklistItem
             checklistItem={item}
@@ -167,6 +189,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   checklist: {
+    flexGrow: 1,
     gap: gaps.md,
     padding: gaps.md,
   },

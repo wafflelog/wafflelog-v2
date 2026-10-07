@@ -78,6 +78,7 @@ export const PinExpenses = ({
       <PinSectionTemplate
         title="Expenses"
         icon={<WalletIcon size={24} color={getColor(colors.purple)} />}
+        hasContent={expenses.length > 0}
         onAdd={onAddExpense}
         addText="Add Expense"
       >

@@ -52,6 +52,7 @@ export const PinLinks = ({
       <PinSectionTemplate
         title="Reference Links"
         icon={<Link2Icon size={24} color={getColor(colors.purple)} />}
+        hasContent={localReferenceLinks.length > 0}
         onAdd={onAddReferenceLink}
         addText="Add Reference Link"
       >

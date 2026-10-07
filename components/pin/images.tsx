@@ -61,6 +61,7 @@ export const PinImages = ({
       <PinSectionTemplate
         title="Images"
         icon={<ImageIcon size={24} color={getColor(colors.purple)} />}
+        hasContent={images.length > 0}
         onAdd={onAddImage}
         addText="Add Image"
         addButtonStyle={styles.addImageButton}

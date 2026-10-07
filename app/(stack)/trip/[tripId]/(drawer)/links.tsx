@@ -1,8 +1,15 @@
 import { ButtonFab } from "@/components/button/fab";
 import { CardPinReferenceLinkRegular } from "@/components/card/reference-link/regular";
 import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
+import { EmptyState } from "@/components/ui/empty-state";
 import { UIText } from "@/components/ui/text";
-import { gaps, getCardBasicStyle, semanticColors } from "@/constants/theme";
+import {
+  colors,
+  gaps,
+  getCardBasicStyle,
+  getColor,
+  semanticColors,
+} from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { getPinTitle } from "@/lib/helper/pin";
@@ -10,7 +17,10 @@ import { actionListLocalReferenceLinksByTrip } from "@/lib/sqlite/model/referenc
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
-import { Plus as PlusIcon } from "lucide-react-native";
+import {
+  Link2 as Link2Icon,
+  Plus as PlusIcon,
+} from "lucide-react-native";
 import { useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 
@@ -80,6 +90,14 @@ export default function TripLinksScreen() {
       <FlatList
         contentContainerStyle={styles.links}
         data={referenceLinks}
+        keyExtractor={(item) => item.id}
+        ListEmptyComponent={
+          <EmptyState
+            icon={<Link2Icon size={24} color={getColor(colors.purple)} />}
+            title="No links saved yet"
+            message="Save useful websites and references for this trip."
+          />
+        }
         renderItem={({ item }) => (
           <View key={item.id} style={styles.link}>
             <CardPinReferenceLinkRegular referenceLink={item} />
@@ -110,6 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.screen,
   },
   links: {
+    flexGrow: 1,
     gap: gaps.md,
     padding: gaps.md,
   },

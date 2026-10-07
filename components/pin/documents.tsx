@@ -57,6 +57,7 @@ export const PinDocuments = ({
       <PinSectionTemplate
         title="Documents"
         icon={<FileTextIcon size={24} color={getColor(colors.purple)} />}
+        hasContent={localDocuments.length > 0}
         onAdd={onAddDocument}
         addText="Add Document"
       >
