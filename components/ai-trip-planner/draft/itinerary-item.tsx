@@ -1,4 +1,6 @@
+import { IconPinCategory } from "@/components/icon/pin-category";
 import { TitleRegular } from "@/components/title/regular";
+import { CATEGORIES } from "@/constants/pin-categories";
 import {
   borderRadiuses,
   colors,
@@ -7,16 +9,10 @@ import {
 } from "@/constants/theme";
 import { type AiPlannerItemViewModel } from "@/types/ai-trip-planner";
 import {
-  Bus,
-  CheckCircle2,
+  Check,
   ChevronDown,
   ChevronUp,
-  Circle,
-  CircleHelp,
   ExternalLink,
-  Landmark,
-  Mountain,
-  Utensils,
 } from "lucide-react-native";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -29,31 +25,6 @@ type ItineraryItemProps = {
   onToggleResearch: () => void;
 };
 
-const categoryLabels: Record<AiPlannerItemViewModel["category"], string> = {
-  attraction: "Culture",
-  food: "Food",
-  nature: "Nature",
-  other: "Explore",
-  transport: "Travel",
-};
-
-function ItemCategoryIcon({ item }: { item: AiPlannerItemViewModel }) {
-  const props = { size: 14, color: getColor(colors.purple) };
-
-  switch (item.category) {
-    case "attraction":
-      return <Landmark {...props} />;
-    case "food":
-      return <Utensils {...props} />;
-    case "nature":
-      return <Mountain {...props} />;
-    case "transport":
-      return <Bus {...props} />;
-    default:
-      return <CircleHelp {...props} />;
-  }
-}
-
 export function ItineraryItem({
   item,
   isCustomizing,
@@ -62,6 +33,11 @@ export function ItineraryItem({
   onToggleIncluded,
   onToggleResearch,
 }: ItineraryItemProps) {
+  const category = CATEGORIES.find(({ id }) => id === item.category);
+  const categoryColor = category
+    ? colors[category.color]
+    : colors.textLightGrey;
+
   return (
     <View
       style={[
@@ -74,29 +50,39 @@ export function ItineraryItem({
         onPress={onToggleIncluded}
         activeOpacity={isCustomizing ? 0.7 : 1}
         disabled={!isCustomizing}
+        accessibilityRole={isCustomizing ? "checkbox" : undefined}
+        accessibilityState={
+          isCustomizing ? { checked: isIncluded } : undefined
+        }
       >
-        <View style={styles.itemSelection}>
-          {isCustomizing ? (
-            isIncluded ? (
-              <CheckCircle2 size={22} color={getColor(colors.pineGreen)} />
-            ) : (
-              <Circle size={22} color={getColor(colors.paleGrey)} />
-            )
-          ) : (
-            <View style={styles.readOnlyItemIcon}>
-              <ItemCategoryIcon item={item} />
-            </View>
-          )}
-        </View>
-        <View style={styles.itemContent}>
+        <View
+          style={[
+            styles.itemContent,
+            isCustomizing && !isIncluded && styles.excludedContent,
+          ]}
+        >
           <View style={styles.itemMeta}>
-            <TitleRegular size="xs" weight="700" color={colors.purple}>
-              {item.time}
-            </TitleRegular>
-            <View style={styles.categoryPill}>
-              <ItemCategoryIcon item={item} />
-              <TitleRegular size="xxs" weight="600" color={colors.purple}>
-                {categoryLabels[item.category]}
+            {item.time ? (
+              <TitleRegular size="xs" weight="700" color={colors.purple}>
+                {item.time}
+              </TitleRegular>
+            ) : null}
+            <View
+              style={[
+                styles.categoryPill,
+                { backgroundColor: getColor(categoryColor, 0.08) },
+              ]}
+            >
+              {category ? (
+                <IconPinCategory category={category} size={14} />
+              ) : null}
+              <TitleRegular
+                size="xxs"
+                weight="600"
+                color={colors.textDarkGrey}
+                style={styles.categoryLabel}
+              >
+                {category?.name ?? item.category}
               </TitleRegular>
             </View>
           </View>
@@ -111,6 +97,22 @@ export function ItineraryItem({
             {item.description}
           </TitleRegular>
         </View>
+        {isCustomizing ? (
+          <View
+            style={[
+              styles.checkbox,
+              isIncluded && styles.checkboxSelected,
+            ]}
+          >
+            {isIncluded ? (
+              <Check
+                size={15}
+                strokeWidth={3}
+                color={getColor(colors.white)}
+              />
+            ) : null}
+          </View>
+        ) : null}
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.whyButton} onPress={onToggleResearch}>
@@ -167,20 +169,26 @@ const styles = StyleSheet.create({
     borderBottomColor: getColor(colors.whiteGrey, 0.55),
   },
   itemExcluded: {
-    opacity: 0.48,
     backgroundColor: getColor(colors.whiteGrey, 0.2),
   },
   itemMain: { flexDirection: "row", gap: gaps.xs },
-  itemSelection: { paddingTop: 2 },
-  readOnlyItemIcon: {
-    width: 24,
-    height: 24,
+  itemContent: { flex: 1, gap: gaps.xxs },
+  excludedContent: { opacity: 0.48 },
+  checkbox: {
+    width: 22,
+    height: 22,
+    marginTop: 2,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: borderRadiuses.full,
-    backgroundColor: getColor(colors.purple, 0.08),
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: getColor(colors.paleGrey),
+    backgroundColor: getColor(colors.white),
   },
-  itemContent: { flex: 1, gap: gaps.xxs },
+  checkboxSelected: {
+    borderColor: getColor(colors.purple),
+    backgroundColor: getColor(colors.purple),
+  },
   itemMeta: { flexDirection: "row", alignItems: "center", gap: gaps.xs },
   categoryPill: {
     flexDirection: "row",
@@ -189,19 +197,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: borderRadiuses.full,
-    backgroundColor: getColor(colors.purple, 0.08),
   },
+  categoryLabel: { textTransform: "capitalize" },
   itemDescription: { lineHeight: 18 },
   whyButton: {
     alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
-    marginLeft: 30,
     marginTop: gaps.xs,
   },
   research: {
-    marginLeft: 30,
     marginTop: gaps.xs,
     borderRadius: borderRadiuses.sm,
     padding: gaps.xs,

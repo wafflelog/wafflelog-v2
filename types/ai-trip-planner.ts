@@ -5,7 +5,7 @@ export type AiPlannerSourceViewModel = {
 
 export type AiPlannerItemViewModel = {
   id: string;
-  time: string;
+  time: string | null;
   title: string;
   description: string;
   category: "attraction" | "food" | "nature" | "other" | "transport";

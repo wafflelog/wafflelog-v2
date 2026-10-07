@@ -128,7 +128,7 @@ export function adaptPlanningResultToPlanPreview({
       summary: day.description,
       items: day.items.map((item) => ({
         id: item.draftId,
-        time: item.suggestedStartTime?.trim() || "Flexible",
+        time: item.suggestedStartTime?.trim() || null,
         title: item.title,
         description: item.description,
         category: getPlanningItemCategory(item.type, item.category),

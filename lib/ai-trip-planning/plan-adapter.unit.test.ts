@@ -129,7 +129,7 @@ describe("planning result preview adapter", () => {
           items: [
             {
               id: "park",
-              time: "Flexible",
+              time: null,
               title: "Minoh Park",
               description: "Walk to the waterfall.",
               category: "nature",

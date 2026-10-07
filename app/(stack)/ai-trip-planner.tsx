@@ -43,7 +43,7 @@ import {
 } from "@/types/ai-trip-planner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import { CalendarDays, MessageCircle } from "lucide-react-native";
+import { MessageCircle, ScrollText } from "lucide-react-native";
 import { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -175,6 +175,7 @@ export default function AiTripPlannerScreen() {
     job?.status === "completed" && openedDraftJobId !== job.id
       ? "draft"
       : requestedView;
+
   const selectView = (view: PlannerView) => {
     if (job?.status === "completed") {
       setOpenedDraftJobId(job.id);
@@ -815,7 +816,7 @@ export default function AiTripPlannerScreen() {
     <View style={[styles.safeArea, { paddingBottom: insets.bottom }]}>
       <View style={styles.frame}>
         <AppHeader
-          title="Plan with AI"
+          title="Trip assistant"
           subtitle={
             showRecovery
               ? "Planning saved on this device"
@@ -870,12 +871,10 @@ export default function AiTripPlannerScreen() {
               onPress={() => selectView("draft")}
               disabled={!livePlan}
             >
-              <CalendarDays
+              <ScrollText
                 size={17}
                 color={getColor(
-                  activeView === "draft"
-                    ? colors.purple
-                    : colors.textLightGrey,
+                  activeView === "draft" ? colors.purple : colors.textLightGrey,
                 )}
               />
               <TitleRegular
