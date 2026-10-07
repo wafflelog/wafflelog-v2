@@ -17,21 +17,25 @@ import { FlatList, StyleSheet, View } from "react-native";
 export default function TripLinksScreen() {
   const [isDialogNewReferenceLinkVisible, setIsDialogNewReferenceLinkVisible] =
     useState(false);
-  const { id } = useLocalSearchParams();
+  const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const { session } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
 
   const { data: localTrip } = useQuery({
-    queryKey: ["local-trip", String(id), session?.user.id],
-    queryFn: () => actionGetLocalTrip(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-trip", String(tripId), session?.user.id],
+    queryFn: () => actionGetLocalTrip(String(tripId), session!.user.id),
+    enabled: Boolean(tripId && session?.user.id),
   });
 
   const { data: localReferenceLinks = [] } = useQuery({
-    queryKey: ["local-trip-reference-links", String(id), session?.user.id],
+    queryKey: [
+      "local-trip-reference-links",
+      String(tripId),
+      session?.user.id,
+    ],
     queryFn: () =>
-      actionListLocalReferenceLinksByTrip(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+      actionListLocalReferenceLinksByTrip(String(tripId), session!.user.id),
+    enabled: Boolean(tripId && session?.user.id),
   });
 
   const trip = localTrip
@@ -90,7 +94,7 @@ export default function TripLinksScreen() {
         icon={(color) => <PlusIcon size={20} color={color} />}
       />
       <DialogNewReferenceLink
-        tripId={String(id)}
+        tripId={String(tripId)}
         visible={isDialogNewReferenceLinkVisible}
         onDismiss={() => setIsDialogNewReferenceLinkVisible(false)}
         onShowMessage={showMessage}

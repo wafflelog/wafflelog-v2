@@ -33,7 +33,7 @@ import {
 } from "react-native";
 
 export default function TripIndexScreen() {
-  const { id } = useLocalSearchParams();
+  const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const router = useRouter();
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
@@ -43,15 +43,15 @@ export default function TripIndexScreen() {
   const [isDialogNewPinOpen, setIsDialogNewPinOpen] = useState(false);
 
   const { data: localTrip, isPending: isLocalTripPending } = useQuery({
-    queryKey: ["local-trip", String(id), session?.user.id],
-    queryFn: () => actionGetLocalTrip(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-trip", String(tripId), session?.user.id],
+    queryFn: () => actionGetLocalTrip(String(tripId), session!.user.id),
+    enabled: Boolean(tripId && session?.user.id),
   });
 
   useQuery({
-    queryKey: ["remote-trip", String(id), session?.user.id],
+    queryKey: ["remote-trip", String(tripId), session?.user.id],
     queryFn: async () => {
-      const remoteTrip = await actionGetRemoteTripById(String(id));
+      const remoteTrip = await actionGetRemoteTripById(String(tripId));
       const shouldApplyRemote =
         !localTrip ||
         (localTrip.syncStatus === "synced" &&
@@ -60,13 +60,13 @@ export default function TripIndexScreen() {
       if (shouldApplyRemote) {
         await actionUpsertLocalTripFromRemote(remoteTrip);
         await queryClient.invalidateQueries({
-          queryKey: ["local-trip", String(id), session?.user.id],
+          queryKey: ["local-trip", String(tripId), session?.user.id],
         });
       }
 
       return remoteTrip;
     },
-    enabled: Boolean(id && session?.user.id),
+    enabled: Boolean(tripId && session?.user.id),
     staleTime: 0,
     gcTime: 0,
   });
@@ -100,20 +100,26 @@ export default function TripIndexScreen() {
   }, [trip, selectedDayIndex]);
 
   const { data: selectedDayPins = [] } = useQuery({
-    queryKey: ["local-pins", String(id), selectedDate, session?.user.id],
+    queryKey: [
+      "local-pins",
+      String(tripId),
+      selectedDate,
+      session?.user.id,
+    ],
     queryFn: () =>
       actionListLocalPinsByTripAndDate(
-        String(id),
+        String(tripId),
         session!.user.id,
         selectedDate!,
       ),
-    enabled: Boolean(id && selectedDate && session?.user.id),
+    enabled: Boolean(tripId && selectedDate && session?.user.id),
   });
 
   const { data: localNotes = [] } = useQuery({
-    queryKey: ["local-notes", "trip", String(id), session?.user.id],
-    queryFn: () => actionListLocalNotesByTrip(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-notes", "trip", String(tripId), session?.user.id],
+    queryFn: () =>
+      actionListLocalNotesByTrip(String(tripId), session!.user.id),
+    enabled: Boolean(tripId && session?.user.id),
   });
 
   const noteCount = localNotes.length;
@@ -214,9 +220,9 @@ export default function TripIndexScreen() {
               style={[styles.toolbarButton, styles.mapButton]}
               onPress={() => {
                 router.push({
-                  pathname: "/trip/[id]/map",
+                  pathname: "/trip/[tripId]/map",
                   params: {
-                    id: String(id),
+                    tripId: String(tripId),
                     date: selectedDate ?? undefined,
                   },
                 });
@@ -235,7 +241,7 @@ export default function TripIndexScreen() {
               onPress={() => {
                 router.push({
                   pathname: "/notes",
-                  params: { tripId: String(id) },
+                  params: { tripId: String(tripId) },
                 });
               }}
               activeOpacity={0.8}
@@ -276,7 +282,7 @@ export default function TripIndexScreen() {
         icon={(color) => <PlusIcon size={20} color={color} />}
       />
       <DialogNewPin
-        tripId={String(id)}
+        tripId={String(tripId)}
         tripStartDate={trip.startDate}
         tripEndDate={trip.endDate}
         initialStartDate={selectedDate ?? trip.startDate}

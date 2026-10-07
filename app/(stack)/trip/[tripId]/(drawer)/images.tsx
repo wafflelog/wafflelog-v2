@@ -16,21 +16,22 @@ import { FlatList, StyleSheet, View } from "react-native";
 
 export default function TripImagesScreen() {
   const [isDialogNewImageVisible, setIsDialogNewImageVisible] = useState(false);
-  const { id } = useLocalSearchParams();
+  const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const router = useRouter();
   const { session } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
 
   const { data: localTrip } = useQuery({
-    queryKey: ["local-trip", String(id), session?.user.id],
-    queryFn: () => actionGetLocalTrip(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-trip", String(tripId), session?.user.id],
+    queryFn: () => actionGetLocalTrip(String(tripId), session!.user.id),
+    enabled: Boolean(tripId && session?.user.id),
   });
 
   const { data: localImages = [] } = useQuery({
-    queryKey: ["local-trip-images", String(id), session?.user.id],
-    queryFn: () => actionListLocalImagesByTrip(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-trip-images", String(tripId), session?.user.id],
+    queryFn: () =>
+      actionListLocalImagesByTrip(String(tripId), session!.user.id),
+    enabled: Boolean(tripId && session?.user.id),
   });
 
   const trip = localTrip
@@ -103,7 +104,7 @@ export default function TripImagesScreen() {
         icon={(color) => <PlusIcon size={20} color={color} />}
       />
       <DialogNewImage
-        tripId={String(id)}
+        tripId={String(tripId)}
         visible={isDialogNewImageVisible}
         onDismiss={() => setIsDialogNewImageVisible(false)}
         onShowMessage={showMessage}

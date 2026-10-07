@@ -23,7 +23,7 @@ import { useMemo, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 
 export default function TripExpensesScreen() {
-  const { id } = useLocalSearchParams();
+  const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const { session } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
 
@@ -32,15 +32,16 @@ export default function TripExpensesScreen() {
     useState(false);
 
   const { data: localTrip } = useQuery({
-    queryKey: ["local-trip", String(id), session?.user.id],
-    queryFn: () => actionGetLocalTrip(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-trip", String(tripId), session?.user.id],
+    queryFn: () => actionGetLocalTrip(String(tripId), session!.user.id),
+    enabled: Boolean(tripId && session?.user.id),
   });
 
   const { data: localExpenses = [] } = useQuery({
-    queryKey: ["local-trip-expenses", String(id), session?.user.id],
-    queryFn: () => actionListLocalExpensesByTrip(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-trip-expenses", String(tripId), session?.user.id],
+    queryFn: () =>
+      actionListLocalExpensesByTrip(String(tripId), session!.user.id),
+    enabled: Boolean(tripId && session?.user.id),
   });
 
   const trip = localTrip
@@ -244,7 +245,7 @@ export default function TripExpensesScreen() {
         icon={(color) => <PlusIcon size={20} color={color} />}
       />
       <DialogNewExpense
-        tripId={String(id)}
+        tripId={String(tripId)}
         visible={isDialogNewExpenseVisible}
         onDismiss={() => setIsDialogNewExpenseVisible(false)}
         onShowMessage={showMessage}

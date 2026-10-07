@@ -50,8 +50,8 @@ const DEFAULT_REGION = {
 const PIN_CAROUSEL_GAP = gaps.xs;
 
 export default function TripMapScreen() {
-  const { id, date, pinId } = useLocalSearchParams<{
-    id: string;
+  const { tripId: routeTripId, date, pinId } = useLocalSearchParams<{
+    tripId: string;
     date?: string;
     pinId?: string;
   }>();
@@ -61,7 +61,7 @@ export default function TripMapScreen() {
   const { width: windowWidth } = useWindowDimensions();
   const mapRef = useRef<MapView>(null);
   const pinCarouselRef = useRef<FlatList<LocalPinWithLocation>>(null);
-  const tripId = String(id);
+  const tripId = String(routeTripId);
 
   const { data: localTrip } = useQuery({
     queryKey: ["local-trip", tripId, session?.user.id],

@@ -1,5 +1,5 @@
 import { gaps } from "@/constants/theme";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -15,11 +15,13 @@ import {
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+const FORCED_SCROLL_DELAY_MS = 250;
+
 type AiPlannerChatLayoutProps = {
   children: React.ReactNode;
   footer?: React.ReactNode;
   inputNativeId?: string;
-  scrollToEndKey?: string | number;
+  forceScrollToEndKey?: string | number;
   contentContainerStyle?: StyleProp<ViewStyle>;
   keyboardLiftBehavior?: "always" | "whenAtEnd" | "persistent" | "never";
   keyboardShouldPersistTaps?: ScrollViewProps["keyboardShouldPersistTaps"];
@@ -29,29 +31,59 @@ export function AiPlannerChatLayout({
   children,
   footer,
   inputNativeId,
-  scrollToEndKey,
+  forceScrollToEndKey,
   contentContainerStyle,
-  keyboardLiftBehavior = "whenAtEnd",
+  keyboardLiftBehavior = "always",
   keyboardShouldPersistTaps = "handled",
 }: AiPlannerChatLayoutProps) {
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<React.ElementRef<typeof KeyboardChatScrollView>>(
+  const scrollRef =
+    useRef<React.ElementRef<typeof KeyboardChatScrollView>>(null);
+  const footerBaselineHeight = useRef<number | null>(null);
+  const isEndVisible = useRef(true);
+  const lastHandledForceScrollKey = useRef(forceScrollToEndKey);
+  const forcedScrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const footerBaselineHeight = useRef<number | null>(null);
   const extraContentPadding = useSharedValue(0);
 
-  useEffect(() => {
-    if (scrollToEndKey === undefined) {
+  useEffect(
+    () => () => {
+      if (forcedScrollTimeout.current) {
+        clearTimeout(forcedScrollTimeout.current);
+      }
+    },
+    [],
+  );
+
+  const handleEndVisible = useCallback((visible: boolean) => {
+    isEndVisible.current = visible;
+  }, []);
+
+  const handleContentSizeChange = useCallback(() => {
+    const hasForceScrollRequest =
+      forceScrollToEndKey !== undefined &&
+      forceScrollToEndKey !== lastHandledForceScrollKey.current;
+
+    if (hasForceScrollRequest) {
+      lastHandledForceScrollKey.current = forceScrollToEndKey;
+
+      if (forcedScrollTimeout.current) {
+        clearTimeout(forcedScrollTimeout.current);
+      }
+
+      forcedScrollTimeout.current = setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+        forcedScrollTimeout.current = null;
+      }, FORCED_SCROLL_DELAY_MS);
+
       return;
     }
 
-    const frame = requestAnimationFrame(() => {
+    if (isEndVisible.current) {
       scrollRef.current?.scrollToEnd({ animated: true });
-    });
-
-    return () => cancelAnimationFrame(frame);
-  }, [scrollToEndKey]);
+    }
+  }, [forceScrollToEndKey]);
 
   return (
     <KeyboardGestureArea
@@ -70,6 +102,8 @@ export function AiPlannerChatLayout({
         keyboardShouldPersistTaps={keyboardShouldPersistTaps}
         offset={insets.bottom}
         extraContentPadding={extraContentPadding}
+        onContentSizeChange={handleContentSizeChange}
+        onEndVisible={handleEndVisible}
         applyWorkaroundForContentInsetHitTestBug
         showsVerticalScrollIndicator={false}
       >
@@ -88,10 +122,9 @@ export function AiPlannerChatLayout({
             }
 
             extraContentPadding.set(
-              withTiming(
-                Math.max(height - footerBaselineHeight.current, 0),
-                { duration: 200 },
-              ),
+              withTiming(Math.max(height - footerBaselineHeight.current, 0), {
+                duration: 200,
+              }),
             );
           }}
         >

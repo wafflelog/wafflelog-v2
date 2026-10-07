@@ -86,9 +86,9 @@ export default function UserSearchScreen() {
       );
 
       router.replace({
-        pathname: "/(stack)/trip/[id]/(drawer)/companions",
+        pathname: "/(stack)/trip/[tripId]/(drawer)/companions",
         params: {
-          id: params.tripId ?? "",
+          tripId: params.tripId ?? "",
           invitedUserId: variables.inviteeUserId,
           invitedUserName: invitedUser?.username ?? "",
         },

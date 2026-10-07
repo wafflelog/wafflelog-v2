@@ -58,7 +58,7 @@ import {
 type NewObjectDialog = "expense" | "image" | "document" | "reference-link";
 
 export default function PinIndexScreen() {
-  const { id } = useLocalSearchParams();
+  const { pinId } = useLocalSearchParams<{ pinId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { session } = useAuthSession();
@@ -71,9 +71,9 @@ export default function PinIndexScreen() {
     useState<NewObjectDialog | null>(null);
 
   const { data: localPin, isPending: isLocalPinPending } = useQuery({
-    queryKey: ["local-pin", String(id), session?.user.id],
-    queryFn: () => actionGetLocalPin(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-pin", String(pinId), session?.user.id],
+    queryFn: () => actionGetLocalPin(String(pinId), session!.user.id),
+    enabled: Boolean(pinId && session?.user.id),
   });
 
   const { data: localTrip } = useQuery({
@@ -83,9 +83,9 @@ export default function PinIndexScreen() {
   });
 
   useQuery({
-    queryKey: ["remote-pin", String(id), session?.user.id],
+    queryKey: ["remote-pin", String(pinId), session?.user.id],
     queryFn: async () => {
-      const remotePin = await actionGetRemotePinById(String(id));
+      const remotePin = await actionGetRemotePinById(String(pinId));
       const shouldApplyRemote =
         !localPin ||
         (localPin.syncStatus === "synced" &&
@@ -94,25 +94,27 @@ export default function PinIndexScreen() {
       if (shouldApplyRemote) {
         await actionUpsertLocalPinFromRemote(remotePin);
         await queryClient.invalidateQueries({
-          queryKey: ["local-pin", String(id), session?.user.id],
+          queryKey: ["local-pin", String(pinId), session?.user.id],
         });
       }
 
       return remotePin;
     },
-    enabled: Boolean(id && session?.user.id),
+    enabled: Boolean(pinId && session?.user.id),
     staleTime: 0,
     gcTime: 0,
   });
   const { data: localPinLocation } = useQuery({
-    queryKey: ["local-pin-location", String(id), session?.user.id],
-    queryFn: () => actionGetLocalPinLocation(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-pin-location", String(pinId), session?.user.id],
+    queryFn: () =>
+      actionGetLocalPinLocation(String(pinId), session!.user.id),
+    enabled: Boolean(pinId && session?.user.id),
   });
   const { data: localNotes = [] } = useQuery({
-    queryKey: ["local-notes", "pin", String(id), session?.user.id],
-    queryFn: () => actionListLocalNotesByPin(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-notes", "pin", String(pinId), session?.user.id],
+    queryFn: () =>
+      actionListLocalNotesByPin(String(pinId), session!.user.id),
+    enabled: Boolean(pinId && session?.user.id),
   });
 
   const isPinEditable = canEditPin(
@@ -156,7 +158,7 @@ export default function PinIndexScreen() {
 
       await Promise.all([
         queryClient.invalidateQueries({
-          queryKey: ["local-pin", String(id), userId],
+          queryKey: ["local-pin", String(pinId), userId],
         }),
         queryClient.invalidateQueries({
           queryKey: ["local-pins", tripId],
@@ -277,9 +279,9 @@ export default function PinIndexScreen() {
           <Pressable
             onPress={() => {
               router.push({
-                pathname: "/trip/[id]/map",
+                pathname: "/trip/[tripId]/map",
                 params: {
-                  id: localPin.tripId,
+                  tripId: localPin.tripId,
                   date: localPin.startDate,
                   pinId: localPin.id,
                 },
@@ -440,7 +442,7 @@ export default function PinIndexScreen() {
             pathname: "/notes",
             params: {
               tripId: localPin.tripId,
-              pinId: String(id),
+              pinId: String(pinId),
             },
           });
         }}

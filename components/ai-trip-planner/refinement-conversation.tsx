@@ -81,12 +81,7 @@ export function AiPlannerRefinementConversation({
       footer={footer}
       inputNativeId={canSubmit ? REFINEMENT_INPUT_ID : undefined}
       contentContainerStyle={styles.messagesContent}
-      scrollToEndKey={[
-        draftRevision,
-        messages.length,
-        canSubmit,
-        Boolean(planningProgress),
-      ].join(":")}
+      forceScrollToEndKey={messages.length}
     >
       <AiPlannerChatIntro
         icon={<MessageCircle size={21} color={getColor(colors.purple)} />}

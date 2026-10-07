@@ -2,12 +2,7 @@ import { AiPlannerSendButton } from "@/components/ai-trip-planner/chat/send-butt
 import { AiPlannerTextComposer } from "@/components/ai-trip-planner/chat/text-composer";
 import { TitleRegular } from "@/components/title/regular";
 import { UIInputDate } from "@/components/ui/input/date";
-import {
-  borderRadiuses,
-  colors,
-  gaps,
-  getColor,
-} from "@/constants/theme";
+import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
 import { AI_PLANNER_PROMPT_SUGGESTIONS } from "@/data/ai-trip-planner-prototype";
 import { type AiPlannerIntakeAnswers } from "@/types/ai-trip-planner";
 import dayjs from "dayjs";
@@ -111,9 +106,7 @@ export function AiPlannerIntakeComposer({
         {inputLimit ? (
           <TitleRegular
             size="xxs"
-            color={
-              input.length >= inputLimit ? colors.orange : colors.paleGrey
-            }
+            color={input.length >= inputLimit ? colors.orange : colors.paleGrey}
           >
             {input.length.toLocaleString("en-GB")} /{" "}
             {inputLimit.toLocaleString("en-GB")}

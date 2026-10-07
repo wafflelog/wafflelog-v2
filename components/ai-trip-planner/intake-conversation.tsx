@@ -78,11 +78,10 @@ export function AiPlannerIntakeConversation({
       footer={footer}
       inputNativeId={inputNativeId}
       contentContainerStyle={styles.messagesContent}
-      scrollToEndKey={[
+      forceScrollToEndKey={[
         conversation.answeredCount,
+        conversation.activeField,
         conversation.isEditing,
-        Boolean(conversation.error),
-        Boolean(planningProgress),
       ].join(":")}
     >
       <AiPlannerChatIntro

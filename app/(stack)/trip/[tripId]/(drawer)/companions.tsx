@@ -31,19 +31,19 @@ import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View }
 const MAX_COMPANIONS = 10;
 
 export default function TripCompanionsScreen() {
-  const { id } = useLocalSearchParams<{
-    id?: string;
+  const { tripId: routeTripId } = useLocalSearchParams<{
+    tripId?: string;
   }>();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { session } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
-  const tripId = String(id ?? "");
+  const tripId = String(routeTripId ?? "");
 
   const { data: localTrip } = useQuery({
     queryKey: ["local-trip", tripId, session?.user.id],
     queryFn: () => actionGetLocalTrip(tripId, session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    enabled: Boolean(routeTripId && session?.user.id),
   });
 
   const companionsQuery = useQuery({

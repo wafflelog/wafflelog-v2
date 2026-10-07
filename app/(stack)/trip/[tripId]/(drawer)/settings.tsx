@@ -25,13 +25,13 @@ import { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 export default function TripSettingsScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { tripId: routeTripId } = useLocalSearchParams<{ tripId: string }>();
   const router = useRouter();
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
   const [isEditDialogVisible, setIsEditDialogVisible] = useState(false);
   const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
-  const tripId = String(id);
+  const tripId = String(routeTripId);
 
   const { data: localTrip } = useQuery({
     queryKey: ["local-trip", tripId, session?.user.id],

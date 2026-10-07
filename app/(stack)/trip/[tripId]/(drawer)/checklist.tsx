@@ -23,7 +23,7 @@ import { FlatList, StyleSheet, View } from "react-native";
 type TabId = "my" | "public";
 
 export default function TripChecklistScreen() {
-  const { id } = useLocalSearchParams();
+  const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
 
@@ -36,16 +36,21 @@ export default function TripChecklistScreen() {
   >(null);
 
   const { data: checklistData } = useQuery({
-    queryKey: ["local-checklist-items", String(id), session?.user.id],
-    queryFn: () => actionListLocalChecklistItems(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-checklist-items", String(tripId), session?.user.id],
+    queryFn: () =>
+      actionListLocalChecklistItems(String(tripId), session!.user.id),
+    enabled: Boolean(tripId && session?.user.id),
   });
 
   const toggleChecklistItemMutation = useMutation({
     mutationFn: actionToggleLocalChecklistItemCompleted,
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["local-checklist-items", String(id), session?.user.id],
+        queryKey: [
+          "local-checklist-items",
+          String(tripId),
+          session?.user.id,
+        ],
       });
     },
   });
@@ -55,7 +60,11 @@ export default function TripChecklistScreen() {
       actionSoftDeleteLocalChecklistItem(checklistItemId, session!.user.id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: ["local-checklist-items", String(id), session?.user.id],
+        queryKey: [
+          "local-checklist-items",
+          String(tripId),
+          session?.user.id,
+        ],
       });
       setIsDeleteDialogVisible(false);
       setSelectedChecklistItemId(null);
@@ -116,7 +125,7 @@ export default function TripChecklistScreen() {
         icon={(color) => <PlusIcon size={20} color={color} />}
       />
       <DialogNewChecklistItem
-        tripId={String(id)}
+        tripId={String(tripId)}
         visible={isDialogNewChecklistItemVisible}
         onDismiss={() => setIsDialogNewChecklistItemVisible(false)}
       />

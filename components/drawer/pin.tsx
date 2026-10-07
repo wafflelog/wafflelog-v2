@@ -21,17 +21,17 @@ import {
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 
 interface DrawerPinProps extends DrawerContentComponentProps {
-  id?: string;
+  pinId?: string;
 }
 
-export function DrawerPin({ id }: DrawerPinProps) {
+export function DrawerPin({ pinId, navigation }: DrawerPinProps) {
   const { session } = useAuthSession();
   const router = useRouter();
 
   const { data: currentPin } = useQuery({
-    queryKey: ["local-pin", String(id), session?.user.id],
-    queryFn: () => actionGetLocalPin(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-pin", String(pinId), session?.user.id],
+    queryFn: () => actionGetLocalPin(String(pinId), session!.user.id),
+    enabled: Boolean(pinId && session?.user.id),
   });
 
   const { data: trip } = useQuery({
@@ -58,7 +58,7 @@ export function DrawerPin({ id }: DrawerPinProps) {
     ),
   });
 
-  if (!id) {
+  if (!pinId) {
     return null;
   }
 
@@ -93,14 +93,17 @@ export function DrawerPin({ id }: DrawerPinProps) {
             key={pin.id}
             item={{
               label: getPinTitle(pin),
-              isActive: id === pin.id,
+              isActive: pinId === pin.id,
               onPress: () => {
-                router.replace(`/pin/${pin.id}`);
+                navigation.closeDrawer();
+                router.setParams({ pinId: pin.id });
               },
               icon: (color) => (
                 <MapPinIcon
                   size={20}
-                  color={id === pin.id ? color : getColor(colors.textLightGrey)}
+                  color={
+                    pinId === pin.id ? color : getColor(colors.textLightGrey)
+                  }
                 />
               ),
             }}

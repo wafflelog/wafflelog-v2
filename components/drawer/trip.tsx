@@ -23,66 +23,66 @@ import {
 } from "lucide-react-native";
 
 interface DrawerTripProps extends DrawerContentComponentProps {
-  id?: string;
+  tripId?: string;
 }
 
-export function DrawerTrip({ id, navigation }: DrawerTripProps) {
+export function DrawerTrip({ tripId, navigation }: DrawerTripProps) {
   const pathname = usePathname();
 
-  if (!id) {
+  if (!tripId) {
     return null;
   }
 
-  const tripBasePath = `/trip/${id}`;
+  const tripBasePath = `/trip/${tripId}`;
 
   const links: (DrawerItem & { href: string })[] = [
     {
       label: "Overview",
       icon: (color) => <LayoutDashboardIcon size={20} color={color} />,
       href: tripBasePath,
-      onPress: () => router.push(`/trip/${id}`),
+      onPress: () => router.push(`/trip/${tripId}`),
     },
     {
       label: "Checklist",
       icon: (color) => <ListCheckIcon size={20} color={color} />,
       href: `${tripBasePath}/checklist`,
-      onPress: () => router.push(`/trip/${id}/checklist`),
+      onPress: () => router.push(`/trip/${tripId}/checklist`),
     },
     {
       label: "Links",
       icon: (color) => <Link2Icon size={20} color={color} />,
       href: `${tripBasePath}/links`,
-      onPress: () => router.push(`/trip/${id}/links`),
+      onPress: () => router.push(`/trip/${tripId}/links`),
     },
     {
       label: "Documents",
       icon: (color) => <FileTextIcon size={20} color={color} />,
       href: `${tripBasePath}/documents`,
-      onPress: () => router.push(`/trip/${id}/documents`),
+      onPress: () => router.push(`/trip/${tripId}/documents`),
     },
     {
       label: "Images",
       icon: (color) => <ImageIcon size={20} color={color} />,
       href: `${tripBasePath}/images`,
-      onPress: () => router.push(`/trip/${id}/images`),
+      onPress: () => router.push(`/trip/${tripId}/images`),
     },
     {
       label: "Expenses",
       icon: (color) => <WalletIcon size={20} color={color} />,
       href: `${tripBasePath}/expenses`,
-      onPress: () => router.push(`/trip/${id}/expenses`),
+      onPress: () => router.push(`/trip/${tripId}/expenses`),
     },
     {
       label: "Companions",
       icon: (color) => <UsersIcon size={20} color={color} />,
       href: `${tripBasePath}/companions`,
-      onPress: () => router.push(`/trip/${id}/companions`),
+      onPress: () => router.push(`/trip/${tripId}/companions`),
     },
     {
       label: "Settings",
       icon: (color) => <SettingsIcon size={20} color={color} />,
       href: `${tripBasePath}/settings`,
-      onPress: () => router.push(`/trip/${id}/settings`),
+      onPress: () => router.push(`/trip/${tripId}/settings`),
     },
   ];
 

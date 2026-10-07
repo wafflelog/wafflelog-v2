@@ -7,9 +7,11 @@ import {
   type LucideIcon,
 } from "lucide-react-native";
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
+import { KeyboardController } from "react-native-keyboard-controller";
 
 type HeaderIconButtonProps = {
   accessibilityLabel: string;
+  dismissKeyboardOnPress?: boolean;
   icon: LucideIcon;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
@@ -23,16 +25,25 @@ type SemanticHeaderButtonProps = {
 
 export const HeaderIconButton = ({
   accessibilityLabel,
+  dismissKeyboardOnPress = false,
   icon: Icon,
   onPress,
   style,
 }: HeaderIconButtonProps) => {
+  const handlePress = () => {
+    if (dismissKeyboardOnPress) {
+      void KeyboardController.dismiss();
+    }
+
+    onPress();
+  };
+
   return (
     <Pressable
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       hitSlop={4}
-      onPress={onPress}
+      onPress={handlePress}
       style={({ pressed }) => [
         styles.button,
         style,
@@ -55,6 +66,7 @@ export const HeaderBackButton = ({
 }: SemanticHeaderButtonProps) => (
   <HeaderIconButton
     accessibilityLabel={accessibilityLabel}
+    dismissKeyboardOnPress
     icon={ChevronLeftIcon}
     onPress={onPress}
     style={style}
@@ -68,6 +80,7 @@ export const HeaderCloseButton = ({
 }: SemanticHeaderButtonProps) => (
   <HeaderIconButton
     accessibilityLabel={accessibilityLabel}
+    dismissKeyboardOnPress
     icon={XIcon}
     onPress={onPress}
     style={style}

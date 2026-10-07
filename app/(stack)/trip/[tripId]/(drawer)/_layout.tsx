@@ -19,20 +19,20 @@ const tripSectionTitles: Record<string, string> = {
 };
 
 export default function Layout() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const router = useRouter();
   const { session } = useAuthSession();
 
   const { data: localTrip } = useQuery({
-    queryKey: ["local-trip", String(id), session?.user.id],
-    queryFn: () => actionGetLocalTrip(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-trip", String(tripId), session?.user.id],
+    queryFn: () => actionGetLocalTrip(String(tripId), session!.user.id),
+    enabled: Boolean(tripId && session?.user.id),
   });
 
   return (
     <Drawer
       drawerContent={(props) => {
-        return <DrawerTrip {...props} id={id} />;
+        return <DrawerTrip {...props} tripId={tripId} />;
       }}
       screenOptions={({ navigation, route }) => ({
         drawerPosition: "right",

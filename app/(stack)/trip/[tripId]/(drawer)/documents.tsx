@@ -25,22 +25,23 @@ export default function TripDocumentsScreen() {
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
     null,
   );
-  const { id } = useLocalSearchParams();
+  const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const router = useRouter();
   const { session } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const queryClient = useQueryClient();
 
   const { data: localTrip } = useQuery({
-    queryKey: ["local-trip", String(id), session?.user.id],
-    queryFn: () => actionGetLocalTrip(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-trip", String(tripId), session?.user.id],
+    queryFn: () => actionGetLocalTrip(String(tripId), session!.user.id),
+    enabled: Boolean(tripId && session?.user.id),
   });
 
   const { data: localDocuments = [] } = useQuery({
-    queryKey: ["local-trip-documents", String(id), session?.user.id],
-    queryFn: () => actionListLocalDocumentsByTrip(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-trip-documents", String(tripId), session?.user.id],
+    queryFn: () =>
+      actionListLocalDocumentsByTrip(String(tripId), session!.user.id),
+    enabled: Boolean(tripId && session?.user.id),
   });
 
   const softDeleteDocumentMutation = useMutation({
@@ -48,7 +49,11 @@ export default function TripDocumentsScreen() {
       actionSoftDeleteLocalDocument(documentId, session!.user.id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: ["local-trip-documents", String(id), session!.user.id],
+        queryKey: [
+          "local-trip-documents",
+          String(tripId),
+          session!.user.id,
+        ],
       });
       setIsDeleteDialogOpen(false);
       setSelectedDocumentId(null);
@@ -155,7 +160,7 @@ export default function TripDocumentsScreen() {
         icon={(color) => <PlusIcon size={20} color={color} />}
       />
       <DialogNewDocument
-        tripId={String(id)}
+        tripId={String(tripId)}
         visible={isDialogNewDocumentVisible}
         onDismiss={() => setIsDialogNewDocumentVisible(false)}
         onShowMessage={showMessage}

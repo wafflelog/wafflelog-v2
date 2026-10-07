@@ -16,12 +16,15 @@ export default function Layout() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="user" options={{ headerShown: false }} />
         <Stack.Screen
-          name="trip/[id]/(drawer)"
+          name="trip/[tripId]/(drawer)"
           options={{ headerShown: false }}
         />
-        <Stack.Screen name="trip/[id]/map" options={{ headerShown: false }} />
         <Stack.Screen
-          name="pin/[id]/(stack)"
+          name="trip/[tripId]/map"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="pin/[pinId]/(stack)"
           options={{ headerShown: false }}
         />
         <Stack.Screen

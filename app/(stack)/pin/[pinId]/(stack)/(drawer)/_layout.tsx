@@ -4,25 +4,27 @@ import { semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionGetLocalPin } from "@/lib/sqlite/model/pin";
 import { useQuery } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useGlobalSearchParams, useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
 import { DrawerActions } from "expo-router/react-navigation";
 
 export default function Layout() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { pinId } = useGlobalSearchParams<{ pinId: string }>();
   const router = useRouter();
   const { session } = useAuthSession();
 
   const { data: localPin } = useQuery({
-    queryKey: ["local-pin", String(id), session?.user.id],
-    queryFn: () => actionGetLocalPin(String(id), session!.user.id),
-    enabled: Boolean(id && session?.user.id),
+    queryKey: ["local-pin", String(pinId), session?.user.id],
+    queryFn: () => actionGetLocalPin(String(pinId), session!.user.id),
+    enabled: Boolean(pinId && session?.user.id),
   });
+
+  console.log("localPin", pinId);
 
   return (
     <Drawer
       drawerContent={(props) => {
-        return <DrawerPin {...props} id={id} />;
+        return <DrawerPin {...props} pinId={pinId} />;
       }}
       screenOptions={({ navigation }) => ({
         drawerPosition: "right",
