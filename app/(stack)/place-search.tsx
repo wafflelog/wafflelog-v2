@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import {
   ActivityIndicator,
   FlatList,
@@ -190,131 +191,138 @@ export default function PlaceSearchScreen() {
         }
       />
 
-      {/* Search Input */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchRow}>
-          <View style={styles.searchInputContainer}>
-            <Ionicons
-              name="search"
-              size={20}
-              color={semanticColors.textSecondary}
-              style={styles.searchIcon}
-            />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Place name or address"
-              placeholderTextColor={getColor(colors.paleGrey)}
-              value={searchQuery}
-              onChangeText={handleSearchQueryChange}
-              onSubmitEditing={() => void searchPlaces(searchQuery)}
-              autoFocus
-              autoCorrect={false}
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 ? (
-              <TouchableOpacity
-                accessibilityLabel="Clear place search"
-                accessibilityRole="button"
-                hitSlop={8}
-                onPress={() => handleSearchQueryChange("")}
-              >
-                <Ionicons
-                  name="close-circle"
-                  size={20}
-                  color={getColor(colors.paleGrey)}
-                />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-          <TouchableOpacity
-            accessibilityLabel="Search places"
-            accessibilityRole="button"
-            activeOpacity={0.8}
-            disabled={isSearchDisabled}
-            onPress={() => void searchPlaces(searchQuery)}
-            style={[
-              styles.searchButton,
-              isSearchDisabled && styles.searchButtonDisabled,
-            ]}
-          >
-            {isSearching ? (
-              <ActivityIndicator
-                color={semanticColors.primaryActionContent}
-                size="small"
-              />
-            ) : (
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior="padding"
+        automaticOffset
+      >
+        {/* Search Input */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchRow}>
+            <View style={styles.searchInputContainer}>
               <Ionicons
                 name="search"
-                size={21}
-                color={semanticColors.primaryActionContent}
+                size={20}
+                color={semanticColors.textSecondary}
+                style={styles.searchIcon}
               />
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Error Message */}
-      {error && (
-        <View style={styles.errorContainer}>
-          <Ionicons
-            name="alert-circle"
-            size={20}
-            color={getColor(colors.red)}
-          />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
-      {/* Search Results */}
-      {searchResults.length > 0 && (
-        <View style={styles.resultsContainer}>
-          <FlatList
-            data={searchResults}
-            keyExtractor={(item) => item.id}
-            keyboardShouldPersistTaps="handled"
-            renderItem={({ item }) => (
-              <PlaceSearchResultCard
-                place={item}
-                isDisabled={savingPlaceId !== null}
-                isSaving={savingPlaceId === item.id}
-                onConfirm={() => void handleSelectPlace(item)}
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Place name or address"
+                placeholderTextColor={getColor(colors.paleGrey)}
+                value={searchQuery}
+                onChangeText={handleSearchQueryChange}
+                onSubmitEditing={() => void searchPlaces(searchQuery)}
+                autoFocus
+                autoCorrect={false}
+                returnKeyType="search"
               />
-            )}
-            style={styles.resultsList}
-            contentContainerStyle={styles.resultsListContent}
-          />
+              {searchQuery.length > 0 ? (
+                <TouchableOpacity
+                  accessibilityLabel="Clear place search"
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={() => handleSearchQueryChange("")}
+                >
+                  <Ionicons
+                    name="close-circle"
+                    size={20}
+                    color={getColor(colors.paleGrey)}
+                  />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            <TouchableOpacity
+              accessibilityLabel="Search places"
+              accessibilityRole="button"
+              activeOpacity={0.8}
+              disabled={isSearchDisabled}
+              onPress={() => void searchPlaces(searchQuery)}
+              style={[
+                styles.searchButton,
+                isSearchDisabled && styles.searchButtonDisabled,
+              ]}
+            >
+              {isSearching ? (
+                <ActivityIndicator
+                  color={semanticColors.primaryActionContent}
+                  size="small"
+                />
+              ) : (
+                <Ionicons
+                  name="search"
+                  size={21}
+                  color={semanticColors.primaryActionContent}
+                />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-      )}
 
-      {/* Empty State */}
-      {!isSearching && !hasSearched && searchResults.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons
-            name="search-outline"
-            size={64}
-            color={getColor(colors.paleGrey)}
-          />
-          <Text style={styles.emptyStateText}>Find the right place</Text>
-          <Text style={styles.emptyStateSubtext}>
-            Search by a place name or address, then choose the best match for
-            your pin.
-          </Text>
-        </View>
-      ) : null}
+        {/* Error Message */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Ionicons
+              name="alert-circle"
+              size={20}
+              color={getColor(colors.red)}
+            />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
 
-      {!isSearching && hasSearched && searchResults.length === 0 && !error ? (
-        <View style={styles.emptyState}>
-          <Ionicons
-            name="location-outline"
-            size={56}
-            color={getColor(colors.paleGrey)}
-          />
-          <Text style={styles.emptyStateText}>No matching places</Text>
-          <Text style={styles.emptyStateSubtext}>
-            Try a more specific name, town or address.
-          </Text>
-        </View>
-      ) : null}
+        {/* Search Results */}
+        {searchResults.length > 0 && (
+          <View style={styles.resultsContainer}>
+            <FlatList
+              data={searchResults}
+              keyExtractor={(item) => item.id}
+              keyboardDismissMode="on-drag"
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => (
+                <PlaceSearchResultCard
+                  place={item}
+                  isDisabled={savingPlaceId !== null}
+                  isSaving={savingPlaceId === item.id}
+                  onConfirm={() => void handleSelectPlace(item)}
+                />
+              )}
+              style={styles.resultsList}
+              contentContainerStyle={styles.resultsListContent}
+            />
+          </View>
+        )}
+
+        {/* Empty State */}
+        {!isSearching && !hasSearched && searchResults.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons
+              name="search-outline"
+              size={64}
+              color={getColor(colors.paleGrey)}
+            />
+            <Text style={styles.emptyStateText}>Find the right place</Text>
+            <Text style={styles.emptyStateSubtext}>
+              Search by a place name or address, then choose the best match for
+              your pin.
+            </Text>
+          </View>
+        ) : null}
+
+        {!isSearching && hasSearched && searchResults.length === 0 && !error ? (
+          <View style={styles.emptyState}>
+            <Ionicons
+              name="location-outline"
+              size={56}
+              color={getColor(colors.paleGrey)}
+            />
+            <Text style={styles.emptyStateText}>No matching places</Text>
+            <Text style={styles.emptyStateSubtext}>
+              Try a more specific name, town or address.
+            </Text>
+          </View>
+        ) : null}
+      </KeyboardAvoidingView>
       <SystemMessageModal />
     </View>
   );
@@ -324,6 +332,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: semanticColors.screen,
+  },
+  keyboardView: {
+    flex: 1,
   },
   searchContainer: {
     padding: 16,

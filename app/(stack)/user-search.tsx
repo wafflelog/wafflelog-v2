@@ -20,6 +20,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import {
   FlatList,
   StyleSheet,
@@ -154,62 +155,76 @@ export default function UserSearchScreen() {
         }
       />
 
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons
-            name="search"
-            size={20}
-            color={getColor(colors.textLightGrey)}
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by username"
-            placeholderTextColor={getColor(colors.paleGrey)}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoFocus
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={() => {
-                setSearchQuery("");
-              }}
-            >
-              <Ionicons name="close-circle" size={20} color={getColor(colors.paleGrey)} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      <FlatList
-        contentContainerStyle={styles.results}
-        data={availableUsers}
-        keyExtractor={(item) => item.id}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <UIText>
-              {usersQuery.isPending ? "Loading users..." : "No matching usernames"}
-            </UIText>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <View style={styles.resultCard}>
-            <CardCompanionSearchResult
-              user={{
-                id: item.id,
-                fullname: item.username,
-              }}
-              state={getUserState(item.id)}
-              onPress={() => {
-                void handleInviteUser(item);
-              }}
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior="padding"
+        automaticOffset
+      >
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInputContainer}>
+            <Ionicons
+              name="search"
+              size={20}
+              color={getColor(colors.textLightGrey)}
+              style={styles.searchIcon}
             />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by username"
+              placeholderTextColor={getColor(colors.paleGrey)}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => {
+                  setSearchQuery("");
+                }}
+              >
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color={getColor(colors.paleGrey)}
+                />
+              </TouchableOpacity>
+            )}
           </View>
-        )}
-      />
+        </View>
+
+        <FlatList
+          contentContainerStyle={styles.results}
+          data={availableUsers}
+          keyExtractor={(item) => item.id}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <UIText>
+                {usersQuery.isPending
+                  ? "Loading users..."
+                  : "No matching usernames"}
+              </UIText>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <View style={styles.resultCard}>
+              <CardCompanionSearchResult
+                user={{
+                  id: item.id,
+                  fullname: item.username,
+                }}
+                state={getUserState(item.id)}
+                onPress={() => {
+                  void handleInviteUser(item);
+                }}
+              />
+            </View>
+          )}
+        />
+      </KeyboardAvoidingView>
 
       <SystemMessageModal />
     </View>
@@ -220,6 +235,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: semanticColors.screen,
+  },
+  keyboardView: {
+    flex: 1,
   },
   searchContainer: {
     paddingHorizontal: gaps.md,
