@@ -67,8 +67,6 @@ export function GlobalAppNotifications() {
 
     void registerForPushNotifications()
       .then((expoPushToken) => {
-        console.log("Expo push token:", expoPushToken);
-
         if (!expoPushToken) {
           return;
         }

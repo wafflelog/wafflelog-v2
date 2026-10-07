@@ -1,10 +1,5 @@
 import { TitleRegular } from "@/components/title/regular";
-import {
-  borderRadiuses,
-  colors,
-  gaps,
-  getColor,
-} from "@/constants/theme";
+import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
 import { type LocalAiPlanningSessionStatus } from "@/lib/sqlite/model/ai-planning-session";
 import dayjs from "dayjs";
 import {
@@ -123,7 +118,7 @@ export function AiPlannerPlanningSessionRecovery({
         </View>
 
         <View style={styles.details}>
-          <View style={styles.detail}>
+          <View style={[styles.detail, { flex: 6 }]}>
             <CalendarDays size={16} color={getColor(colors.pineGreen)} />
             <View>
               <TitleRegular size="xxs" color={colors.textLightGrey}>
@@ -134,7 +129,7 @@ export function AiPlannerPlanningSessionRecovery({
               </TitleRegular>
             </View>
           </View>
-          <View style={styles.detail}>
+          <View style={[styles.detail, { flex: 4 }]}>
             <Clock3 size={16} color={getColor(colors.pineGreen)} />
             <View>
               <TitleRegular size="xxs" color={colors.textLightGrey}>
@@ -150,9 +145,8 @@ export function AiPlannerPlanningSessionRecovery({
         <View style={styles.savedRow}>
           <Smartphone size={14} color={getColor(colors.textLightGrey)} />
           <TitleRegular size="xxs" color={colors.textLightGrey}>
-            Saved on this device · Updated {dayjs(session.updatedAt).format(
-              "D MMM, HH:mm",
-            )}
+            Saved on this device · Updated{" "}
+            {dayjs(session.updatedAt).format("D MMM, HH:mm")}
           </TitleRegular>
         </View>
 
@@ -180,7 +174,6 @@ export function AiPlannerPlanningSessionRecovery({
           Start a new trip instead
         </TitleRegular>
       </TouchableOpacity>
-
     </ScrollView>
   );
 }

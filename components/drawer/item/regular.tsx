@@ -38,6 +38,7 @@ export function DrawerItemRegular({ item, style }: DrawerItemRegularProps) {
       <TitleRegular
         size="sm"
         weight="500"
+        style={styles.label}
         color={item.isActive ? activeTextColor : inactiveTextColor}
       >
         {item.label}
@@ -55,6 +56,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: gaps.sm,
     minHeight: 44,
+  },
+  label: {
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 0,
   },
   active: {
     backgroundColor: getColor(activeBackgroundColor),

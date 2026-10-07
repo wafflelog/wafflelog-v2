@@ -19,8 +19,6 @@ export default function Layout() {
     enabled: Boolean(pinId && session?.user.id),
   });
 
-  console.log("localPin", pinId);
-
   return (
     <Drawer
       drawerContent={(props) => {

@@ -176,8 +176,6 @@ export function useCreatePlanningSession() {
         idempotencyKey,
       );
 
-      console.log("planning session response", response);
-
       const { actionUpsertLocalAiPlanningSession } =
         await import("@/lib/sqlite/model/ai-planning-session");
       const localSession = await actionUpsertLocalAiPlanningSession({
