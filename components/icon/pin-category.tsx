@@ -5,8 +5,8 @@ import {
   BedDouble,
   Bus,
   CalendarDays,
-  FlagTriangleRight,
   Landmark,
+  MapPin,
   Mountain,
   ShoppingBag,
   Utensils,
@@ -34,6 +34,6 @@ export const IconPinCategory = ({
     .with("nature", () => <Mountain size={size} color={iconColor} />)
     .with("transport", () => <Bus size={size} color={iconColor} />)
     .with("event", () => <CalendarDays size={size} color={iconColor} />)
-    .with("other", () => <FlagTriangleRight size={size} color={iconColor} />)
+    .with("other", () => <MapPin size={size} color={iconColor} />)
     .exhaustive();
 };

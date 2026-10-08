@@ -20,13 +20,9 @@ import {
 } from "@/lib/supabase/actions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-  Copy as CopyIcon,
-  Link as LinkIcon,
-  Plus as PlusIcon,
-} from "lucide-react-native";
+import { Plus as PlusIcon } from "lucide-react-native";
 import { useMemo } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
 
 const MAX_COMPANIONS = 10;
 
@@ -168,6 +164,8 @@ export default function TripCompanionsScreen() {
               </View>
             </View>
 
+            {/* TODO: Restore the invite-link card when Universal Links/App Links
+                and the shareable join-request flow are implemented.
             <View style={styles.inviteLinkCard}>
               <View style={styles.inviteLinkIcon}>
                 <LinkIcon size={20} color={getColor(colors.purple)} />
@@ -185,6 +183,7 @@ export default function TripCompanionsScreen() {
                 <CopyIcon size={16} color={getColor(colors.white)} />
               </TouchableOpacity>
             </View>
+            */}
           </View>
         }
         ListEmptyComponent={

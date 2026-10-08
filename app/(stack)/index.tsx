@@ -6,11 +6,11 @@ import { HeaderSettingsButton } from "@/components/header/icon-button";
 import { TitleRegular } from "@/components/title/regular";
 import { UIText } from "@/components/ui/text";
 import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
-import { useAppNotifications } from "@/hook/use-app-notifications";
 import {
   selectLatestRecoverableAiPlanningSession,
   useLocalAiPlanningSessions,
 } from "@/hook/use-ai-trip-planning";
+import { useAppNotifications } from "@/hook/use-app-notifications";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionListLocalTrips } from "@/lib/sqlite/model/trip";
 import { type Trip } from "@/types/trip";
@@ -37,6 +37,27 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+const HOME_BANNERS = {
+  morning: require("../../assets/images/home-banner-cartoon-morning.png"),
+  evening: require("../../assets/images/home-banner-cartoon-evening.png"),
+  night: require("../../assets/images/home-banner-cartoon-night.png"),
+} as const;
+
+function getHomeHeaderContent(hour = new Date().getHours()) {
+  switch (true) {
+    case hour < 5:
+      return { greeting: "Good morning", image: HOME_BANNERS.night };
+    case hour < 12:
+      return { greeting: "Good morning", image: HOME_BANNERS.morning };
+    case hour < 17:
+      return { greeting: "Good afternoon", image: HOME_BANNERS.morning };
+    case hour < 21:
+      return { greeting: "Good evening", image: HOME_BANNERS.evening };
+    default:
+      return { greeting: "Good evening", image: HOME_BANNERS.night };
+  }
+}
+
 export default function IndexScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -52,6 +73,8 @@ export default function IndexScreen() {
   });
   const localPlanningSessions = useLocalAiPlanningSessions(session?.user.id);
   const notificationsQuery = useAppNotifications(session?.user.id);
+  const homeHeaderContent = getHomeHeaderContent();
+
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
@@ -65,14 +88,6 @@ export default function IndexScreen() {
   if (!isAuthenticated) {
     return <Redirect href="/register" />;
   }
-
-  // Get time-based greeting
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
-  };
 
   const localTrips: Trip[] = tripData.map((trip) => ({
     id: trip.id,
@@ -117,10 +132,9 @@ export default function IndexScreen() {
       .length ?? 0;
   const notificationBadgeLabel =
     unreadNotificationCount > 99 ? "99+" : String(unreadNotificationCount);
-  const unfinishedPlanningSession =
-    selectLatestRecoverableAiPlanningSession(
-      localPlanningSessions.data ?? [],
-    );
+  const unfinishedPlanningSession = selectLatestRecoverableAiPlanningSession(
+    localPlanningSessions.data ?? [],
+  );
   const visibleUpcomingTrips = showAllUpcomingTrips
     ? upcomingTrips
     : upcomingTrips.slice(0, 2);
@@ -154,9 +168,7 @@ export default function IndexScreen() {
       >
         {/* Header Banner with Greeting */}
         <ImageBackground
-          source={{
-            uri: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&q=80",
-          }}
+          source={homeHeaderContent.image}
           style={styles.headerBanner}
           imageStyle={styles.headerBannerImage}
         >
@@ -164,7 +176,7 @@ export default function IndexScreen() {
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <UIText style={styles.greeting} weight="500">
-                {getGreeting()}!
+                {homeHeaderContent.greeting}!
               </UIText>
               <UIText style={styles.userName} weight="700">
                 {username}
@@ -427,7 +439,7 @@ const styles = StyleSheet.create({
   },
   headerBannerOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
   },
   header: {
     position: "relative",
