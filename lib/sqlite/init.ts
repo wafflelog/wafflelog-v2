@@ -54,6 +54,11 @@ export async function initializeDatabase() {
       updated_at text not null
     );
 
+    create table if not exists data_sync_state (
+      user_id text primary key not null,
+      initial_download_completed_at text not null
+    );
+
     create table if not exists ai_planning_session (
       id text primary key not null,
       user_id text not null,

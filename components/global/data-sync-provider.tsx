@@ -1,4 +1,5 @@
 import { useAuthSession } from "@/hook/use-auth-session";
+import { runInitialDataSync } from "@/lib/data-sync/bootstrap";
 import { DataSyncContext } from "@/lib/data-sync/context";
 import { downloadKnownTrips as downloadKnownTripsFromRemote } from "@/lib/data-sync/download";
 import {
@@ -203,11 +204,12 @@ export function DataSyncProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    void uploadPending()
-      .then(downloadKnownTrips)
-      .catch((error) => {
-        console.error("Error running initial data synchronization:", error);
-      });
+    void runInitialDataSync(userId, {
+      uploadPending,
+      downloadKnownTrips,
+    }).catch((error) => {
+      console.error("Error running initial data synchronization:", error);
+    });
   }, [downloadKnownTrips, uploadPending, userId]);
 
   const contextValue = useMemo(

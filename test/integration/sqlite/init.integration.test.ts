@@ -52,6 +52,7 @@ describe("initializeDatabase", () => {
       expect.arrayContaining([
         "ai_planning_session",
         "checklist_item",
+        "data_sync_state",
         "document",
         "expense",
         "expense_participant",
@@ -110,6 +111,10 @@ describe("initializeDatabase", () => {
     expect(await listColumnNames("user_profile")).toEqual(
       expect.arrayContaining(["id", "username", "updated_at"]),
     );
+    expect(await listColumnNames("data_sync_state")).toEqual([
+      "user_id",
+      "initial_download_completed_at",
+    ]);
   });
 
   it("creates current sync columns on trip child tables", async () => {
