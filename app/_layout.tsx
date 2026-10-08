@@ -1,5 +1,5 @@
 import { GlobalAppNotifications } from "@/components/global/app-notifications";
-import { GlobalDbSync } from "@/components/global/db-sync";
+import { DataSyncProvider } from "@/components/global/data-sync-provider";
 import { AuthSessionProvider } from "@/hook/use-auth-session";
 import { initializeDatabase } from "@/lib/sqlite/init";
 import {
@@ -40,13 +40,14 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthSessionProvider>
-        <GlobalDbSync />
-        <GlobalAppNotifications />
-        <KeyboardProvider>
-          <Stack>
-            <Stack.Screen name="(stack)" options={{ headerShown: false }} />
-          </Stack>
-        </KeyboardProvider>
+        <DataSyncProvider>
+          <GlobalAppNotifications />
+          <KeyboardProvider>
+            <Stack>
+              <Stack.Screen name="(stack)" options={{ headerShown: false }} />
+            </Stack>
+          </KeyboardProvider>
+        </DataSyncProvider>
       </AuthSessionProvider>
     </QueryClientProvider>
   );
