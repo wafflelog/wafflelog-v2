@@ -6,13 +6,14 @@ import {
 type InitialDataSyncDependencies = {
   uploadPending: () => Promise<void>;
   downloadKnownTrips: () => Promise<void>;
+  onStageChange?: (stage: "checking" | "syncing") => void;
 };
 
 export async function runInitialDataSync(
   userId: string,
   dependencies: InitialDataSyncDependencies,
 ) {
-  await dependencies.uploadPending();
+  dependencies.onStageChange?.("checking");
 
   const completedAt = await actionGetInitialDownloadCompletedAt(userId);
 
@@ -20,6 +21,8 @@ export async function runInitialDataSync(
     return false;
   }
 
+  dependencies.onStageChange?.("syncing");
+  await dependencies.uploadPending();
   await dependencies.downloadKnownTrips();
   await actionMarkInitialDownloadCompleted(userId);
 

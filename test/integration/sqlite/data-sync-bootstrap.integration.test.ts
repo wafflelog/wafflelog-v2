@@ -29,11 +29,17 @@ describe("initial data synchronization", () => {
     const { runInitialDataSync } = await import("@/lib/data-sync/bootstrap");
     const uploadPending = vi.fn().mockResolvedValue(undefined);
     const downloadKnownTrips = vi.fn().mockResolvedValue(undefined);
+    const onStageChange = vi.fn();
 
     await expect(
-      runInitialDataSync("user-a", { uploadPending, downloadKnownTrips }),
+      runInitialDataSync("user-a", {
+        uploadPending,
+        downloadKnownTrips,
+        onStageChange,
+      }),
     ).resolves.toBe(true);
 
+    expect(onStageChange.mock.calls).toEqual([["checking"], ["syncing"]]);
     expect(uploadPending).toHaveBeenCalledOnce();
     expect(downloadKnownTrips).toHaveBeenCalledOnce();
     await expect(
@@ -44,7 +50,7 @@ describe("initial data synchronization", () => {
     ).resolves.toEqual({ user_id: "user-a" });
   });
 
-  it("still uploads but skips downloading for a completed bootstrap", async () => {
+  it("skips bootstrap work for a completed user", async () => {
     const { runInitialDataSync } = await import("@/lib/data-sync/bootstrap");
     const { actionMarkInitialDownloadCompleted } = await import(
       "@/lib/sqlite/model/data-sync-state"
@@ -57,7 +63,7 @@ describe("initial data synchronization", () => {
       runInitialDataSync("user-a", { uploadPending, downloadKnownTrips }),
     ).resolves.toBe(false);
 
-    expect(uploadPending).toHaveBeenCalledOnce();
+    expect(uploadPending).not.toHaveBeenCalled();
     expect(downloadKnownTrips).not.toHaveBeenCalled();
   });
 

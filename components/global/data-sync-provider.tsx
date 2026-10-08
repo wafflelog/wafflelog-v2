@@ -3,7 +3,10 @@ import { runInitialDataSync } from "@/lib/data-sync/bootstrap";
 import { DataSyncContext } from "@/lib/data-sync/context";
 import { downloadKnownTrips as downloadKnownTripsFromRemote } from "@/lib/data-sync/download";
 import {
+  CHECKING_DATA_BOOTSTRAP_STATE,
   IDLE_DATA_SYNC_OPERATION_STATE,
+  READY_DATA_BOOTSTRAP_STATE,
+  type DataBootstrapState,
   type DataSyncOperationState,
 } from "@/lib/data-sync/types";
 import { uploadPendingChanges } from "@/lib/data-sync/upload";
@@ -45,12 +48,26 @@ type ScopedSyncOperationState = {
   operation: DataSyncOperationState;
 };
 
+type ScopedBootstrapState = {
+  userId: string | null;
+  operation: DataBootstrapState;
+};
+
 export function DataSyncProvider({ children }: PropsWithChildren) {
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
   const userId = session?.user.id ?? null;
   const uploadPromiseRef = useRef<Promise<void> | null>(null);
   const downloadPromiseRef = useRef<Promise<void> | null>(null);
+  const bootstrapPromiseRef = useRef<{
+    userId: string;
+    promise: Promise<void>;
+  } | null>(null);
+  const [scopedBootstrapState, setScopedBootstrapState] =
+    useState<ScopedBootstrapState>({
+      userId: null,
+      operation: READY_DATA_BOOTSTRAP_STATE,
+    });
   const [scopedUploadState, setScopedUploadState] =
     useState<ScopedSyncOperationState>({
       userId: null,
@@ -69,6 +86,11 @@ export function DataSyncProvider({ children }: PropsWithChildren) {
     scopedDownloadState.userId === userId
       ? scopedDownloadState.operation
       : IDLE_DATA_SYNC_OPERATION_STATE;
+  const bootstrapState = !userId
+    ? READY_DATA_BOOTSTRAP_STATE
+    : scopedBootstrapState.userId === userId
+      ? scopedBootstrapState.operation
+      : CHECKING_DATA_BOOTSTRAP_STATE;
 
   const uploadPending = useCallback(() => {
     if (!userId) {
@@ -199,27 +221,94 @@ export function DataSyncProvider({ children }: PropsWithChildren) {
     return downloadPromise;
   }, [queryClient, userId]);
 
+  const retryBootstrap = useCallback(() => {
+    if (!userId) {
+      return Promise.resolve();
+    }
+
+    if (bootstrapPromiseRef.current?.userId === userId) {
+      return bootstrapPromiseRef.current.promise;
+    }
+
+    setScopedBootstrapState({
+      userId,
+      operation: CHECKING_DATA_BOOTSTRAP_STATE,
+    });
+
+    const bootstrapPromise = runInitialDataSync(userId, {
+      uploadPending,
+      downloadKnownTrips,
+      onStageChange: (status) => {
+        setScopedBootstrapState({
+          userId,
+          operation: { status, error: null },
+        });
+      },
+    })
+      .then((didBootstrap) => {
+        setScopedBootstrapState((state) =>
+          state.userId === userId
+            ? { userId, operation: READY_DATA_BOOTSTRAP_STATE }
+            : state,
+        );
+
+        if (!didBootstrap) {
+          void uploadPending().catch((error) => {
+            console.error("Error uploading pending local changes:", error);
+          });
+        }
+      })
+      .catch((error) => {
+        setScopedBootstrapState((state) =>
+          state.userId === userId
+            ? {
+                userId,
+                operation: {
+                  status: "failed",
+                  error: getErrorMessage(error),
+                },
+              }
+            : state,
+        );
+        throw error;
+      })
+      .finally(() => {
+        if (bootstrapPromiseRef.current?.promise === bootstrapPromise) {
+          bootstrapPromiseRef.current = null;
+        }
+      });
+
+    bootstrapPromiseRef.current = { userId, promise: bootstrapPromise };
+    return bootstrapPromise;
+  }, [downloadKnownTrips, uploadPending, userId]);
+
   useEffect(() => {
     if (!userId) {
       return;
     }
 
-    void runInitialDataSync(userId, {
-      uploadPending,
-      downloadKnownTrips,
-    }).catch((error) => {
+    void retryBootstrap().catch((error) => {
       console.error("Error running initial data synchronization:", error);
     });
-  }, [downloadKnownTrips, uploadPending, userId]);
+  }, [retryBootstrap, userId]);
 
   const contextValue = useMemo(
     () => ({
+      bootstrapState,
       uploadState,
       downloadState,
+      retryBootstrap,
       uploadPending,
       downloadKnownTrips,
     }),
-    [downloadKnownTrips, downloadState, uploadPending, uploadState],
+    [
+      bootstrapState,
+      downloadKnownTrips,
+      downloadState,
+      retryBootstrap,
+      uploadPending,
+      uploadState,
+    ],
   );
 
   return (
