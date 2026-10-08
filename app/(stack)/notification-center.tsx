@@ -23,8 +23,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -80,6 +80,17 @@ export default function NotificationCenterScreen() {
   );
 
   const notificationsQuery = useAppNotifications(session?.user.id);
+  const refetchNotifications = notificationsQuery.refetch;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!session?.user.id) {
+        return;
+      }
+
+      void refetchNotifications();
+    }, [refetchNotifications, session?.user.id]),
+  );
 
   const invitationResponseMutation = useMutation({
     mutationFn: async ({
