@@ -216,7 +216,10 @@ export async function initializeDatabase() {
       latitude real not null,
       longitude real not null,
       created_at text not null,
-      updated_at text not null
+      updated_at text not null,
+      sync_status text not null default 'pending',
+      last_synced_at text,
+      sync_error text
     );
   `);
 
@@ -248,6 +251,30 @@ export async function initializeDatabase() {
 
   if (!endTimePinTableColumns.some((column) => column.name === "end_time")) {
     await sqlite.execAsync(`alter table pin add column end_time text;`);
+  }
+
+  const pinLocationTableColumns = await sqlite.getAllAsync<{ name: string }>(
+    `pragma table_info(pin_location);`,
+  );
+
+  if (
+    !pinLocationTableColumns.some((column) => column.name === "sync_status")
+  ) {
+    await sqlite.execAsync(
+      `alter table pin_location add column sync_status text not null default 'pending';`,
+    );
+  }
+
+  if (
+    !pinLocationTableColumns.some((column) => column.name === "last_synced_at")
+  ) {
+    await sqlite.execAsync(
+      `alter table pin_location add column last_synced_at text;`,
+    );
+  }
+
+  if (!pinLocationTableColumns.some((column) => column.name === "sync_error")) {
+    await sqlite.execAsync(`alter table pin_location add column sync_error text;`);
   }
 
   const documentTableColumns = await sqlite.getAllAsync<{ name: string }>(

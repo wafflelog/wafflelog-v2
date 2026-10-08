@@ -484,6 +484,50 @@ export type Database = {
           },
         ]
       }
+      pin_location: {
+        Row: {
+          created_at: string
+          display_name: string
+          formatted_address: string
+          latitude: number
+          longitude: number
+          pin_id: string
+          place_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          formatted_address: string
+          latitude: number
+          longitude: number
+          pin_id: string
+          place_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          formatted_address?: string
+          latitude?: number
+          longitude?: number
+          pin_id?: string
+          place_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pin_location_pin_id_fkey"
+            columns: ["pin_id"]
+            isOneToOne: true
+            referencedRelation: "pin"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reference_link: {
         Row: {
           caption: string | null

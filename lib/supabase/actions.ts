@@ -22,6 +22,17 @@ export type CreatePinInput = {
   metadataJson: PinMetadata;
 };
 
+export type UpsertPinLocationInput = {
+  pinId: string;
+  placeId: string;
+  displayName: string;
+  formattedAddress: string;
+  latitude: number;
+  longitude: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type CreateChecklistItemInput = {
   id: string;
   tripId: string;
@@ -146,6 +157,7 @@ export type RemoteTripSyncBundle = {
     deletedAt: string | null;
   };
   pins: ReturnType<typeof mapPinRow>[];
+  pinLocations: ReturnType<typeof mapPinLocationRow>[];
   checklistItems: ReturnType<typeof mapChecklistItemRow>[];
   notes: ReturnType<typeof mapNoteRow>[];
   referenceLinks: ReturnType<typeof mapReferenceLinkRow>[];
@@ -218,6 +230,28 @@ const mapPinRow = (pin: {
   createdAt: pin.created_at,
   updatedAt: pin.updated_at,
   deletedAt: pin.deleted_at,
+});
+
+const mapPinLocationRow = (pinLocation: {
+  pin_id: string;
+  user_id: string;
+  place_id: string;
+  display_name: string;
+  formatted_address: string;
+  latitude: number;
+  longitude: number;
+  created_at: string;
+  updated_at: string;
+}) => ({
+  pinId: pinLocation.pin_id,
+  userId: pinLocation.user_id,
+  placeId: pinLocation.place_id,
+  displayName: pinLocation.display_name,
+  formattedAddress: pinLocation.formatted_address,
+  latitude: pinLocation.latitude,
+  longitude: pinLocation.longitude,
+  createdAt: pinLocation.created_at,
+  updatedAt: pinLocation.updated_at,
 });
 
 const mapChecklistItemRow = (checklistItem: {
@@ -539,6 +573,50 @@ export async function actionUpsertRemotePinFromLocal(
   }
 
   return mapPinRow(data);
+}
+
+export async function actionUpsertRemotePinLocationFromLocal(
+  input: UpsertPinLocationInput,
+  client: SupabaseClient<Database> = supabase,
+) {
+  const {
+    data: { user },
+    error: authError,
+  } = await client.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to sync a pin location");
+  }
+
+  const payload: TablesInsert<"pin_location"> = {
+    pin_id: input.pinId,
+    user_id: user.id,
+    place_id: input.placeId.trim(),
+    display_name: input.displayName.trim(),
+    formatted_address: input.formattedAddress.trim(),
+    latitude: input.latitude,
+    longitude: input.longitude,
+    created_at: input.createdAt,
+    updated_at: input.updatedAt,
+  };
+
+  const { data, error } = await client
+    .from("pin_location")
+    .upsert(payload, { onConflict: "pin_id" })
+    .select(
+      "pin_id, user_id, place_id, display_name, formatted_address, latitude, longitude, created_at, updated_at",
+    )
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapPinLocationRow(data);
 }
 
 export async function actionSoftDeleteRemotePin(
@@ -1742,6 +1820,20 @@ export async function actionGetRemoteTripSyncBundle(
     throw firstError;
   }
 
+  const pinIds = (pinsResult.data ?? []).map((pin) => pin.id);
+  const { data: pinLocations, error: pinLocationsError } = pinIds.length
+    ? await client
+        .from("pin_location")
+        .select(
+          "pin_id, user_id, place_id, display_name, formatted_address, latitude, longitude, created_at, updated_at",
+        )
+        .in("pin_id", pinIds)
+    : { data: [], error: null };
+
+  if (pinLocationsError) {
+    throw pinLocationsError;
+  }
+
   const expenseIds = (expensesResult.data ?? []).map((expense) => expense.id);
   const { data: expenseParticipants, error: expenseParticipantsError } = expenseIds.length
     ? await client
@@ -1758,6 +1850,7 @@ export async function actionGetRemoteTripSyncBundle(
     new Set([
       trip.userId,
       ...(pinsResult.data ?? []).map((pin) => pin.user_id),
+      ...(pinLocations ?? []).map((pinLocation) => pinLocation.user_id),
       ...(checklistItemsResult.data ?? []).map((checklistItem) => checklistItem.user_id),
       ...(notesResult.data ?? []).map((note) => note.user_id),
       ...(referenceLinksResult.data ?? []).map((referenceLink) => referenceLink.user_id),
@@ -1785,6 +1878,7 @@ export async function actionGetRemoteTripSyncBundle(
   return {
     trip,
     pins: (pinsResult.data ?? []).map(mapPinRow),
+    pinLocations: (pinLocations ?? []).map(mapPinLocationRow),
     checklistItems: (checklistItemsResult.data ?? []).map(mapChecklistItemRow),
     notes: (notesResult.data ?? []).map(mapNoteRow),
     referenceLinks: (referenceLinksResult.data ?? []).map(mapReferenceLinkRow),

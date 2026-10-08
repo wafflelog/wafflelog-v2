@@ -14,7 +14,11 @@ import {
   actionSyncLocalNote,
   type LocalNote,
 } from "@/lib/sqlite/model/note";
-import { actionUpsertLocalPinLocation } from "@/lib/sqlite/model/pin-location";
+import {
+  actionSyncLocalPinLocation,
+  actionUpsertLocalPinLocation,
+  type LocalPinLocation,
+} from "@/lib/sqlite/model/pin-location";
 import {
   actionCreateLocalPin,
   actionSyncLocalPin,
@@ -48,6 +52,7 @@ export type ImportAiPlanningResultInput = {
 export type ImportedAiTrip = {
   trip: LocalTrip;
   pins: LocalPin[];
+  pinLocations: LocalPinLocation[];
   notes: LocalNote[];
   checklistItems: LocalChecklistItem[];
   referenceLinks: LocalReferenceLink[];
@@ -171,6 +176,7 @@ export async function actionImportAiPlanningResult(
       importedAiTrip = {
         trip: importedTrip,
         pins: [],
+        pinLocations: [],
         notes: [],
         checklistItems: [],
         referenceLinks: [],
@@ -190,6 +196,7 @@ export async function actionImportAiPlanningResult(
         .format("YYYY-MM-DD"),
     });
     const pins: LocalPin[] = [];
+    const pinLocations: LocalPinLocation[] = [];
     const notes: LocalNote[] = [];
     const checklistItems: LocalChecklistItem[] = [];
     const referenceLinks: LocalReferenceLink[] = [];
@@ -244,17 +251,19 @@ export async function actionImportAiPlanningResult(
         if (hasCoordinates(item.location)) {
           const location = item.location!;
 
-          await actionUpsertLocalPinLocation({
-            pinId: pin.id,
-            userId,
-            placeId:
-              location.externalPlaceId?.trim() ||
-              `ai:${sessionId}:${item.draftId}`,
-            displayName: location.name,
-            formattedAddress: location.searchQuery,
-            latitude: location.latitude!,
-            longitude: location.longitude!,
-          });
+          pinLocations.push(
+            await actionUpsertLocalPinLocation({
+              pinId: pin.id,
+              userId,
+              placeId:
+                location.externalPlaceId?.trim() ||
+                `ai:${sessionId}:${item.draftId}`,
+              displayName: location.name,
+              formattedAddress: location.searchQuery,
+              latitude: location.latitude!,
+              longitude: location.longitude!,
+            }),
+          );
         }
 
         for (const source of item.sources) {
@@ -301,6 +310,7 @@ export async function actionImportAiPlanningResult(
     importedAiTrip = {
       trip,
       pins,
+      pinLocations,
       notes,
       checklistItems,
       referenceLinks,
@@ -322,6 +332,7 @@ export async function actionSyncImportedAiTrip(imported: ImportedAiTrip) {
     ...imported.checklistItems.map(actionSyncLocalChecklistItem),
   ]);
   await Promise.all([
+    ...imported.pinLocations.map(actionSyncLocalPinLocation),
     ...imported.notes.map(actionSyncLocalNote),
     ...imported.referenceLinks.map(actionSyncLocalReferenceLink),
   ]);

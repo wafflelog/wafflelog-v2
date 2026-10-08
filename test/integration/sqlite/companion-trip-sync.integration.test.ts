@@ -55,6 +55,18 @@ function createBundle(title = "Companion trip") {
         deletedAt: null as string | null,
       },
     ],
+    pinLocations: [
+      {
+        pinId: "pin-a",
+        userId: "owner-a",
+        placeId: "place-a",
+        displayName: "City Museum",
+        formattedAddress: "1 Museum Road",
+        latitude: 51.5,
+        longitude: -0.12,
+        ...timestamps,
+      },
+    ],
     checklistItems: [
       {
         id: "checklist-a",
@@ -171,6 +183,17 @@ describe("companion trip pull sync", () => {
         "checklist-a",
       ]),
     ).resolves.toEqual({ sync_status: "synced", user_id: "companion-a" });
+    await expect(
+      testDb.getFirstAsync<{
+        display_name: string;
+        sync_status: string;
+      }>("select display_name, sync_status from pin_location where pin_id = ?", [
+        "pin-a",
+      ]),
+    ).resolves.toEqual({
+      display_name: "City Museum",
+      sync_status: "synced",
+    });
     await expect(
       testDb.getFirstAsync<{
         paid_by_user_id: string;

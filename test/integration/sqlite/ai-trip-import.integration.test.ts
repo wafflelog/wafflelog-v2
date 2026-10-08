@@ -160,6 +160,13 @@ describe("AI trip import", () => {
     });
 
     expect(imported.alreadyImported).toBe(false);
+    expect(imported.pinLocations).toEqual([
+      expect.objectContaining({
+        userId: "user-a",
+        displayName: "Kuromon Market",
+        syncStatus: "pending",
+      }),
+    ]);
     expect(imported.trip).toMatchObject({
       title: "A relaxed Osaka break",
       startDate: "2026-10-12",

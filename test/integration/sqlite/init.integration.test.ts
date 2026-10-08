@@ -144,6 +144,20 @@ describe("initializeDatabase", () => {
         "deleted_at",
       ]),
     );
+    expect(await listColumnNames("pin_location")).toEqual(
+      expect.arrayContaining([
+        "pin_id",
+        "user_id",
+        "place_id",
+        "display_name",
+        "formatted_address",
+        "latitude",
+        "longitude",
+        "sync_status",
+        "last_synced_at",
+        "sync_error",
+      ]),
+    );
     expect(await listColumnNames("expense")).toEqual(
       expect.arrayContaining([
         "id",

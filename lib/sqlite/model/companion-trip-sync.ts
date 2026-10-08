@@ -5,6 +5,7 @@ import {
   type RemoteTripSyncBundle,
 } from "@/lib/supabase/actions";
 import { actionUpsertLocalPinFromRemote } from "./pin";
+import { actionUpsertLocalPinLocationFromRemote } from "./pin-location";
 import {
   actionUpsertLocalTripFromRemote,
   actionUpsertLocalTripMembershipFromRemote,
@@ -403,6 +404,10 @@ async function actionPullTripBundle(tripId: string) {
 
   for (const pin of bundle.pins) {
     await actionUpsertLocalPinFromRemote(pin);
+  }
+
+  for (const pinLocation of bundle.pinLocations) {
+    await actionUpsertLocalPinLocationFromRemote(pinLocation);
   }
 
   for (const checklistItem of bundle.checklistItems) {

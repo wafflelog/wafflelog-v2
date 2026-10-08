@@ -4,6 +4,7 @@ import { actionSyncPendingLocalExpenses } from "@/lib/sqlite/model/expense";
 import { actionSyncPendingLocalImages } from "@/lib/sqlite/model/image";
 import { actionSyncPendingLocalNotes } from "@/lib/sqlite/model/note";
 import { actionSyncPendingLocalPins } from "@/lib/sqlite/model/pin";
+import { actionSyncPendingLocalPinLocations } from "@/lib/sqlite/model/pin-location";
 import { actionSyncPendingLocalReferenceLinks } from "@/lib/sqlite/model/reference-link";
 import { actionSyncPendingLocalTrips } from "@/lib/sqlite/model/trip";
 
@@ -29,6 +30,7 @@ export async function uploadPendingChanges(userId: string) {
   await uploadPendingBatch(actionSyncPendingLocalTrips, userId);
   await uploadPendingBatch(actionSyncPendingLocalChecklistItems, userId);
   await uploadPendingBatch(actionSyncPendingLocalPins, userId);
+  await uploadPendingBatch(actionSyncPendingLocalPinLocations, userId);
   await uploadPendingBatch(actionSyncPendingLocalNotes, userId);
   await uploadPendingBatch(actionSyncPendingLocalReferenceLinks, userId);
   await uploadPendingBatch(actionSyncPendingLocalExpenses, userId);

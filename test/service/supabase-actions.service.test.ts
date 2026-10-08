@@ -34,6 +34,7 @@ import {
   actionUpsertRemoteImageFromLocal,
   actionUpsertRemoteNoteFromLocal,
   actionUpsertRemotePinFromLocal,
+  actionUpsertRemotePinLocationFromLocal,
   actionUpsertRemoteReferenceLinkFromLocal,
   actionUpsertRemoteTripFromLocal,
   actionWithdrawTripInvitation,
@@ -308,6 +309,19 @@ describe("Supabase actions", () => {
       },
       owner.client,
     );
+    await actionUpsertRemotePinLocationFromLocal(
+      {
+        pinId,
+        placeId: "bundle-place",
+        displayName: "Bundle Museum",
+        formattedAddress: "1 Bundle Road",
+        latitude: 51.5,
+        longitude: -0.12,
+        createdAt: "2026-10-01T00:00:00.000Z",
+        updatedAt: "2026-10-01T00:00:00.000Z",
+      },
+      owner.client,
+    );
 
     const note = await actionUpsertRemoteNoteFromLocal(
       { id: crypto.randomUUID(), tripId, pinId, text: "  Remember tickets  " },
@@ -565,6 +579,19 @@ describe("Supabase actions", () => {
       },
       owner.client,
     );
+    await actionUpsertRemotePinLocationFromLocal(
+      {
+        pinId,
+        placeId: "bundle-place",
+        displayName: "Bundle Museum",
+        formattedAddress: "1 Bundle Road",
+        latitude: 51.5,
+        longitude: -0.12,
+        createdAt: "2026-10-01T00:00:00.000Z",
+        updatedAt: "2026-10-01T00:00:00.000Z",
+      },
+      owner.client,
+    );
     await actionUpsertRemoteChecklistItemFromLocal(
       {
         id: crypto.randomUUID(),
@@ -638,6 +665,14 @@ describe("Supabase actions", () => {
       trip: { id: tripId, title: "Bundle trip" },
     });
     expect(bundle.pins).toHaveLength(1);
+    expect(bundle.pinLocations).toEqual([
+      expect.objectContaining({
+        pinId,
+        userId: owner.id,
+        placeId: "bundle-place",
+        displayName: "Bundle Museum",
+      }),
+    ]);
     expect(bundle.checklistItems).toHaveLength(1);
     expect(bundle.notes).toHaveLength(1);
     expect(bundle.referenceLinks).toHaveLength(1);
