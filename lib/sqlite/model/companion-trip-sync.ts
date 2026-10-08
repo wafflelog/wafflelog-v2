@@ -2,6 +2,7 @@ import { sqlite } from "@/lib/sqlite/client";
 import {
   actionGetRemoteTripSyncBundle,
   actionListActiveCompanionMemberships,
+  actionListRemoteOwnedTripIds,
   type RemoteTripSyncBundle,
 } from "@/lib/supabase/actions";
 import { actionUpsertLocalPinFromRemote } from "./pin";
@@ -441,29 +442,19 @@ async function actionPullTripBundle(tripId: string) {
 }
 
 export async function actionPullOwnedTrips(
-  userId: string,
   limit = DEFAULT_SYNC_BATCH_SIZE,
   offset = 0,
 ) {
-  const trips = await sqlite.getAllAsync<{ id: string }>(
-    `
-      select id
-      from trip
-      where user_id = ? and deleted_at is null
-      order by updated_at desc
-      limit ? offset ?
-    `,
-    [userId, limit, offset],
-  );
+  const tripIds = await actionListRemoteOwnedTripIds(limit, offset);
 
-  for (const trip of trips) {
-    await actionPullTripBundle(trip.id);
+  for (const tripId of tripIds) {
+    await actionPullTripBundle(tripId);
   }
 
   return {
-    processed: trips.length,
-    nextOffset: offset + trips.length,
-    hasMore: trips.length === limit,
+    processed: tripIds.length,
+    nextOffset: offset + tripIds.length,
+    hasMore: tripIds.length === limit,
   };
 }
 

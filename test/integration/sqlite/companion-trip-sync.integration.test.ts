@@ -8,6 +8,7 @@ import {
 const remote = vi.hoisted(() => ({
   getBundle: vi.fn(),
   listMemberships: vi.fn(),
+  listOwnedTripIds: vi.fn(),
 }));
 
 let testDb: TestSqliteDatabase;
@@ -21,6 +22,7 @@ vi.mock("@/lib/sqlite/client", () => ({
 vi.mock("@/lib/supabase/actions", () => ({
   actionGetRemoteTripSyncBundle: remote.getBundle,
   actionListActiveCompanionMemberships: remote.listMemberships,
+  actionListRemoteOwnedTripIds: remote.listOwnedTripIds,
 }));
 
 const timestamps = {
@@ -121,6 +123,7 @@ describe("companion trip pull sync", () => {
     testDb = createTestSqliteDatabase();
     remote.getBundle.mockReset();
     remote.listMemberships.mockReset();
+    remote.listOwnedTripIds.mockReset();
 
     const { initializeDatabase } = await import("@/lib/sqlite/init");
     await initializeDatabase();
@@ -256,48 +259,25 @@ describe("companion trip pull sync", () => {
     ).resolves.toEqual([{ id: "trip-a", title: "Updated title" }]);
   });
 
-  it("refreshes owned trips from remote bundles with paging and remote tombstones", async () => {
-    const { actionCreateLocalTrip } = await import("@/lib/sqlite/model/trip");
-    const firstTrip = await actionCreateLocalTrip({
-      userId: "owner-a",
-      title: "Stale first title",
-      startDate: "2026-05-01",
-      endDate: "2026-05-04",
-    });
-    const secondTrip = await actionCreateLocalTrip({
-      userId: "owner-a",
-      title: "Second trip",
-      startDate: "2026-06-01",
-      endDate: "2026-06-04",
-    });
-    await testDb.runAsync("update trip set updated_at = ? where id = ?", [
-      "2026-01-02T00:00:00.000Z",
-      firstTrip.id,
-    ]);
-    await testDb.runAsync("update trip set updated_at = ? where id = ?", [
-      "2026-01-01T00:00:00.000Z",
-      secondTrip.id,
-    ]);
+  it("discovers and hydrates owned trips when local SQLite is empty", async () => {
     const bundle = createBundle("Fresh remote title");
-    bundle.trip.id = firstTrip.id;
-    bundle.checklistItems[0].tripId = firstTrip.id;
-    bundle.pins[0].tripId = firstTrip.id;
-    bundle.expenses[0].tripId = firstTrip.id;
     bundle.checklistItems[0].deletedAt = "2026-01-03T00:00:00.000Z";
+    remote.listOwnedTripIds.mockResolvedValue(["trip-a"]);
     remote.getBundle.mockResolvedValue(bundle);
     const { actionPullOwnedTrips } = await import(
       "@/lib/sqlite/model/companion-trip-sync"
     );
 
-    await expect(actionPullOwnedTrips("owner-a", 1, 0)).resolves.toEqual({
+    await expect(actionPullOwnedTrips(1, 0)).resolves.toEqual({
       processed: 1,
       nextOffset: 1,
       hasMore: true,
     });
-    expect(remote.getBundle).toHaveBeenCalledWith(firstTrip.id);
+    expect(remote.listOwnedTripIds).toHaveBeenCalledWith(1, 0);
+    expect(remote.getBundle).toHaveBeenCalledWith("trip-a");
     await expect(
       testDb.getFirstAsync<{ title: string }>("select title from trip where id = ?", [
-        firstTrip.id,
+        "trip-a",
       ]),
     ).resolves.toEqual({ title: "Fresh remote title" });
     await expect(

@@ -5,15 +5,11 @@ import {
 
 const SYNC_BATCH_SIZE = 25;
 
-async function downloadKnownOwnedTrips(userId: string) {
+async function downloadKnownOwnedTrips() {
   let offset = 0;
 
   while (true) {
-    const result = await actionPullOwnedTrips(
-      userId,
-      SYNC_BATCH_SIZE,
-      offset,
-    );
+    const result = await actionPullOwnedTrips(SYNC_BATCH_SIZE, offset);
 
     if (result.processed === 0 || !result.hasMore) {
       return;
@@ -40,7 +36,7 @@ async function downloadActiveCompanionTrips() {
   }
 }
 
-export async function downloadKnownTrips(userId: string) {
-  await downloadKnownOwnedTrips(userId);
+export async function downloadKnownTrips() {
+  await downloadKnownOwnedTrips();
   await downloadActiveCompanionTrips();
 }

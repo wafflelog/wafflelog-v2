@@ -1741,6 +1741,39 @@ export async function actionListActiveCompanionMemberships(
   }));
 }
 
+export async function actionListRemoteOwnedTripIds(
+  limit = 25,
+  offset = 0,
+  client: SupabaseClient<Database> = supabase,
+) {
+  const {
+    data: { user },
+    error: authError,
+  } = await client.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to sync owned trips");
+  }
+
+  const { data, error } = await client
+    .from("trip")
+    .select("id")
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .order("updated_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    throw error;
+  }
+
+  return data.map((trip) => trip.id);
+}
+
 export async function actionGetRemoteTripSyncBundle(
   tripId: string,
   client: SupabaseClient<Database> = supabase,

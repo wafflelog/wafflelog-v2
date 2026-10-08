@@ -11,6 +11,7 @@ import {
   actionListActiveCompanionMemberships,
   actionListAppNotifications,
   actionListPublicUsers,
+  actionListRemoteOwnedTripIds,
   actionListTripCompanions,
   actionListTripInvitationsByTrip,
   actionMarkNotificationRead,
@@ -660,6 +661,9 @@ describe("Supabase actions", () => {
 
     const users = await actionListPublicUsers("bundle_owner", owner.client);
     expect(users).toContainEqual(expect.objectContaining({ id: owner.id }));
+    await expect(
+      actionListRemoteOwnedTripIds(25, 0, owner.client),
+    ).resolves.toEqual([tripId]);
     const bundle = await actionGetRemoteTripSyncBundle(tripId, owner.client);
     expect(bundle).toMatchObject({
       trip: { id: tripId, title: "Bundle trip" },

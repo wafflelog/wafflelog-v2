@@ -151,7 +151,7 @@ export function DataSyncProvider({ children }: PropsWithChildren) {
       },
     }));
 
-    const downloadPromise = downloadKnownTripsFromRemote(userId)
+    const downloadPromise = downloadKnownTripsFromRemote()
       .then(async () => {
         await Promise.all(
           LOCAL_SYNC_QUERY_KEYS.map((queryKey) =>
