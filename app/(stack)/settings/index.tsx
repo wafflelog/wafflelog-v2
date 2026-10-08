@@ -46,7 +46,7 @@ export default function SettingsScreen() {
   const handleSignOut = async () => {
     try {
       setIsSigningOut(true);
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: "local" });
     } finally {
       setIsSigningOut(false);
     }
