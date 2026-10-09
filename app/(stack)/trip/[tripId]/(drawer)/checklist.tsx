@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { UITab } from "@/components/ui/tab";
 import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { useKnownTripsRefresh } from "@/hook/use-known-trips-refresh";
 import {
   actionListLocalChecklistItems,
   actionSoftDeleteLocalChecklistItem,
@@ -20,13 +21,14 @@ import {
   Users as UsersIcon,
 } from "lucide-react-native";
 import { useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 
 type TabId = "my" | "public";
 
 export default function TripChecklistScreen() {
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const { session } = useAuthSession();
+  const { isRefreshing, refreshKnownTrips } = useKnownTripsRefresh();
   const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<TabId>("my");
@@ -82,7 +84,7 @@ export default function TripChecklistScreen() {
     },
     {
       id: "public" as TabId,
-      label: "Public Checklist",
+      label: "Trip Checklist",
       isActive: activeTab === "public",
       icon: (color: string) => <UsersIcon size={24} color={color} />,
     },
@@ -110,6 +112,15 @@ export default function TripChecklistScreen() {
         contentContainerStyle={styles.checklist}
         data={visibleChecklistItems}
         keyExtractor={(item) => item.id}
+        alwaysBounceVertical
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshKnownTrips}
+            tintColor={getColor(colors.purple)}
+            colors={[getColor(colors.purple)]}
+          />
+        }
         ListEmptyComponent={
           <EmptyState
             icon={
@@ -118,7 +129,7 @@ export default function TripChecklistScreen() {
             title={
               activeTab === "my"
                 ? "Nothing on your checklist yet"
-                : "No shared checklist items yet"
+                : "Nothing on the trip checklist yet"
             }
             message={
               activeTab === "my"

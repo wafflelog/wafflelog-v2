@@ -11,6 +11,7 @@ import {
   semanticColors,
 } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { useKnownTripsRefresh } from "@/hook/use-known-trips-refresh";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { getPinTitle } from "@/lib/helper/pin";
 import { actionListLocalImagesByTrip } from "@/lib/sqlite/model/image";
@@ -22,13 +23,14 @@ import {
   Plus as PlusIcon,
 } from "lucide-react-native";
 import { useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 
 export default function TripImagesScreen() {
   const [isDialogNewImageVisible, setIsDialogNewImageVisible] = useState(false);
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const router = useRouter();
   const { session } = useAuthSession();
+  const { isRefreshing, refreshKnownTrips } = useKnownTripsRefresh();
   const { showMessage, SystemMessageModal } = useSystemMessage();
 
   const { data: localTrip } = useQuery({
@@ -81,6 +83,15 @@ export default function TripImagesScreen() {
         data={images}
         numColumns={2}
         keyExtractor={(item) => item.id}
+        alwaysBounceVertical
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshKnownTrips}
+            tintColor={getColor(colors.purple)}
+            colors={[getColor(colors.purple)]}
+          />
+        }
         ListEmptyComponent={
           <EmptyState
             icon={<ImageIcon size={24} color={getColor(colors.purple)} />}

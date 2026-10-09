@@ -22,7 +22,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Plus as PlusIcon } from "lucide-react-native";
 import { useMemo } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 const MAX_COMPANIONS = 10;
 
@@ -143,6 +150,17 @@ export default function TripCompanionsScreen() {
         contentContainerStyle={styles.companions}
         data={companions}
         keyExtractor={(item) => item.id}
+        alwaysBounceVertical
+        refreshControl={
+          <RefreshControl
+            refreshing={companionsQuery.isRefetching}
+            onRefresh={() => {
+              void companionsQuery.refetch();
+            }}
+            tintColor={getColor(colors.purple)}
+            colors={[getColor(colors.purple)]}
+          />
+        }
         ListHeaderComponent={
           <View style={styles.headerStack}>
             <View style={styles.summaryCard}>

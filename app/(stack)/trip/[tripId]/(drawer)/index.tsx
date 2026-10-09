@@ -7,6 +7,7 @@ import { TripPinsList } from "@/components/trip/pins-list";
 import { CATEGORIES } from "@/constants/pin-categories";
 import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { useKnownTripsRefresh } from "@/hook/use-known-trips-refresh";
 import { actionListLocalNotesByTrip } from "@/lib/sqlite/model/note";
 import { actionListLocalPinsByTripAndDate } from "@/lib/sqlite/model/pin";
 import {
@@ -36,6 +37,7 @@ export default function TripIndexScreen() {
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const router = useRouter();
   const { session } = useAuthSession();
+  const { isRefreshing, refreshKnownTrips } = useKnownTripsRefresh();
   const queryClient = useQueryClient();
 
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
@@ -273,6 +275,8 @@ export default function TripIndexScreen() {
         onAddPin={() => setIsDialogNewPinOpen(true)}
         hasActiveFilters={selectedCategoryIds.length > 0}
         onClearFilters={() => setSelectedCategoryIds([])}
+        refreshing={isRefreshing}
+        onRefresh={refreshKnownTrips}
       />
       <ButtonFab
         onPress={() => {

@@ -11,6 +11,7 @@ import {
   semanticColors,
 } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { useKnownTripsRefresh } from "@/hook/use-known-trips-refresh";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { getPinTitle } from "@/lib/helper/pin";
 import { actionListLocalReferenceLinksByTrip } from "@/lib/sqlite/model/reference-link";
@@ -22,13 +23,14 @@ import {
   Plus as PlusIcon,
 } from "lucide-react-native";
 import { useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 
 export default function TripLinksScreen() {
   const [isDialogNewReferenceLinkVisible, setIsDialogNewReferenceLinkVisible] =
     useState(false);
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const { session } = useAuthSession();
+  const { isRefreshing, refreshKnownTrips } = useKnownTripsRefresh();
   const { showMessage, SystemMessageModal } = useSystemMessage();
 
   const { data: localTrip } = useQuery({
@@ -91,6 +93,15 @@ export default function TripLinksScreen() {
         contentContainerStyle={styles.links}
         data={referenceLinks}
         keyExtractor={(item) => item.id}
+        alwaysBounceVertical
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshKnownTrips}
+            tintColor={getColor(colors.purple)}
+            colors={[getColor(colors.purple)]}
+          />
+        }
         ListEmptyComponent={
           <EmptyState
             icon={<Link2Icon size={24} color={getColor(colors.purple)} />}

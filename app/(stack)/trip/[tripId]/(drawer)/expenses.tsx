@@ -5,8 +5,15 @@ import { TitleRegular } from "@/components/title/regular";
 import { TripExpenseSummary } from "@/components/trip/expense-summary";
 import { UITab } from "@/components/ui/tab";
 import { UIText } from "@/components/ui/text";
-import { gaps, getCardBasicStyle, semanticColors } from "@/constants/theme";
+import {
+  colors,
+  gaps,
+  getCardBasicStyle,
+  getColor,
+  semanticColors,
+} from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { useKnownTripsRefresh } from "@/hook/use-known-trips-refresh";
 import { useSystemMessage } from "@/hook/use-system-message";
 import {
   calculateSharedExpenseLedger,
@@ -20,11 +27,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { Plus as PlusIcon } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 
 export default function TripExpensesScreen() {
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const { session } = useAuthSession();
+  const { isRefreshing, refreshKnownTrips } = useKnownTripsRefresh();
   const { showMessage, SystemMessageModal } = useSystemMessage();
 
   const [activeCurrency, setActiveCurrency] = useState<Currency | null>(null);
@@ -201,6 +209,15 @@ export default function TripExpensesScreen() {
           contentContainerStyle={styles.checklist}
           data={filteredExpenses}
           keyExtractor={(item) => item.id}
+          alwaysBounceVertical
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={refreshKnownTrips}
+              tintColor={getColor(colors.purple)}
+              colors={[getColor(colors.purple)]}
+            />
+          }
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <UIText>No expenses yet</UIText>

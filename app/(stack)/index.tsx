@@ -12,6 +12,7 @@ import {
 } from "@/hook/use-ai-trip-planning";
 import { useAppNotifications } from "@/hook/use-app-notifications";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { useKnownTripsRefresh } from "@/hook/use-known-trips-refresh";
 import { actionListLocalTrips } from "@/lib/sqlite/model/trip";
 import { type Trip } from "@/types/trip";
 import { useQuery } from "@tanstack/react-query";
@@ -30,6 +31,7 @@ import { useState } from "react";
 import {
   ImageBackground,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -62,6 +64,7 @@ export default function IndexScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { session, isAuthenticated, isLoading } = useAuthSession();
+  const { isRefreshing, refreshKnownTrips } = useKnownTripsRefresh();
   const [isDialogNewTripOpen, setIsDialogNewTripOpen] = useState(false);
   const [showAllUpcomingTrips, setShowAllUpcomingTrips] = useState(false);
   const [showAllPastTrips, setShowAllPastTrips] = useState(false);
@@ -165,6 +168,14 @@ export default function IndexScreen() {
           { paddingBottom: insets.bottom + 96 },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshKnownTrips}
+            tintColor={getColor(colors.purple)}
+            colors={[getColor(colors.purple)]}
+          />
+        }
       >
         {/* Header Banner with Greeting */}
         <ImageBackground

@@ -8,7 +8,13 @@ import {
   ListFilter as ListFilterIcon,
 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
@@ -24,6 +30,8 @@ type TripPinsListProps = {
   onAddPin: () => void;
   hasActiveFilters?: boolean;
   onClearFilters?: () => void;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 };
 
 const SWIPE_DISTANCE = 56;
@@ -36,6 +44,8 @@ export const TripPinsList = ({
   onAddPin,
   hasActiveFilters = false,
   onClearFilters,
+  refreshing = false,
+  onRefresh,
 }: TripPinsListProps) => {
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -107,6 +117,17 @@ export const TripPinsList = ({
               { paddingBottom: insets.bottom + 88 },
             ]}
             showsVerticalScrollIndicator={false}
+            alwaysBounceVertical
+            refreshControl={
+              onRefresh ? (
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={getColor(colors.purple)}
+                  colors={[getColor(colors.purple)]}
+                />
+              ) : undefined
+            }
           >
             {activeDay.pins.length > 0 ? (
               activeDay.pins.map((pin) => (
