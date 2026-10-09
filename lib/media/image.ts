@@ -1,8 +1,12 @@
 import * as FileSystem from "expo-file-system/legacy";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { supabase } from "@/lib/supabase/client";
 
 const LOCAL_IMAGE_DIRECTORY = `${FileSystem.documentDirectory}images`;
 const PIN_IMAGE_STORAGE_BUCKET = "images";
+const MAX_IMAGE_LONG_EDGE = 1024;
+const MAX_IMAGE_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const LOSSY_IMAGE_QUALITY = 0.82;
 
 const ALLOWED_IMAGE_MIME_TYPES = [
   "image/jpeg",
@@ -11,12 +15,44 @@ const ALLOWED_IMAGE_MIME_TYPES = [
   "image/webp",
 ] as const;
 
+const IMAGE_OUTPUT_BY_MIME_TYPE = {
+  "image/jpeg": {
+    extension: "jpg",
+    format: SaveFormat.JPEG,
+    mimeType: "image/jpeg",
+    quality: LOSSY_IMAGE_QUALITY,
+  },
+  "image/jpg": {
+    extension: "jpg",
+    format: SaveFormat.JPEG,
+    mimeType: "image/jpeg",
+    quality: LOSSY_IMAGE_QUALITY,
+  },
+  "image/png": {
+    extension: "png",
+    format: SaveFormat.PNG,
+    mimeType: "image/png",
+    quality: 1,
+  },
+  "image/webp": {
+    extension: "webp",
+    format: SaveFormat.WEBP,
+    mimeType: "image/webp",
+    quality: LOSSY_IMAGE_QUALITY,
+  },
+} as const;
+
 function sanitizeFileName(fileName: string) {
   return fileName
     .trim()
     .replace(/\s+/g, "-")
     .replace(/[^a-zA-Z0-9._-]/g, "")
     .toLowerCase();
+}
+
+function getFileNameWithoutExtension(fileName: string) {
+  const lastDotIndex = fileName.lastIndexOf(".");
+  return lastDotIndex > 0 ? fileName.slice(0, lastDotIndex) : fileName;
 }
 
 function decodeBase64(base64: string) {
@@ -84,23 +120,74 @@ export async function persistLocalImage(input: {
   localImageId: string;
   fileName: string;
   fileUri: string;
+  mimeType: string;
+  width: number;
+  height: number;
 }) {
-  const safeFileName = sanitizeFileName(input.fileName || "image");
+  const output = IMAGE_OUTPUT_BY_MIME_TYPE[
+    input.mimeType as keyof typeof IMAGE_OUTPUT_BY_MIME_TYPE
+  ];
+
+  if (!output) {
+    throw new Error("Choose a JPG, PNG, or WebP image");
+  }
+
+  const safeBaseName =
+    sanitizeFileName(getFileNameWithoutExtension(input.fileName)) || "image";
+  const safeFileName = `${safeBaseName}.${output.extension}`;
   const imageDirectory = input.pinId
     ? `${LOCAL_IMAGE_DIRECTORY}/trip/${input.tripId}/pin/${input.pinId}`
     : `${LOCAL_IMAGE_DIRECTORY}/trip/${input.tripId}`;
   const localUri = `${imageDirectory}/${input.localImageId}-${safeFileName}`;
+  const context = ImageManipulator.manipulate(input.fileUri);
 
-  await FileSystem.makeDirectoryAsync(imageDirectory, {
-    intermediates: true,
+  if (Math.max(input.width, input.height) > MAX_IMAGE_LONG_EDGE) {
+    context.resize(
+      input.width >= input.height
+        ? { width: MAX_IMAGE_LONG_EDGE }
+        : { height: MAX_IMAGE_LONG_EDGE },
+    );
+  }
+
+  const renderedImage = await context.renderAsync();
+  const processedImage = await renderedImage.saveAsync({
+    compress: output.quality,
+    format: output.format,
   });
 
-  await FileSystem.copyAsync({
-    from: input.fileUri,
-    to: localUri,
-  });
+  try {
+    const processedImageInfo = await FileSystem.getInfoAsync(processedImage.uri);
 
-  return localUri;
+    if (!processedImageInfo.exists) {
+      throw new Error("Failed to prepare image");
+    }
+
+    if (processedImageInfo.size > MAX_IMAGE_FILE_SIZE_BYTES) {
+      throw new Error("Image must be smaller than 5 MB after optimisation");
+    }
+
+    await FileSystem.makeDirectoryAsync(imageDirectory, {
+      intermediates: true,
+    });
+
+    await FileSystem.copyAsync({
+      from: processedImage.uri,
+      to: localUri,
+    });
+
+    return {
+      localUri,
+      mimeType: output.mimeType,
+      width: processedImage.width,
+      height: processedImage.height,
+    };
+  } finally {
+    try {
+      await FileSystem.deleteAsync(processedImage.uri, { idempotent: true });
+    } catch (error) {
+      console.warn("Failed to remove temporary processed image", error);
+    }
+  }
 }
 
 export async function uploadPinImageToStorage(input: {

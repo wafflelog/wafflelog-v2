@@ -72,29 +72,30 @@ export const DialogNewImage = ({
         }
       }
 
-      await Promise.all(
-        images.map(async (image) => {
-          const localImageId = buildUUID();
-          const localUri = await persistLocalImage({
-            tripId,
-            pinId,
-            localImageId,
-            fileName: image.fileName,
-            fileUri: image.fileUri,
-          });
+      for (const image of images) {
+        const localImageId = buildUUID();
+        const processedImage = await persistLocalImage({
+          tripId,
+          pinId,
+          localImageId,
+          fileName: image.fileName,
+          fileUri: image.fileUri,
+          mimeType: image.mimeType,
+          width: image.width,
+          height: image.height,
+        });
 
-          return actionCreateLocalImage({
-            id: localImageId,
-            pinId: pinId ?? null,
-            tripId,
-            userId: session.user.id,
-            localUri,
-            mimeType: image.mimeType,
-            width: image.width,
-            height: image.height,
-          });
-        }),
-      );
+        await actionCreateLocalImage({
+          id: localImageId,
+          pinId: pinId ?? null,
+          tripId,
+          userId: session.user.id,
+          localUri: processedImage.localUri,
+          mimeType: processedImage.mimeType,
+          width: processedImage.width,
+          height: processedImage.height,
+        });
+      }
     },
     onSuccess: () => {
       if (session?.user.id) {
