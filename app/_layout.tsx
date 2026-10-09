@@ -1,5 +1,6 @@
 import { GlobalAppNotifications } from "@/components/global/app-notifications";
 import { DataBootstrapGate } from "@/components/global/data-bootstrap-gate";
+import { GlobalDataSyncMessages } from "@/components/global/data-sync-messages";
 import { DataSyncProvider } from "@/components/global/data-sync-provider";
 import { AuthSessionProvider } from "@/hook/use-auth-session";
 import { initializeDatabase } from "@/lib/sqlite/init";
@@ -43,6 +44,7 @@ export default function RootLayout() {
       <AuthSessionProvider>
         <DataSyncProvider>
           <GlobalAppNotifications />
+          <GlobalDataSyncMessages />
           <DataBootstrapGate>
             <KeyboardProvider>
               <Stack>
