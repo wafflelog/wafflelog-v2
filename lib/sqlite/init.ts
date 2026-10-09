@@ -147,6 +147,7 @@ export async function initializeDatabase() {
       user_id text not null,
       file_name text not null,
       mime_type text not null,
+      local_uri text,
       storage_bucket text not null,
       storage_path text not null,
       caption text,
@@ -554,17 +555,6 @@ export async function initializeDatabase() {
     await sqlite.execAsync(`
       alter table note
       add column deleted_at text;
-    `);
-  }
-
-  const hasLocalUriColumn = documentTableColumns.some(
-    (column) => column.name === "local_uri",
-  );
-
-  if (!hasLocalUriColumn) {
-    await sqlite.execAsync(`
-      alter table document
-      add column local_uri text;
     `);
   }
 

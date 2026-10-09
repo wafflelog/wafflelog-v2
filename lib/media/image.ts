@@ -9,13 +9,6 @@ const MAX_IMAGE_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const LOSSY_IMAGE_QUALITY = 0.82;
 const IMAGE_DOWNLOAD_URL_EXPIRY_SECONDS = 60;
 
-const ALLOWED_IMAGE_MIME_TYPES = [
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "image/webp",
-] as const;
-
 const IMAGE_OUTPUT_BY_MIME_TYPE = {
   "image/jpeg": {
     extension: "jpg",
@@ -43,6 +36,16 @@ const IMAGE_OUTPUT_BY_MIME_TYPE = {
   },
 } as const;
 
+const IMAGE_MIME_TYPE_BY_EXTENSION: Record<string, string> = {
+  avif: "image/avif",
+  heic: "image/heic",
+  heif: "image/heif",
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+};
+
 function sanitizeFileName(fileName: string) {
   return fileName
     .trim()
@@ -54,6 +57,11 @@ function sanitizeFileName(fileName: string) {
 function getFileNameWithoutExtension(fileName: string) {
   const lastDotIndex = fileName.lastIndexOf(".");
   return lastDotIndex > 0 ? fileName.slice(0, lastDotIndex) : fileName;
+}
+
+function getFileExtension(fileName: string) {
+  const lastDotIndex = fileName.lastIndexOf(".");
+  return lastDotIndex >= 0 ? fileName.slice(lastDotIndex + 1).toLowerCase() : "";
 }
 
 function getImageExtension(mimeType: string) {
@@ -98,10 +106,18 @@ async function readLocalFileAsBytes(localUri: string) {
   return decodeBase64(base64);
 }
 
-export function isAllowedLocalImageMimeType(mimeType: string) {
-  return ALLOWED_IMAGE_MIME_TYPES.includes(
-    mimeType as (typeof ALLOWED_IMAGE_MIME_TYPES)[number],
-  );
+export function inferLocalImageMimeType(input: {
+  mimeType?: string | null;
+  fileName?: string | null;
+}) {
+  const mimeType = input.mimeType?.trim().toLowerCase();
+
+  if (mimeType?.startsWith("image/")) {
+    return mimeType;
+  }
+
+  const extension = getFileExtension(input.fileName ?? "");
+  return IMAGE_MIME_TYPE_BY_EXTENSION[extension] ?? "image/jpeg";
 }
 
 export function buildPinImageStoragePath(input: {
@@ -133,13 +149,10 @@ export async function persistLocalImage(input: {
   width: number;
   height: number;
 }) {
-  const output = IMAGE_OUTPUT_BY_MIME_TYPE[
-    input.mimeType as keyof typeof IMAGE_OUTPUT_BY_MIME_TYPE
-  ];
-
-  if (!output) {
-    throw new Error("Choose a JPG, PNG, or WebP image");
-  }
+  const output =
+    IMAGE_OUTPUT_BY_MIME_TYPE[
+      input.mimeType as keyof typeof IMAGE_OUTPUT_BY_MIME_TYPE
+    ] ?? IMAGE_OUTPUT_BY_MIME_TYPE["image/jpeg"];
 
   const safeBaseName =
     sanitizeFileName(getFileNameWithoutExtension(input.fileName)) || "image";

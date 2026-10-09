@@ -1,9 +1,9 @@
 import { GlobalAppNotifications } from "@/components/global/app-notifications";
 import { DataBootstrapGate } from "@/components/global/data-bootstrap-gate";
+import { DatabaseInitializationGate } from "@/components/global/database-initialization-gate";
 import { GlobalDataSyncMessages } from "@/components/global/data-sync-messages";
 import { DataSyncProvider } from "@/components/global/data-sync-provider";
 import { AuthSessionProvider } from "@/hook/use-auth-session";
-import { initializeDatabase } from "@/lib/sqlite/init";
 import {
   Montserrat_400Regular,
   Montserrat_500Medium,
@@ -13,7 +13,6 @@ import {
 } from "@expo-google-fonts/montserrat";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import { useEffect } from "react";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
 const queryClient = new QueryClient({
@@ -33,27 +32,26 @@ export default function RootLayout() {
     Montserrat_700Bold,
   });
 
-  useEffect(() => {
-    initializeDatabase().catch((error) => {
-      console.error("Failed to initialize SQLite database", error);
-    });
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthSessionProvider>
-        <DataSyncProvider>
-          <GlobalAppNotifications />
-          <GlobalDataSyncMessages />
-          <DataBootstrapGate>
-            <KeyboardProvider>
-              <Stack>
-                <Stack.Screen name="(stack)" options={{ headerShown: false }} />
-              </Stack>
-            </KeyboardProvider>
-          </DataBootstrapGate>
-        </DataSyncProvider>
-      </AuthSessionProvider>
+      <DatabaseInitializationGate>
+        <AuthSessionProvider>
+          <DataSyncProvider>
+            <GlobalAppNotifications />
+            <GlobalDataSyncMessages />
+            <DataBootstrapGate>
+              <KeyboardProvider>
+                <Stack>
+                  <Stack.Screen
+                    name="(stack)"
+                    options={{ headerShown: false }}
+                  />
+                </Stack>
+              </KeyboardProvider>
+            </DataBootstrapGate>
+          </DataSyncProvider>
+        </AuthSessionProvider>
+      </DatabaseInitializationGate>
     </QueryClientProvider>
   );
 }

@@ -1794,48 +1794,41 @@ export async function actionGetRemoteTripSyncBundle(
       .select(
         "id, trip_id, user_id, name, start_date, end_date, time, end_time, category_id, metadata_json, created_at, updated_at, deleted_at",
       )
-      .eq("trip_id", tripId)
-      .is("deleted_at", null),
+      .eq("trip_id", tripId),
     client
       .from("checklist_item")
       .select(
         "id, trip_id, user_id, title, completed, created_at, updated_at, deleted_at",
       )
-      .eq("trip_id", tripId)
-      .is("deleted_at", null),
+      .eq("trip_id", tripId),
     client
       .from("note")
       .select("id, trip_id, pin_id, user_id, text, created_at, updated_at, deleted_at")
-      .eq("trip_id", tripId)
-      .is("deleted_at", null),
+      .eq("trip_id", tripId),
     client
       .from("reference_link")
       .select(
         "id, trip_id, pin_id, user_id, title, url, caption, created_at, updated_at, deleted_at",
       )
-      .eq("trip_id", tripId)
-      .is("deleted_at", null),
+      .eq("trip_id", tripId),
     client
       .from("expense")
       .select(
         "id, pin_id, trip_id, user_id, description, amount, currency, paid_by_user_id, paid_by_name, created_at, updated_at, deleted_at",
       )
-      .eq("trip_id", tripId)
-      .is("deleted_at", null),
+      .eq("trip_id", tripId),
     client
       .from("document")
       .select(
         "id, trip_id, pin_id, user_id, file_name, mime_type, storage_bucket, storage_path, caption, created_at, updated_at, deleted_at",
       )
-      .eq("trip_id", tripId)
-      .is("deleted_at", null),
+      .eq("trip_id", tripId),
     client
       .from("image")
       .select(
         "id, pin_id, trip_id, user_id, storage_bucket, storage_path, mime_type, width, height, caption, created_at, updated_at, deleted_at",
       )
-      .eq("trip_id", tripId)
-      .is("deleted_at", null),
+      .eq("trip_id", tripId),
   ]);
 
   const results = [

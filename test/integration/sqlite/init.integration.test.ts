@@ -186,6 +186,19 @@ describe("initializeDatabase", () => {
         "updated_at",
       ]),
     );
+    expect(await listColumnNames("document")).toEqual(
+      expect.arrayContaining([
+        "id",
+        "trip_id",
+        "local_uri",
+        "storage_bucket",
+        "storage_path",
+        "sync_status",
+        "last_synced_at",
+        "sync_error",
+        "deleted_at",
+      ]),
+    );
   });
 
   it("allows remote image metadata without a local file", async () => {

@@ -15,7 +15,7 @@ import {
 } from "@/lib/sqlite/model/image";
 import { buildUUID } from "@/lib/sqlite/utils";
 import {
-  isAllowedLocalImageMimeType,
+  inferLocalImageMimeType,
   persistLocalImage,
 } from "@/lib/media/image";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -74,6 +74,7 @@ export const DialogNewImage = ({
 
       for (const image of images) {
         const localImageId = buildUUID();
+
         const processedImage = await persistLocalImage({
           tripId,
           pinId,
@@ -162,6 +163,8 @@ export const DialogNewImage = ({
       allowsMultipleSelection: true,
       selectionLimit: remainingSlots,
       quality: 1,
+      preferredAssetRepresentationMode:
+        ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
     });
 
     if (result.canceled) {
@@ -169,16 +172,16 @@ export const DialogNewImage = ({
     }
 
     const nextSelectedImages = result.assets.flatMap((asset) => {
-      const mimeType = asset.mimeType ?? "image/jpeg";
-
-      if (!isAllowedLocalImageMimeType(mimeType)) {
-        return [];
-      }
+      const fileName = asset.fileName ?? `image-${Date.now()}.jpg`;
+      const mimeType = inferLocalImageMimeType({
+        mimeType: asset.mimeType,
+        fileName,
+      });
 
       return [
         {
           assetId: asset.assetId,
-          fileName: asset.fileName ?? `image-${Date.now()}.jpg`,
+          fileName,
           fileUri: asset.uri,
           mimeType,
           width: asset.width,
@@ -188,7 +191,7 @@ export const DialogNewImage = ({
     });
 
     if (nextSelectedImages.length === 0) {
-      onShowMessage("Choose JPG, PNG, or WebP images", "error");
+      onShowMessage("Choose at least one image", "error");
       return;
     }
 
@@ -232,7 +235,7 @@ export const DialogNewImage = ({
               : "No images selected"}
           </UIText>
           <UIText style={styles.metaSubtext}>
-            Up to {MAX_IMAGES_PER_PIN} images. JPG, PNG, or WebP only.
+            Up to {MAX_IMAGES_PER_PIN} images. Common photo formats supported.
           </UIText>
         </View>
 

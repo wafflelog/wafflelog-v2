@@ -136,6 +136,51 @@ describe("local image processing", () => {
     });
   });
 
+  it("normalises a HEIC camera image to JPEG", async () => {
+    mocks.saveAsync.mockResolvedValue({
+      uri: "file:///cache/processed.jpg",
+      width: 1000,
+      height: 750,
+    });
+    const { persistLocalImage } = await import("./image");
+
+    await expect(
+      persistLocalImage({
+        tripId: "trip-a",
+        localImageId: "image-a",
+        fileName: "IMG_1234.HEIC",
+        fileUri: "file:///picker/IMG_1234.HEIC",
+        mimeType: "image/heic",
+        width: 1000,
+        height: 750,
+      }),
+    ).resolves.toEqual({
+      localUri: "file:///documents/images/trip/trip-a/image-a-img_1234.jpg",
+      mimeType: "image/jpeg",
+      width: 1000,
+      height: 750,
+    });
+
+    expect(mocks.saveAsync).toHaveBeenCalledWith({
+      compress: 0.82,
+      format: "jpeg",
+    });
+  });
+
+  it("infers camera image MIME types from filenames when metadata is absent", async () => {
+    const { inferLocalImageMimeType } = await import("./image");
+
+    expect(inferLocalImageMimeType({ fileName: "IMG_1234.HEIF" })).toBe(
+      "image/heif",
+    );
+    expect(inferLocalImageMimeType({ fileName: "screenshot.PNG" })).toBe(
+      "image/png",
+    );
+    expect(inferLocalImageMimeType({ fileName: "unknown-format" })).toBe(
+      "image/jpeg",
+    );
+  });
+
   it("rejects an optimised image that remains larger than 5 MB", async () => {
     mocks.getInfoAsync.mockResolvedValue({
       exists: true,

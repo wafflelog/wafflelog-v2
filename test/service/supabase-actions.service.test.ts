@@ -644,9 +644,10 @@ describe("Supabase actions", () => {
       },
       owner.client,
     );
+    const imageId = crypto.randomUUID();
     await actionUpsertRemoteImageFromLocal(
       {
-        id: crypto.randomUUID(),
+        id: imageId,
         tripId,
         pinId,
         storageBucket: "images",
@@ -658,6 +659,7 @@ describe("Supabase actions", () => {
       },
       owner.client,
     );
+    await actionSoftDeleteRemoteImage(imageId, owner.client);
 
     const users = await actionListPublicUsers("bundle_owner", owner.client);
     expect(users).toContainEqual(expect.objectContaining({ id: owner.id }));
@@ -686,6 +688,12 @@ describe("Supabase actions", () => {
     ]);
     expect(bundle.documents).toHaveLength(1);
     expect(bundle.images).toHaveLength(1);
+    expect(bundle.images[0]).toEqual(
+      expect.objectContaining({
+        id: imageId,
+        deletedAt: expect.any(String),
+      }),
+    );
     expect(bundle.userProfiles).toContainEqual(
       expect.objectContaining({ id: owner.id }),
     );

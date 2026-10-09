@@ -11,6 +11,7 @@ import {
 } from "@/lib/data-sync/types";
 import { uploadPendingChanges } from "@/lib/data-sync/upload";
 import { sqlite } from "@/lib/sqlite/client";
+import { isSameDatabaseFileName } from "@/lib/sqlite/database-path";
 import { useQueryClient } from "@tanstack/react-query";
 import { addDatabaseChangeListener } from "expo-sqlite";
 import {
@@ -264,7 +265,12 @@ export function DataSyncProvider({ children }: PropsWithChildren) {
 
     let isSubscribed = true;
     const subscription = addDatabaseChangeListener((event) => {
-      if (event.databaseFilePath !== sqlite.databasePath) {
+      const isCurrentDatabase = isSameDatabaseFileName(
+        event.databaseFilePath,
+        sqlite.databasePath,
+      );
+
+      if (!isCurrentDatabase) {
         return;
       }
 

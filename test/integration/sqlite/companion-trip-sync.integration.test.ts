@@ -357,6 +357,46 @@ describe("companion trip pull sync", () => {
     });
   });
 
+  it("applies a remote image tombstone and hides the local image", async () => {
+    remote.listMemberships.mockResolvedValue([
+      {
+        id: "membership-a",
+        tripId: "trip-a",
+        userId: "companion-a",
+        role: "companion",
+        status: "active",
+        ...timestamps,
+      },
+    ]);
+    remote.getBundle.mockResolvedValue(createBundle());
+    const { actionPullActiveCompanionTrips } = await import(
+      "@/lib/sqlite/model/companion-trip-sync"
+    );
+
+    await actionPullActiveCompanionTrips();
+
+    const deletedAt = "2026-01-03T00:00:00.000Z";
+    const refreshedBundle = createBundle();
+    refreshedBundle.images[0].deletedAt = deletedAt;
+    refreshedBundle.images[0].updatedAt = deletedAt;
+    remote.getBundle.mockResolvedValue(refreshedBundle);
+
+    await actionPullActiveCompanionTrips();
+
+    await expect(
+      testDb.getFirstAsync<{
+        deleted_at: string | null;
+        sync_status: string;
+      }>("select deleted_at, sync_status from image where id = ?", ["image-a"]),
+    ).resolves.toEqual({ deleted_at: deletedAt, sync_status: "synced" });
+    await expect(
+      testDb.getAllAsync<{ id: string }>(
+        "select id from image where trip_id = ? and deleted_at is null",
+        ["trip-a"],
+      ),
+    ).resolves.toEqual([]);
+  });
+
   it("preserves unsynced local records when pulling a remote bundle", async () => {
     remote.listMemberships.mockResolvedValue([
       {
