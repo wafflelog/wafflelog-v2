@@ -1,9 +1,9 @@
+import { ImageDeleteButton } from "@/components/card/image/delete-button";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import { getCreatorDisplayName } from "@/lib/helper/creator";
 import { type Image } from "@/types/pin";
 import { Image as ExpoImage } from "expo-image";
-import { Trash2 as Trash2Icon } from "lucide-react-native";
 import { StyleSheet, TouchableOpacity } from "react-native";
 
 type CardImageRegularProps = {
@@ -26,16 +26,7 @@ export function CardImageRegular({
         {getCreatorDisplayName(image.creator)}
       </TitleRegular>
       {onDeletePress && (
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={(event) => {
-            event.stopPropagation();
-            onDeletePress();
-          }}
-          hitSlop={8}
-        >
-          <Trash2Icon size={16} color={getColor(colors.white)} />
-        </TouchableOpacity>
+        <ImageDeleteButton onPress={onDeletePress} />
       )}
       {showCaption && (
         <TitleRegular size="xs" style={styles.caption}>
@@ -73,16 +64,5 @@ const styles = StyleSheet.create({
     flex: 1,
     width: "100%",
     height: "100%",
-  },
-  deleteButton: {
-    position: "absolute",
-    top: gaps.xs,
-    right: gaps.xs,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: getColor(colors.black, 0.6),
-    justifyContent: "center",
-    alignItems: "center",
   },
 });

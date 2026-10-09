@@ -2,21 +2,27 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   copyAsync: vi.fn(),
+  createSignedUrl: vi.fn(),
   deleteAsync: vi.fn(),
+  downloadAsync: vi.fn(),
   getInfoAsync: vi.fn(),
   makeDirectoryAsync: vi.fn(),
   manipulate: vi.fn(),
+  moveAsync: vi.fn(),
   renderAsync: vi.fn(),
   resize: vi.fn(),
   saveAsync: vi.fn(),
+  storageFrom: vi.fn(),
 }));
 
 vi.mock("expo-file-system/legacy", () => ({
   documentDirectory: "file:///documents/",
   copyAsync: mocks.copyAsync,
   deleteAsync: mocks.deleteAsync,
+  downloadAsync: mocks.downloadAsync,
   getInfoAsync: mocks.getInfoAsync,
   makeDirectoryAsync: mocks.makeDirectoryAsync,
+  moveAsync: mocks.moveAsync,
 }));
 
 vi.mock("expo-image-manipulator", () => ({
@@ -24,7 +30,9 @@ vi.mock("expo-image-manipulator", () => ({
   SaveFormat: { JPEG: "jpeg", PNG: "png", WEBP: "webp" },
 }));
 
-vi.mock("@/lib/supabase/client", () => ({ supabase: {} }));
+vi.mock("@/lib/supabase/client", () => ({
+  supabase: { storage: { from: mocks.storageFrom } },
+}));
 
 describe("local image processing", () => {
   beforeEach(() => {
@@ -49,6 +57,14 @@ describe("local image processing", () => {
     mocks.copyAsync.mockResolvedValue(undefined);
     mocks.deleteAsync.mockResolvedValue(undefined);
     mocks.makeDirectoryAsync.mockResolvedValue(undefined);
+    mocks.moveAsync.mockResolvedValue(undefined);
+    mocks.createSignedUrl.mockResolvedValue({
+      data: { signedUrl: "https://example.com/signed-image" },
+      error: null,
+    });
+    mocks.storageFrom.mockReturnValue({
+      createSignedUrl: mocks.createSignedUrl,
+    });
   });
 
   it("resizes and compresses a large JPEG before persisting it", async () => {
@@ -147,5 +163,114 @@ describe("local image processing", () => {
       "file:///cache/processed.jpg",
       { idempotent: true },
     );
+  });
+});
+
+describe("remote image download", () => {
+  beforeEach(() => {
+    Object.values(mocks).forEach((mock) => mock.mockReset());
+    mocks.deleteAsync.mockResolvedValue(undefined);
+    mocks.makeDirectoryAsync.mockResolvedValue(undefined);
+    mocks.moveAsync.mockResolvedValue(undefined);
+    mocks.getInfoAsync.mockResolvedValue({
+      exists: false,
+      uri: "file:///documents/images/cache/trip/trip-a/image-a.jpg",
+      isDirectory: false,
+    });
+    mocks.createSignedUrl.mockResolvedValue({
+      data: { signedUrl: "https://example.com/signed-image" },
+      error: null,
+    });
+    mocks.storageFrom.mockReturnValue({
+      createSignedUrl: mocks.createSignedUrl,
+    });
+    mocks.downloadAsync.mockResolvedValue({
+      uri: "file:///documents/images/cache/trip/trip-a/image-a.jpg.download",
+      status: 200,
+      headers: {},
+      mimeType: "image/jpeg",
+    });
+  });
+
+  it("streams a private image into the durable local cache", async () => {
+    const { downloadImageFromStorage } = await import("./image");
+
+    await expect(
+      downloadImageFromStorage({
+        tripId: "trip-a",
+        imageId: "image-a",
+        storageBucket: "images",
+        storagePath: "trip/trip-a/images/image-a.jpeg",
+        mimeType: "image/jpeg",
+      }),
+    ).resolves.toBe(
+      "file:///documents/images/cache/trip/trip-a/image-a.jpg",
+    );
+
+    expect(mocks.storageFrom).toHaveBeenCalledWith("images");
+    expect(mocks.createSignedUrl).toHaveBeenCalledWith(
+      "trip/trip-a/images/image-a.jpeg",
+      60,
+    );
+    expect(mocks.downloadAsync).toHaveBeenCalledWith(
+      "https://example.com/signed-image",
+      "file:///documents/images/cache/trip/trip-a/image-a.jpg.download",
+    );
+    expect(mocks.moveAsync).toHaveBeenCalledWith({
+      from: "file:///documents/images/cache/trip/trip-a/image-a.jpg.download",
+      to: "file:///documents/images/cache/trip/trip-a/image-a.jpg",
+    });
+  });
+
+  it("reuses a previously downloaded cache file", async () => {
+    mocks.getInfoAsync.mockResolvedValue({
+      exists: true,
+      uri: "file:///documents/images/cache/trip/trip-a/image-a.jpg",
+      size: 100,
+      isDirectory: false,
+      modificationTime: 0,
+    });
+    const { downloadImageFromStorage } = await import("./image");
+
+    await expect(
+      downloadImageFromStorage({
+        tripId: "trip-a",
+        imageId: "image-a",
+        storageBucket: "images",
+        storagePath: "trip/trip-a/images/image-a.jpeg",
+        mimeType: "image/jpeg",
+      }),
+    ).resolves.toBe(
+      "file:///documents/images/cache/trip/trip-a/image-a.jpg",
+    );
+
+    expect(mocks.createSignedUrl).not.toHaveBeenCalled();
+    expect(mocks.downloadAsync).not.toHaveBeenCalled();
+  });
+
+  it("removes an incomplete download when the request fails", async () => {
+    mocks.downloadAsync.mockResolvedValue({
+      uri: "file:///documents/images/cache/trip/trip-a/image-a.jpg.download",
+      status: 404,
+      headers: {},
+      mimeType: "application/json",
+    });
+    const { downloadImageFromStorage } = await import("./image");
+
+    await expect(
+      downloadImageFromStorage({
+        tripId: "trip-a",
+        imageId: "image-a",
+        storageBucket: "images",
+        storagePath: "trip/trip-a/images/image-a.jpeg",
+        mimeType: "image/jpeg",
+      }),
+    ).rejects.toThrow("Image download failed with status 404");
+
+    expect(mocks.deleteAsync).toHaveBeenLastCalledWith(
+      "file:///documents/images/cache/trip/trip-a/image-a.jpg.download",
+      { idempotent: true },
+    );
+    expect(mocks.moveAsync).not.toHaveBeenCalled();
   });
 });

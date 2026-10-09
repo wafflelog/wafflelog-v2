@@ -49,4 +49,34 @@ describe("image sync", () => {
     expect(remote.softDelete).toHaveBeenCalledWith(image.id);
     await expect(testDb.getFirstAsync("select id from image where id = ?", [image.id])).resolves.toBeNull();
   });
+
+  it("records a downloaded image URI without changing its sync state", async () => {
+    const model = await import("@/lib/sqlite/model/image");
+    const image = await model.actionCreateLocalImage({
+      id: "image-a",
+      tripId: "trip-a",
+      userId: "user-a",
+      localUri: "file:///original.jpg",
+      mimeType: "image/jpeg",
+      width: 100,
+      height: 200,
+    });
+
+    await model.actionMarkLocalImageSyncing(image.id, "user-a");
+    await model.actionMarkLocalImageSynced(image.id, "user-a");
+    await model.actionSetLocalImageUri(
+      image.id,
+      "file:///documents/images/cache/image-a.jpg",
+    );
+
+    await expect(
+      testDb.getFirstAsync<{
+        local_uri: string | null;
+        sync_status: string;
+      }>("select local_uri, sync_status from image where id = ?", [image.id]),
+    ).resolves.toEqual({
+      local_uri: "file:///documents/images/cache/image-a.jpg",
+      sync_status: "synced",
+    });
+  });
 });

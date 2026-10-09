@@ -1,5 +1,6 @@
 import { ButtonFab } from "@/components/button/fab";
-import { CardImageRegular } from "@/components/card/image/regular";
+import { CardImageResolved } from "@/components/card/image/resolved";
+import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { DialogNewImage } from "@/components/dialog/new-image";
 import { EmptyState } from "@/components/ui/empty-state";
 import { UIText } from "@/components/ui/text";
@@ -14,9 +15,12 @@ import { useAuthSession } from "@/hook/use-auth-session";
 import { useKnownTripsRefresh } from "@/hook/use-known-trips-refresh";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { getPinTitle } from "@/lib/helper/pin";
-import { actionListLocalImagesByTrip } from "@/lib/sqlite/model/image";
+import {
+  actionListLocalImagesByTrip,
+  actionSoftDeleteLocalImage,
+} from "@/lib/sqlite/model/image";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Image as ImageIcon,
@@ -27,11 +31,13 @@ import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 
 export default function TripImagesScreen() {
   const [isDialogNewImageVisible, setIsDialogNewImageVisible] = useState(false);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const router = useRouter();
   const { session } = useAuthSession();
   const { isRefreshing, refreshKnownTrips } = useKnownTripsRefresh();
   const { showMessage, SystemMessageModal } = useSystemMessage();
+  const queryClient = useQueryClient();
 
   const { data: localTrip } = useQuery({
     queryKey: ["local-trip", String(tripId), session?.user.id],
@@ -44,6 +50,22 @@ export default function TripImagesScreen() {
     queryFn: () =>
       actionListLocalImagesByTrip(String(tripId), session!.user.id),
     enabled: Boolean(tripId && session?.user.id),
+  });
+
+  const softDeleteImageMutation = useMutation({
+    mutationFn: (imageId: string) =>
+      actionSoftDeleteLocalImage(imageId, session!.user.id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["local-trip-images", String(tripId), session!.user.id],
+      });
+      setSelectedImageId(null);
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete image";
+      showMessage(message, "error");
+    },
   });
 
   const trip = localTrip
@@ -66,20 +88,15 @@ export default function TripImagesScreen() {
     return <UIText>Trip not found</UIText>;
   }
 
-  const images = localImages
-    .filter(
-      (image): image is typeof image & { localUri: string } =>
-        Boolean(image.localUri),
-    )
-    .map((image) => {
-      const linkedPinLabel = image.pin ? `For ${getPinTitle(image.pin)}` : null;
-      const captionParts = [linkedPinLabel, image.caption].filter(Boolean);
+  const images = localImages.map((image) => {
+    const linkedPinLabel = image.pin ? `For ${getPinTitle(image.pin)}` : null;
+    const captionParts = [linkedPinLabel, image.caption].filter(Boolean);
 
-      return {
-        ...image,
-        caption: captionParts.length ? captionParts.join(" · ") : null,
-      };
-    });
+    return {
+      ...image,
+      caption: captionParts.length ? captionParts.join(" · ") : null,
+    };
+  });
 
   return (
     <View style={styles.container}>
@@ -106,25 +123,29 @@ export default function TripImagesScreen() {
         }
         renderItem={({ item }) => (
           <View key={item.id} style={styles.item}>
-            <CardImageRegular
-              image={{
-                id: item.id,
-                url: item.localUri,
-                width: item.width,
-                height: item.height,
-                caption: item.caption ?? undefined,
-                creator: item.creator,
-              }}
+            <CardImageResolved
+              image={item}
               showCaption={true}
-              onPress={() => {
+              onPress={(localUri) => {
+                const imageUrls = images.flatMap((image) => {
+                  const imageUrl =
+                    image.id === item.id ? localUri : image.localUri;
+                  return imageUrl ? [imageUrl] : [];
+                });
+
                 router.push({
                   pathname: "/image-viewer",
                   params: {
-                    url: item.localUri,
-                    urls: JSON.stringify(images.map((image) => image.localUri)),
+                    url: localUri,
+                    urls: JSON.stringify(imageUrls),
                   },
                 });
               }}
+              onDeletePress={
+                item.creator.isCurrentUser
+                  ? () => setSelectedImageId(item.id)
+                  : undefined
+              }
             />
           </View>
         )}
@@ -141,6 +162,20 @@ export default function TripImagesScreen() {
         visible={isDialogNewImageVisible}
         onDismiss={() => setIsDialogNewImageVisible(false)}
         onShowMessage={showMessage}
+      />
+      <ConfirmActionDialog
+        visible={Boolean(selectedImageId)}
+        title="Delete Image"
+        message="Are you sure you want to delete this image?"
+        confirmText="Delete"
+        onDismiss={() => setSelectedImageId(null)}
+        onConfirm={() => {
+          if (selectedImageId) {
+            softDeleteImageMutation.mutate(selectedImageId);
+          }
+        }}
+        isPending={softDeleteImageMutation.isPending}
+        confirmVariant="danger"
       />
       <SystemMessageModal />
     </View>

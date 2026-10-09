@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image as ImageIcon } from "lucide-react-native";
 
-import { CardImageRegular } from "@/components/card/image/regular";
+import { CardImageResolved } from "@/components/card/image/resolved";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { colors, getColor } from "@/constants/theme";
 import {
@@ -47,26 +47,12 @@ export const PinImages = ({
     },
   });
 
-  const images: Pin["images"] = localImages
-    .filter(
-      (image): image is typeof image & { localUri: string } =>
-        Boolean(image.localUri),
-    )
-    .map((image) => ({
-      id: image.id,
-      url: image.localUri,
-      width: image.width,
-      height: image.height,
-      caption: image.caption ?? undefined,
-      creator: image.creator,
-    }));
-
   return (
     <>
       <PinSectionTemplate
         title="Images"
         icon={<ImageIcon size={24} color={getColor(colors.purple)} />}
-        hasContent={images.length > 0}
+        hasContent={localImages.length > 0}
         onAdd={onAddImage}
         addText="Add Image"
         addButtonStyle={styles.addImageButton}
@@ -76,15 +62,43 @@ export const PinImages = ({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.imageList}
         >
-          {images.map((image) => (
+          {localImages.map((image) => (
             <View key={image.id} style={styles.imageCard}>
-              <CardImageRegular
+              <CardImageResolved
                 image={image}
-                onPress={() => onOpenImage(image.id, images)}
-                onDeletePress={() => {
-                  setSelectedImageId(image.id);
-                  setIsDeleteDialogOpen(true);
+                onPress={(localUri) => {
+                  const resolvedImages: Pin["images"] = localImages.flatMap(
+                    (currentImage) => {
+                      const imageUrl =
+                        currentImage.id === image.id
+                          ? localUri
+                          : currentImage.localUri;
+
+                      return imageUrl
+                        ? [
+                            {
+                              id: currentImage.id,
+                              url: imageUrl,
+                              width: currentImage.width,
+                              height: currentImage.height,
+                              caption: currentImage.caption ?? undefined,
+                              creator: currentImage.creator,
+                            },
+                          ]
+                        : [];
+                    },
+                  );
+
+                  onOpenImage(image.id, resolvedImages);
                 }}
+                onDeletePress={
+                  image.creator.isCurrentUser
+                    ? () => {
+                        setSelectedImageId(image.id);
+                        setIsDeleteDialogOpen(true);
+                      }
+                    : undefined
+                }
               />
             </View>
           ))}

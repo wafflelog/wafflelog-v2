@@ -455,6 +455,17 @@ export async function actionMarkLocalImageStorageUploaded(
   );
 }
 
+export async function actionSetLocalImageUri(id: string, localUri: string) {
+  await sqlite.runAsync(
+    `
+      update image
+      set local_uri = ?
+      where id = ?
+    `,
+    [localUri, id],
+  );
+}
+
 export async function actionMarkLocalImageSynced(id: string, userId: string) {
   const now = new Date().toISOString();
 
