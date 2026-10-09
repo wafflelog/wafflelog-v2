@@ -66,15 +66,20 @@ export default function TripImagesScreen() {
     return <UIText>Trip not found</UIText>;
   }
 
-  const images = localImages.map((image) => {
-    const linkedPinLabel = image.pin ? `For ${getPinTitle(image.pin)}` : null;
-    const captionParts = [linkedPinLabel, image.caption].filter(Boolean);
+  const images = localImages
+    .filter(
+      (image): image is typeof image & { localUri: string } =>
+        Boolean(image.localUri),
+    )
+    .map((image) => {
+      const linkedPinLabel = image.pin ? `For ${getPinTitle(image.pin)}` : null;
+      const captionParts = [linkedPinLabel, image.caption].filter(Boolean);
 
-    return {
-      ...image,
-      caption: captionParts.length ? captionParts.join(" · ") : null,
-    };
-  });
+      return {
+        ...image,
+        caption: captionParts.length ? captionParts.join(" · ") : null,
+      };
+    });
 
   return (
     <View style={styles.container}>

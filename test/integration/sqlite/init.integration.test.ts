@@ -188,6 +188,22 @@ describe("initializeDatabase", () => {
     );
   });
 
+  it("allows remote image metadata without a local file", async () => {
+    const { initializeDatabase } = await import("@/lib/sqlite/init");
+
+    await initializeDatabase();
+
+    const imageColumns = await testDb.getAllAsync<{
+      name: string;
+      notnull: number;
+    }>("pragma table_info(image)");
+    const localUriColumn = imageColumns.find(
+      (column) => column.name === "local_uri",
+    );
+
+    expect(localUriColumn?.notnull).toBe(0);
+  });
+
   it("is idempotent on an already initialized database", async () => {
     const { initializeDatabase } = await import("@/lib/sqlite/init");
 

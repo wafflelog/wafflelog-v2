@@ -23,7 +23,7 @@ export type LocalImage = {
   pinId: string | null;
   tripId: string;
   userId: string;
-  localUri: string;
+  localUri: string | null;
   storageBucket: string;
   storagePath: string;
   mimeType: string;
@@ -78,7 +78,7 @@ function mapLocalImageRow(row: {
   pin_id: string | null;
   trip_id: string;
   user_id: string;
-  local_uri: string;
+  local_uri: string | null;
   storage_bucket: string;
   storage_path: string;
   mime_type: string;
@@ -212,7 +212,7 @@ export async function actionListLocalImagesByPin(
     pin_id: string | null;
     trip_id: string;
     user_id: string;
-    local_uri: string;
+    local_uri: string | null;
     storage_bucket: string;
     storage_path: string;
     mime_type: string;
@@ -283,7 +283,7 @@ export async function actionListLocalImagesByTrip(
     pin_id: string | null;
     trip_id: string;
     user_id: string;
-    local_uri: string;
+    local_uri: string | null;
     storage_bucket: string;
     storage_path: string;
     mime_type: string;
@@ -351,7 +351,7 @@ export async function actionListPendingLocalImages(
     pin_id: string | null;
     trip_id: string;
     user_id: string;
-    local_uri: string;
+    local_uri: string | null;
     storage_bucket: string;
     storage_path: string;
     mime_type: string;
@@ -522,6 +522,10 @@ export async function actionSyncLocalImage(localImage: LocalImage) {
     let storagePath = localImage.storagePath;
 
     if (!storageBucket || !storagePath) {
+      if (!localImage.localUri) {
+        throw new Error("Cannot upload an image without a local file");
+      }
+
       const uploadResult = await uploadImageToStorage({
         tripId: localImage.tripId,
         pinId: localImage.pinId,

@@ -374,7 +374,7 @@ async function upsertImageFromRemote(image: RemoteTripSyncBundle["images"][numbe
       image.pinId,
       image.tripId,
       image.userId,
-      image.storagePath,
+      null,
       image.storageBucket,
       image.storagePath,
       image.mimeType,

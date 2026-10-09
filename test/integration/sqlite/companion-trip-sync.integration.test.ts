@@ -257,6 +257,15 @@ describe("companion trip pull sync", () => {
       ]),
     ).resolves.toEqual({ paid_by_user_id: "companion-a", sync_status: "synced" });
     await expect(
+      testDb.getFirstAsync<{
+        local_uri: string | null;
+        storage_path: string;
+      }>("select local_uri, storage_path from image where id = ?", ["image-a"]),
+    ).resolves.toEqual({
+      local_uri: null,
+      storage_path: "trip-a/remote-image.jpg",
+    });
+    await expect(
       testDb.getAllAsync<{ user_id: string; split_amount: string }>(
         "select user_id, split_amount from expense_participant where expense_id = ? order by user_id",
         ["expense-a"],
@@ -308,6 +317,44 @@ describe("companion trip pull sync", () => {
         "select id, title from trip order by id",
       ),
     ).resolves.toEqual([{ id: "trip-a", title: "Updated title" }]);
+  });
+
+  it("preserves a downloaded image URI when refreshing remote metadata", async () => {
+    remote.listMemberships.mockResolvedValue([
+      {
+        id: "membership-a",
+        tripId: "trip-a",
+        userId: "companion-a",
+        role: "companion",
+        status: "active",
+        ...timestamps,
+      },
+    ]);
+    remote.getBundle.mockResolvedValue(createBundle());
+    const { actionPullActiveCompanionTrips } = await import(
+      "@/lib/sqlite/model/companion-trip-sync"
+    );
+
+    await actionPullActiveCompanionTrips();
+    await testDb.runAsync(
+      "update image set local_uri = ? where id = ?",
+      ["file:///cached-image.jpg", "image-a"],
+    );
+
+    const refreshedBundle = createBundle();
+    refreshedBundle.images[0].caption = "Updated remotely";
+    remote.getBundle.mockResolvedValue(refreshedBundle);
+    await actionPullActiveCompanionTrips();
+
+    await expect(
+      testDb.getFirstAsync<{
+        local_uri: string | null;
+        caption: string | null;
+      }>("select local_uri, caption from image where id = ?", ["image-a"]),
+    ).resolves.toEqual({
+      local_uri: "file:///cached-image.jpg",
+      caption: "Updated remotely",
+    });
   });
 
   it("preserves unsynced local records when pulling a remote bundle", async () => {

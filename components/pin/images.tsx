@@ -47,14 +47,19 @@ export const PinImages = ({
     },
   });
 
-  const images: Pin["images"] = localImages.map((image) => ({
-    id: image.id,
-    url: image.localUri,
-    width: image.width,
-    height: image.height,
-    caption: image.caption ?? undefined,
-    creator: image.creator,
-  }));
+  const images: Pin["images"] = localImages
+    .filter(
+      (image): image is typeof image & { localUri: string } =>
+        Boolean(image.localUri),
+    )
+    .map((image) => ({
+      id: image.id,
+      url: image.localUri,
+      width: image.width,
+      height: image.height,
+      caption: image.caption ?? undefined,
+      creator: image.creator,
+    }));
 
   return (
     <>
