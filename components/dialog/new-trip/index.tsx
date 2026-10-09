@@ -6,7 +6,6 @@ import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import {
   actionCreateLocalTrip,
-  actionSyncLocalTrip,
   actionUpdateLocalTrip,
 } from "@/lib/sqlite/model/trip";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -79,20 +78,10 @@ const DialogNewTripVisible = ({
 
   const createTripMutation = useMutation({
     mutationFn: actionCreateLocalTrip,
-    onSuccess: (localTrip) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["local-trips", session?.user.id],
       });
-      void actionSyncLocalTrip(localTrip)
-        .catch((error) => {
-          console.error("Error syncing trip:", error);
-          showMessage("Trip saved locally, sync pending", "info");
-        })
-        .finally(() => {
-          queryClient.invalidateQueries({
-            queryKey: ["local-trips", session?.user.id],
-          });
-        });
       handleDismiss();
       showMessage("Trip saved locally", "info");
     },
@@ -123,23 +112,6 @@ const DialogNewTripVisible = ({
 
       handleDismiss();
       showMessage("Trip updated locally", "info");
-
-      try {
-        await actionSyncLocalTrip(localTrip);
-
-        if (session?.user.id) {
-          await Promise.all([
-            queryClient.invalidateQueries({
-              queryKey: ["local-trip", localTrip.id, session.user.id],
-            }),
-            queryClient.invalidateQueries({
-              queryKey: ["local-trips", session.user.id],
-            }),
-          ]);
-        }
-      } catch (error) {
-        console.error("Error syncing trip:", error);
-      }
     },
     onError: (error) => {
       console.error("Error updating trip:", error);

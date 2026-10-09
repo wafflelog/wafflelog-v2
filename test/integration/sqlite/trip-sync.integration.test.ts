@@ -71,12 +71,47 @@ describe("trip sync", () => {
     });
   });
 
+  it("keeps a newer local edit pending when an older upload completes", async () => {
+    let resolveUpload!: () => void;
+    remote.upsert.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveUpload = resolve;
+        }),
+    );
+    const {
+      actionCreateLocalTrip,
+      actionGetLocalTrip,
+      actionSyncLocalTrip,
+      actionUpdateLocalTrip,
+    } = await import("@/lib/sqlite/model/trip");
+    const trip = await actionCreateLocalTrip(tripInput);
+    const uploadPromise = actionSyncLocalTrip(trip);
+
+    await vi.waitFor(() => {
+      expect(remote.upsert).toHaveBeenCalledOnce();
+    });
+    await actionUpdateLocalTrip({
+      ...tripInput,
+      id: trip.id,
+      title: "Newer local title",
+    });
+    resolveUpload();
+    await uploadPromise;
+
+    await expect(actionGetLocalTrip(trip.id, "user-a")).resolves.toMatchObject({
+      title: "Newer local title",
+      syncStatus: "pending",
+    });
+  });
+
   it("uses the correct local and remote paths for trip tombstones", async () => {
     remote.softDelete.mockResolvedValue(undefined);
     const {
       actionCreateLocalTrip,
       actionListPendingLocalTrips,
       actionMarkLocalTripSynced,
+      actionMarkLocalTripSyncing,
       actionSoftDeleteLocalTrip,
       actionSyncLocalTrip,
     } = await import("@/lib/sqlite/model/trip");
@@ -90,6 +125,7 @@ describe("trip sync", () => {
       ...tripInput,
       title: "Synced trip",
     });
+    await actionMarkLocalTripSyncing(syncedTrip.id, "user-a");
     await actionMarkLocalTripSynced(syncedTrip.id, "user-a");
     await actionSoftDeleteLocalTrip(syncedTrip.id, "user-a");
     const [syncedTombstone] = await actionListPendingLocalTrips("user-a");

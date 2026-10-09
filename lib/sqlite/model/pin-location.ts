@@ -292,6 +292,7 @@ export async function actionUpsertLocalPinLocationFromRemote(
         sync_status = excluded.sync_status,
         last_synced_at = excluded.last_synced_at,
         sync_error = excluded.sync_error
+      where pin_location.sync_status = 'synced'
     `,
     [
       input.pinId,
@@ -356,7 +357,7 @@ async function actionMarkLocalPinLocationSynced(
     `
       update pin_location
       set sync_status = ?, last_synced_at = ?, sync_error = ?
-      where pin_id = ? and user_id = ?
+      where pin_id = ? and user_id = ? and sync_status = 'syncing'
     `,
     ["synced", new Date().toISOString(), null, pinId, userId],
   );
@@ -371,7 +372,7 @@ async function actionMarkLocalPinLocationSyncFailed(
     `
       update pin_location
       set sync_status = ?, sync_error = ?
-      where pin_id = ? and user_id = ?
+      where pin_id = ? and user_id = ? and sync_status = 'syncing'
     `,
     ["failed", errorMessage, pinId, userId],
   );

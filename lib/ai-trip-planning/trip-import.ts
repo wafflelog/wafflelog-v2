@@ -6,33 +6,27 @@ import {
 } from "@/lib/sqlite/model/ai-planning-session";
 import {
   actionCreateLocalChecklistItem,
-  actionSyncLocalChecklistItem,
   type LocalChecklistItem,
 } from "@/lib/sqlite/model/checklist-item";
 import {
   actionCreateLocalNote,
-  actionSyncLocalNote,
   type LocalNote,
 } from "@/lib/sqlite/model/note";
 import {
-  actionSyncLocalPinLocation,
   actionUpsertLocalPinLocation,
   type LocalPinLocation,
 } from "@/lib/sqlite/model/pin-location";
 import {
   actionCreateLocalPin,
-  actionSyncLocalPin,
   type LocalPin,
 } from "@/lib/sqlite/model/pin";
 import {
   actionCreateLocalReferenceLink,
-  actionSyncLocalReferenceLink,
   type LocalReferenceLink,
 } from "@/lib/sqlite/model/reference-link";
 import {
   actionCreateLocalTrip,
   actionGetLocalTrip,
-  actionSyncLocalTrip,
   type LocalTrip,
 } from "@/lib/sqlite/model/trip";
 import { type AiPlannerDraftSelection } from "@/types/ai-trip-planner";
@@ -323,17 +317,4 @@ export async function actionImportAiPlanningResult(
   }
 
   return importedAiTrip;
-}
-
-export async function actionSyncImportedAiTrip(imported: ImportedAiTrip) {
-  await actionSyncLocalTrip(imported.trip);
-  await Promise.all([
-    ...imported.pins.map(actionSyncLocalPin),
-    ...imported.checklistItems.map(actionSyncLocalChecklistItem),
-  ]);
-  await Promise.all([
-    ...imported.pinLocations.map(actionSyncLocalPinLocation),
-    ...imported.notes.map(actionSyncLocalNote),
-    ...imported.referenceLinks.map(actionSyncLocalReferenceLink),
-  ]);
 }

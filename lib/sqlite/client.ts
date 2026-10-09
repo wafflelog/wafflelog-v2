@@ -1,3 +1,5 @@
 import { openDatabaseSync } from "expo-sqlite";
 
-export const sqlite = openDatabaseSync("wafflelog.db");
+export const sqlite = openDatabaseSync("wafflelog.db", {
+  enableChangeListener: true,
+});

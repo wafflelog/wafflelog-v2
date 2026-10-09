@@ -225,6 +225,7 @@ describe("local pins", () => {
         id,
       ]);
     }
+    await actionMarkLocalPinSyncing(synced.id, "user-a");
     await actionMarkLocalPinSynced(synced.id, "user-a");
 
     await expect(actionListPendingLocalPins("user-a", 1)).resolves.toEqual([
@@ -235,6 +236,7 @@ describe("local pins", () => {
       expect.objectContaining({ id: middle.id }),
     ]);
 
+    await actionMarkLocalPinSyncing(oldest.id, "user-a");
     await actionMarkLocalPinSyncFailed(oldest.id, "user-a", "Network error");
     await actionMarkLocalPinSyncing(oldest.id, "user-a");
     await expect(

@@ -10,7 +10,9 @@ import {
   type DataSyncOperationState,
 } from "@/lib/data-sync/types";
 import { uploadPendingChanges } from "@/lib/data-sync/upload";
+import { sqlite } from "@/lib/sqlite/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { addDatabaseChangeListener } from "expo-sqlite";
 import {
   type PropsWithChildren,
   useCallback,
@@ -39,6 +41,20 @@ const LOCAL_SYNC_QUERY_KEYS = [
   ["local-pin-images"],
 ] as const;
 
+const LOCAL_SYNC_STATUS_QUERIES = {
+  trip: "select sync_status from trip where rowid = ?",
+  checklist_item: "select sync_status from checklist_item where rowid = ?",
+  pin: "select sync_status from pin where rowid = ?",
+  pin_location: "select sync_status from pin_location where rowid = ?",
+  note: "select sync_status from note where rowid = ?",
+  reference_link: "select sync_status from reference_link where rowid = ?",
+  expense: "select sync_status from expense where rowid = ?",
+  document: "select sync_status from document where rowid = ?",
+  image: "select sync_status from image where rowid = ?",
+} as const;
+
+const LOCAL_UPLOAD_DEBOUNCE_MS = 500;
+
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Data synchronization failed";
 }
@@ -58,6 +74,8 @@ export function DataSyncProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
   const userId = session?.user.id ?? null;
   const uploadPromiseRef = useRef<Promise<void> | null>(null);
+  const uploadQueuedRef = useRef(false);
+  const uploadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const downloadPromiseRef = useRef<Promise<void> | null>(null);
   const bootstrapPromiseRef = useRef<{
     userId: string;
@@ -92,14 +110,35 @@ export function DataSyncProvider({ children }: PropsWithChildren) {
       ? scopedBootstrapState.operation
       : CHECKING_DATA_BOOTSTRAP_STATE;
 
-  const uploadPending = useCallback(() => {
+  const invalidateLocalSyncQueries = useCallback(
+    () =>
+      Promise.all(
+        LOCAL_SYNC_QUERY_KEYS.map((queryKey) =>
+          queryClient.invalidateQueries({ queryKey }),
+        ),
+      ).then(() => undefined),
+    [queryClient],
+  );
+
+  const uploadPending = useCallback(function runUploadPending(): Promise<void> {
     if (!userId) {
       return Promise.resolve();
     }
 
     if (uploadPromiseRef.current) {
-      return uploadPromiseRef.current;
+      uploadQueuedRef.current = true;
+
+      return uploadPromiseRef.current.then(() => {
+        if (!uploadQueuedRef.current) {
+          return;
+        }
+
+        uploadQueuedRef.current = false;
+        return runUploadPending();
+      });
     }
+
+    uploadQueuedRef.current = false;
 
     setScopedUploadState((state) => ({
       userId,
@@ -113,7 +152,8 @@ export function DataSyncProvider({ children }: PropsWithChildren) {
     }));
 
     const uploadPromise = uploadPendingChanges(userId)
-      .then(() => {
+      .then(async () => {
+        await invalidateLocalSyncQueries();
         setScopedUploadState((state) => {
           if (state.userId !== userId) {
             return state;
@@ -152,7 +192,7 @@ export function DataSyncProvider({ children }: PropsWithChildren) {
 
     uploadPromiseRef.current = uploadPromise;
     return uploadPromise;
-  }, [userId]);
+  }, [invalidateLocalSyncQueries, userId]);
 
   const downloadKnownTrips = useCallback(() => {
     if (!userId) {
@@ -176,11 +216,7 @@ export function DataSyncProvider({ children }: PropsWithChildren) {
 
     const downloadPromise = downloadKnownTripsFromRemote()
       .then(async () => {
-        await Promise.all(
-          LOCAL_SYNC_QUERY_KEYS.map((queryKey) =>
-            queryClient.invalidateQueries({ queryKey }),
-          ),
-        );
+        await invalidateLocalSyncQueries();
         setScopedDownloadState((state) => {
           if (state.userId !== userId) {
             return state;
@@ -219,7 +255,61 @@ export function DataSyncProvider({ children }: PropsWithChildren) {
 
     downloadPromiseRef.current = downloadPromise;
     return downloadPromise;
-  }, [queryClient, userId]);
+  }, [invalidateLocalSyncQueries, userId]);
+
+  useEffect(() => {
+    if (!userId) {
+      return;
+    }
+
+    let isSubscribed = true;
+    const subscription = addDatabaseChangeListener((event) => {
+      if (event.databaseFilePath !== sqlite.databasePath) {
+        return;
+      }
+
+      const statusQuery =
+        LOCAL_SYNC_STATUS_QUERIES[
+          event.tableName as keyof typeof LOCAL_SYNC_STATUS_QUERIES
+        ];
+
+      if (!statusQuery) {
+        return;
+      }
+
+      void sqlite
+        .getFirstAsync<{ sync_status: string }>(statusQuery, event.rowId)
+        .then((row) => {
+          if (!isSubscribed || row?.sync_status !== "pending") {
+            return;
+          }
+
+          if (uploadTimerRef.current) {
+            clearTimeout(uploadTimerRef.current);
+          }
+
+          uploadTimerRef.current = setTimeout(() => {
+            uploadTimerRef.current = null;
+            void uploadPending().catch((error) => {
+              console.error("Error uploading local changes:", error);
+            });
+          }, LOCAL_UPLOAD_DEBOUNCE_MS);
+        })
+        .catch((error) => {
+          console.error("Error inspecting local change for upload:", error);
+        });
+    });
+
+    return () => {
+      isSubscribed = false;
+      subscription.remove();
+
+      if (uploadTimerRef.current) {
+        clearTimeout(uploadTimerRef.current);
+        uploadTimerRef.current = null;
+      }
+    };
+  }, [uploadPending, userId]);
 
   const retryBootstrap = useCallback(() => {
     if (!userId) {

@@ -40,6 +40,7 @@ describe("image sync", () => {
     await expect(model.actionSyncLocalImage(image)).rejects.toThrow("Upload failed");
     await expect(testDb.getFirstAsync<{ sync_status: string; sync_error: string | null }>("select sync_status, sync_error from image where id = ?", [image.id])).resolves.toEqual({ sync_status: "failed", sync_error: "Upload failed" });
 
+    await model.actionMarkLocalImageSyncing(image.id, "user-a");
     await model.actionMarkLocalImageSynced(image.id, "user-a");
     await model.actionSoftDeleteLocalImage(image.id, "user-a");
     remote.softDelete.mockResolvedValue(undefined);

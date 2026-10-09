@@ -16,7 +16,6 @@ import {
 import { formatDate } from "@/lib/helper/utils";
 import {
   actionCreateLocalPin,
-  actionSyncLocalPin,
   actionUpdateLocalPin,
 } from "@/lib/sqlite/model/pin";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -172,18 +171,6 @@ const DialogNewPinVisible = ({
       }
       handleDismiss();
       showMessage("Pin saved locally", "info");
-
-      try {
-        await actionSyncLocalPin(localPin);
-
-        if (session?.user.id) {
-          await queryClient.invalidateQueries({
-            queryKey: ["local-pins", tripId],
-          });
-        }
-      } catch (error) {
-        console.error("Error syncing new pin:", error);
-      }
     },
     onError: (error) => {
       console.error("Error creating pin:", error);
@@ -212,23 +199,6 @@ const DialogNewPinVisible = ({
 
       handleDismiss();
       showMessage("Pin updated locally", "info");
-
-      try {
-        await actionSyncLocalPin(localPin);
-
-        if (session?.user.id) {
-          await Promise.all([
-            queryClient.invalidateQueries({
-              queryKey: ["local-pin", localPin.id, session.user.id],
-            }),
-            queryClient.invalidateQueries({
-              queryKey: ["local-pins", tripId],
-            }),
-          ]);
-        }
-      } catch (error) {
-        console.error("Error syncing updated pin:", error);
-      }
     },
     onError: (error) => {
       console.error("Error updating pin:", error);

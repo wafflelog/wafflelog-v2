@@ -401,7 +401,7 @@ export async function actionMarkLocalReferenceLinkSynced(
         last_synced_at = ?,
         sync_error = ?,
         updated_at = ?
-      where id = ? and user_id = ?
+      where id = ? and user_id = ? and sync_status = 'syncing'
     `,
     ["synced", now, null, now, id, userId],
   );
@@ -419,7 +419,7 @@ export async function actionMarkLocalReferenceLinkSyncFailed(
         sync_status = ?,
         sync_error = ?,
         updated_at = ?
-      where id = ? and user_id = ?
+      where id = ? and user_id = ? and sync_status = 'syncing'
     `,
     ["failed", errorMessage, new Date().toISOString(), id, userId],
   );

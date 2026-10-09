@@ -46,6 +46,7 @@ async function upsertChecklistItemFromRemote(
         last_synced_at = excluded.last_synced_at,
         sync_error = excluded.sync_error,
         deleted_at = excluded.deleted_at
+      where checklist_item.sync_status = 'synced'
     `,
     [
       checklistItem.id,
@@ -92,6 +93,7 @@ async function upsertNoteFromRemote(note: RemoteTripSyncBundle["notes"][number])
         last_synced_at = excluded.last_synced_at,
         sync_error = excluded.sync_error,
         deleted_at = excluded.deleted_at
+      where note.sync_status = 'synced'
     `,
     [
       note.id,
@@ -144,6 +146,7 @@ async function upsertReferenceLinkFromRemote(
         last_synced_at = excluded.last_synced_at,
         sync_error = excluded.sync_error,
         deleted_at = excluded.deleted_at
+      where reference_link.sync_status = 'synced'
     `,
     [
       referenceLink.id,
@@ -170,58 +173,67 @@ async function upsertExpenseFromRemote(
   const now = new Date().toISOString();
 
   await sqlite.withTransactionAsync(async () => {
+    const existingExpense = await sqlite.getFirstAsync<{
+      sync_status: string;
+    }>("select sync_status from expense where id = ?", [expense.id]);
+
+    if (existingExpense && existingExpense.sync_status !== "synced") {
+      return;
+    }
+
     await sqlite.runAsync(
-    `
-      insert into expense (
-        id,
-        pin_id,
-        trip_id,
-        user_id,
-        description,
-        amount,
-        currency,
-        paid_by_user_id,
-        paid_by_name,
-        created_at,
-        updated_at,
-        sync_status,
-        last_synced_at,
-        sync_error,
-        deleted_at
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      on conflict(id) do update set
-        pin_id = excluded.pin_id,
-        trip_id = excluded.trip_id,
-        user_id = excluded.user_id,
-        description = excluded.description,
-        amount = excluded.amount,
-        currency = excluded.currency,
-        paid_by_user_id = excluded.paid_by_user_id,
-        paid_by_name = excluded.paid_by_name,
-        created_at = excluded.created_at,
-        updated_at = excluded.updated_at,
-        sync_status = excluded.sync_status,
-        last_synced_at = excluded.last_synced_at,
-        sync_error = excluded.sync_error,
-        deleted_at = excluded.deleted_at
-    `,
-    [
-      expense.id,
-      expense.pinId,
-      expense.tripId,
-      expense.userId,
-      expense.description,
-      expense.amount,
-      expense.currency,
-      expense.paidByUserId,
-      expense.paidByName,
-      expense.createdAt,
-      expense.updatedAt,
-      "synced",
-      now,
-      null,
-      expense.deletedAt,
-    ],
+      `
+        insert into expense (
+          id,
+          pin_id,
+          trip_id,
+          user_id,
+          description,
+          amount,
+          currency,
+          paid_by_user_id,
+          paid_by_name,
+          created_at,
+          updated_at,
+          sync_status,
+          last_synced_at,
+          sync_error,
+          deleted_at
+        ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        on conflict(id) do update set
+          pin_id = excluded.pin_id,
+          trip_id = excluded.trip_id,
+          user_id = excluded.user_id,
+          description = excluded.description,
+          amount = excluded.amount,
+          currency = excluded.currency,
+          paid_by_user_id = excluded.paid_by_user_id,
+          paid_by_name = excluded.paid_by_name,
+          created_at = excluded.created_at,
+          updated_at = excluded.updated_at,
+          sync_status = excluded.sync_status,
+          last_synced_at = excluded.last_synced_at,
+          sync_error = excluded.sync_error,
+          deleted_at = excluded.deleted_at
+        where expense.sync_status = 'synced'
+      `,
+      [
+        expense.id,
+        expense.pinId,
+        expense.tripId,
+        expense.userId,
+        expense.description,
+        expense.amount,
+        expense.currency,
+        expense.paidByUserId,
+        expense.paidByName,
+        expense.createdAt,
+        expense.updatedAt,
+        "synced",
+        now,
+        null,
+        expense.deletedAt,
+      ],
     );
 
     await sqlite.runAsync(
@@ -292,6 +304,7 @@ async function upsertDocumentFromRemote(
         last_synced_at = excluded.last_synced_at,
         sync_error = excluded.sync_error,
         deleted_at = excluded.deleted_at
+      where document.sync_status = 'synced'
     `,
     [
       document.id,
@@ -354,6 +367,7 @@ async function upsertImageFromRemote(image: RemoteTripSyncBundle["images"][numbe
         last_synced_at = excluded.last_synced_at,
         sync_error = excluded.sync_error,
         deleted_at = excluded.deleted_at
+      where image.sync_status = 'synced'
     `,
     [
       image.id,

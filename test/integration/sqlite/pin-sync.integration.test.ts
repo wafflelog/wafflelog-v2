@@ -54,7 +54,6 @@ describe("pin sync", () => {
     const {
       actionCreateLocalPin,
       actionListPendingLocalPins,
-      actionMarkLocalPinSynced,
       actionSyncLocalPin,
       actionUpdateLocalPin,
     } = await import("@/lib/sqlite/model/pin");
@@ -73,7 +72,6 @@ describe("pin sync", () => {
       metadataJson: { version: 1 },
     });
 
-    await actionMarkLocalPinSynced(pin.id, "user-a");
     await actionUpdateLocalPin({
       ...pinInput,
       id: pin.id,
@@ -107,6 +105,7 @@ describe("pin sync", () => {
       actionCreateLocalPin,
       actionListPendingLocalPins,
       actionMarkLocalPinSynced,
+      actionMarkLocalPinSyncing,
       actionSoftDeleteLocalPin,
       actionSyncLocalPin,
     } = await import("@/lib/sqlite/model/pin");
@@ -117,6 +116,7 @@ describe("pin sync", () => {
     expect(remote.softDelete).not.toHaveBeenCalled();
 
     const syncedPin = await actionCreateLocalPin({ ...pinInput, name: "Synced" });
+    await actionMarkLocalPinSyncing(syncedPin.id, "user-a");
     await actionMarkLocalPinSynced(syncedPin.id, "user-a");
     await actionSoftDeleteLocalPin(syncedPin.id, "user-a");
     const [syncedTombstone] = await actionListPendingLocalPins("user-a");

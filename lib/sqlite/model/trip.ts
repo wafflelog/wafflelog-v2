@@ -334,6 +334,7 @@ export async function actionUpsertLocalTripFromRemote(remoteTrip: {
         last_synced_at = excluded.last_synced_at,
         sync_error = excluded.sync_error,
         deleted_at = excluded.deleted_at
+      where trip.sync_status = 'synced'
     `,
     [
       remoteTrip.id,
@@ -550,7 +551,7 @@ export async function actionMarkLocalTripSynced(id: string, userId: string) {
         last_synced_at = ?,
         sync_error = ?,
         updated_at = ?
-      where id = ? and user_id = ?
+      where id = ? and user_id = ? and sync_status = 'syncing'
     `,
     ["synced", now, null, now, id, userId],
   );
@@ -568,7 +569,7 @@ export async function actionMarkLocalTripSyncFailed(
         sync_status = ?,
         sync_error = ?,
         updated_at = ?
-      where id = ? and user_id = ?
+      where id = ? and user_id = ? and sync_status = 'syncing'
     `,
     ["failed", errorMessage, new Date().toISOString(), id, userId],
   );

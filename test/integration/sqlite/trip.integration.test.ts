@@ -282,6 +282,7 @@ describe("local trips", () => {
         id,
       ]);
     }
+    await actionMarkLocalTripSyncing(synced.id, "user-a");
     await actionMarkLocalTripSynced(synced.id, "user-a");
 
     await expect(actionListPendingLocalTrips("user-a", 1)).resolves.toEqual([
@@ -292,6 +293,7 @@ describe("local trips", () => {
       expect.objectContaining({ id: middle.id }),
     ]);
 
+    await actionMarkLocalTripSyncing(oldest.id, "user-a");
     await actionMarkLocalTripSyncFailed(oldest.id, "user-a", "Network error");
     await actionMarkLocalTripSyncing(oldest.id, "user-a");
     await expect(

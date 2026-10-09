@@ -83,6 +83,7 @@ describe("checklist-item sync", () => {
       actionCreateLocalChecklistItem,
       actionListPendingLocalChecklistItems,
       actionMarkLocalChecklistItemSynced,
+      actionMarkLocalChecklistItemSyncing,
       actionSyncLocalChecklistItem,
       actionToggleLocalChecklistItemCompleted,
     } = await import("@/lib/sqlite/model/checklist-item");
@@ -91,6 +92,7 @@ describe("checklist-item sync", () => {
       userId: "user-a",
       title: "Book train",
     });
+    await actionMarkLocalChecklistItemSyncing(item.id, "user-a");
     await actionMarkLocalChecklistItemSynced(item.id, "user-a");
     await actionToggleLocalChecklistItemCompleted(item.id);
     const [pendingItem] = await actionListPendingLocalChecklistItems("user-a");
@@ -138,6 +140,7 @@ describe("checklist-item sync", () => {
       actionCreateLocalChecklistItem,
       actionListPendingLocalChecklistItems,
       actionMarkLocalChecklistItemSynced,
+      actionMarkLocalChecklistItemSyncing,
       actionSoftDeleteLocalChecklistItem,
       actionSyncLocalChecklistItem,
     } = await import("@/lib/sqlite/model/checklist-item");
@@ -146,6 +149,7 @@ describe("checklist-item sync", () => {
       userId: "user-a",
       title: "Remove remotely",
     });
+    await actionMarkLocalChecklistItemSyncing(item.id, "user-a");
     await actionMarkLocalChecklistItemSynced(item.id, "user-a");
     await actionSoftDeleteLocalChecklistItem(item.id, "user-a");
     const [pendingItem] = await actionListPendingLocalChecklistItems("user-a");

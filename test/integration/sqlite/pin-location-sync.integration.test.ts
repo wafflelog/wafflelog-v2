@@ -180,6 +180,10 @@ describe("pin location sync", () => {
       ],
     );
     await actionUpsertLocalPinLocation(localInput);
+    await testDb.runAsync(
+      "update pin_location set sync_status = 'synced' where pin_id = ?",
+      ["pin-a"],
+    );
 
     await actionUpsertLocalPinLocationFromRemote({
       pinId: "pin-a",

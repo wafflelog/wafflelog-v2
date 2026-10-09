@@ -349,6 +349,7 @@ describe("local expenses", () => {
       paidByName: "Alice",
     });
 
+    await actionMarkLocalExpenseSyncing(expense.id, "user-a");
     await actionMarkLocalExpenseSyncFailed(
       expense.id,
       "user-a",
@@ -384,6 +385,7 @@ describe("local expenses", () => {
       actionCreateLocalExpense,
       actionListPendingLocalExpenses,
       actionMarkLocalExpenseSynced,
+      actionMarkLocalExpenseSyncing,
     } = await import("@/lib/sqlite/model/expense");
     const oldest = await actionCreateLocalExpense({
       tripId: "trip-a",
@@ -433,6 +435,7 @@ describe("local expenses", () => {
         id,
       ]);
     }
+    await actionMarkLocalExpenseSyncing(synced.id, "user-a");
     await actionMarkLocalExpenseSynced(synced.id, "user-a");
 
     await expect(actionListPendingLocalExpenses("user-a", 1)).resolves.toEqual([

@@ -80,8 +80,30 @@ function createBundle(title = "Companion trip") {
         deletedAt: null as string | null,
       },
     ],
-    notes: [],
-    referenceLinks: [],
+    notes: [
+      {
+        id: "note-a",
+        tripId: "trip-a",
+        pinId: "pin-a",
+        userId: "companion-a",
+        text: "Remote note",
+        ...timestamps,
+        deletedAt: null as string | null,
+      },
+    ],
+    referenceLinks: [
+      {
+        id: "reference-link-a",
+        tripId: "trip-a",
+        pinId: "pin-a",
+        userId: "companion-a",
+        title: "Remote guide",
+        url: "https://example.com/guide",
+        caption: null as string | null,
+        ...timestamps,
+        deletedAt: null as string | null,
+      },
+    ],
     expenses: [
       {
         id: "expense-a",
@@ -105,8 +127,37 @@ function createBundle(title = "Companion trip") {
         splitAmount: 6.25,
       },
     ],
-    documents: [],
-    images: [],
+    documents: [
+      {
+        id: "document-a",
+        tripId: "trip-a",
+        pinId: "pin-a",
+        userId: "companion-a",
+        fileName: "remote-ticket.pdf",
+        mimeType: "application/pdf",
+        storageBucket: "documents",
+        storagePath: "trip-a/remote-ticket.pdf",
+        caption: null as string | null,
+        ...timestamps,
+        deletedAt: null as string | null,
+      },
+    ],
+    images: [
+      {
+        id: "image-a",
+        pinId: "pin-a",
+        tripId: "trip-a",
+        userId: "companion-a",
+        storageBucket: "images",
+        storagePath: "trip-a/remote-image.jpg",
+        mimeType: "image/jpeg",
+        width: 1200,
+        height: 800,
+        caption: "Remote image",
+        ...timestamps,
+        deletedAt: null as string | null,
+      },
+    ],
     userProfiles: [
       { id: "owner-a", username: "owner", updatedAt: timestamps.updatedAt },
       {
@@ -257,6 +308,163 @@ describe("companion trip pull sync", () => {
         "select id, title from trip order by id",
       ),
     ).resolves.toEqual([{ id: "trip-a", title: "Updated title" }]);
+  });
+
+  it("preserves unsynced local records when pulling a remote bundle", async () => {
+    remote.listMemberships.mockResolvedValue([
+      {
+        id: "membership-a",
+        tripId: "trip-a",
+        userId: "companion-a",
+        role: "companion",
+        status: "active",
+        ...timestamps,
+      },
+    ]);
+    remote.getBundle.mockResolvedValue(createBundle());
+    const { actionPullActiveCompanionTrips } = await import(
+      "@/lib/sqlite/model/companion-trip-sync"
+    );
+
+    await actionPullActiveCompanionTrips();
+    await testDb.execAsync(`
+      update trip
+      set title = 'Local trip', sync_status = 'pending'
+      where id = 'trip-a';
+
+      update pin
+      set name = 'Local museum', sync_status = 'syncing'
+      where id = 'pin-a';
+
+      update pin_location
+      set display_name = 'Local location', sync_status = 'failed'
+      where pin_id = 'pin-a';
+
+      update checklist_item
+      set title = 'Local checklist item', sync_status = 'pending'
+      where id = 'checklist-a';
+
+      update note
+      set text = 'Local note', sync_status = 'syncing'
+      where id = 'note-a';
+
+      update reference_link
+      set title = 'Local guide', sync_status = 'failed'
+      where id = 'reference-link-a';
+
+      update expense
+      set description = 'Local expense', sync_status = 'pending'
+      where id = 'expense-a';
+
+      delete from expense_participant where expense_id = 'expense-a';
+      insert into expense_participant (
+        expense_id,
+        user_id,
+        split_amount,
+        created_at,
+        updated_at
+      ) values (
+        'expense-a',
+        'owner-a',
+        12.5,
+        '${timestamps.createdAt}',
+        '${timestamps.updatedAt}'
+      );
+
+      update document
+      set file_name = 'local-ticket.pdf', sync_status = 'syncing'
+      where id = 'document-a';
+
+      update image
+      set caption = 'Local image', sync_status = 'failed'
+      where id = 'image-a';
+    `);
+
+    const remoteBundle = createBundle("Remote replacement trip");
+    remoteBundle.pins[0].name = "Remote replacement museum";
+    remoteBundle.pinLocations[0].displayName = "Remote replacement location";
+    remoteBundle.checklistItems[0].title = "Remote replacement checklist item";
+    remoteBundle.notes[0].text = "Remote replacement note";
+    remoteBundle.referenceLinks[0].title = "Remote replacement guide";
+    remoteBundle.expenses[0].description = "Remote replacement expense";
+    remoteBundle.documents[0].fileName = "remote-replacement-ticket.pdf";
+    remoteBundle.images[0].caption = "Remote replacement image";
+    remote.getBundle.mockResolvedValue(remoteBundle);
+
+    await actionPullActiveCompanionTrips();
+
+    await expect(
+      testDb.getFirstAsync<{ title: string; sync_status: string }>(
+        "select title, sync_status from trip where id = ?",
+        ["trip-a"],
+      ),
+    ).resolves.toEqual({ title: "Local trip", sync_status: "pending" });
+    await expect(
+      testDb.getFirstAsync<{ name: string; sync_status: string }>(
+        "select name, sync_status from pin where id = ?",
+        ["pin-a"],
+      ),
+    ).resolves.toEqual({ name: "Local museum", sync_status: "syncing" });
+    await expect(
+      testDb.getFirstAsync<{ display_name: string; sync_status: string }>(
+        "select display_name, sync_status from pin_location where pin_id = ?",
+        ["pin-a"],
+      ),
+    ).resolves.toEqual({
+      display_name: "Local location",
+      sync_status: "failed",
+    });
+    await expect(
+      testDb.getFirstAsync<{ title: string; sync_status: string }>(
+        "select title, sync_status from checklist_item where id = ?",
+        ["checklist-a"],
+      ),
+    ).resolves.toEqual({
+      title: "Local checklist item",
+      sync_status: "pending",
+    });
+    await expect(
+      testDb.getFirstAsync<{ text: string; sync_status: string }>(
+        "select text, sync_status from note where id = ?",
+        ["note-a"],
+      ),
+    ).resolves.toEqual({ text: "Local note", sync_status: "syncing" });
+    await expect(
+      testDb.getFirstAsync<{ title: string; sync_status: string }>(
+        "select title, sync_status from reference_link where id = ?",
+        ["reference-link-a"],
+      ),
+    ).resolves.toEqual({ title: "Local guide", sync_status: "failed" });
+    await expect(
+      testDb.getFirstAsync<{ description: string; sync_status: string }>(
+        "select description, sync_status from expense where id = ?",
+        ["expense-a"],
+      ),
+    ).resolves.toEqual({
+      description: "Local expense",
+      sync_status: "pending",
+    });
+    await expect(
+      testDb.getAllAsync<{ user_id: string; split_amount: string }>(
+        "select user_id, split_amount from expense_participant where expense_id = ?",
+        ["expense-a"],
+      ),
+    ).resolves.toEqual([{ user_id: "owner-a", split_amount: "12.5" }]);
+    await expect(
+      testDb.getFirstAsync<{ file_name: string; sync_status: string }>(
+        "select file_name, sync_status from document where id = ?",
+        ["document-a"],
+      ),
+    ).resolves.toEqual({
+      file_name: "local-ticket.pdf",
+      sync_status: "syncing",
+    });
+    await expect(
+      testDb.getFirstAsync<{ caption: string; sync_status: string }>(
+        "select caption, sync_status from image where id = ?",
+        ["image-a"],
+      ),
+    ).resolves.toEqual({ caption: "Local image", sync_status: "failed" });
   });
 
   it("discovers and hydrates owned trips when local SQLite is empty", async () => {

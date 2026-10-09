@@ -31,10 +31,7 @@ import { useAuthSession } from "@/hook/use-auth-session";
 import { isPlanningApiError } from "@/lib/ai-trip-planning/errors";
 import { adaptPlanningResultToPlanPreview } from "@/lib/ai-trip-planning/plan-adapter";
 import { buildCreatePlanningSessionRequest } from "@/lib/ai-trip-planning/session-request";
-import {
-  actionImportAiPlanningResult,
-  actionSyncImportedAiTrip,
-} from "@/lib/ai-trip-planning/trip-import";
+import { actionImportAiPlanningResult } from "@/lib/ai-trip-planning/trip-import";
 import { type CreatePlanningRefinementRequest } from "@/lib/ai-trip-planning/types";
 import { type LocalAiPlanningSession } from "@/lib/sqlite/model/ai-planning-session";
 import {
@@ -231,35 +228,6 @@ export default function AiTripPlannerScreen() {
         queryKey: aiTripPlanningQueryKeys.localSessions(imported.trip.userId),
       });
       router.replace(`/trip/${imported.trip.id}`);
-
-      void actionSyncImportedAiTrip(imported)
-        .catch((error) => {
-          console.error("AI trip saved locally; background sync failed", error);
-        })
-        .finally(() => {
-          void Promise.all([
-            queryClient.invalidateQueries({
-              queryKey: ["local-trip", imported.trip.id, imported.trip.userId],
-            }),
-            queryClient.invalidateQueries({
-              queryKey: ["local-trips", imported.trip.userId],
-            }),
-            queryClient.invalidateQueries({ queryKey: ["local-pins"] }),
-            queryClient.invalidateQueries({
-              queryKey: ["local-pin-locations"],
-            }),
-            queryClient.invalidateQueries({
-              queryKey: ["local-checklist-items"],
-            }),
-            queryClient.invalidateQueries({ queryKey: ["local-notes"] }),
-            queryClient.invalidateQueries({
-              queryKey: ["local-reference-links"],
-            }),
-            queryClient.invalidateQueries({
-              queryKey: ["local-trip-reference-links"],
-            }),
-          ]);
-        });
     },
     onError: (error) => {
       console.error("AI trip import failed", error);

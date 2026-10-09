@@ -40,6 +40,7 @@ describe("document sync", () => {
     await expect(model.actionSyncLocalDocument(document)).rejects.toThrow("Upload failed");
     await expect(testDb.getFirstAsync<{ sync_status: string; sync_error: string | null }>("select sync_status, sync_error from document where id = ?", [document.id])).resolves.toEqual({ sync_status: "failed", sync_error: "Upload failed" });
 
+    await model.actionMarkLocalDocumentSyncing(document.id, "user-a");
     await model.actionMarkLocalDocumentSynced(document.id, "user-a");
     await model.actionSoftDeleteLocalDocument(document.id, "user-a");
     remote.softDelete.mockResolvedValue(undefined);
