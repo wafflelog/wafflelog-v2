@@ -4,6 +4,7 @@ import { PinImages } from "@/components/pin/images";
 import { PinLinks } from "@/components/pin/links";
 import { CATEGORIES } from "@/constants/pin-categories";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { useKnownTripsRefresh } from "@/hook/use-known-trips-refresh";
 import { actionListLocalNotesByPin } from "@/lib/sqlite/model/note";
 import {
   actionGetLocalPin,
@@ -19,6 +20,7 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -64,6 +66,7 @@ export default function PinIndexScreen() {
   const { session } = useAuthSession();
   const color = getColor(colors.purple);
   const queryClient = useQueryClient();
+  const { isRefreshing, refreshKnownTrips } = useKnownTripsRefresh();
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
   const [isEditPinDialogVisible, setIsEditPinDialogVisible] = useState(false);
@@ -274,7 +277,18 @@ export default function PinIndexScreen() {
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        alwaysBounceVertical
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshKnownTrips}
+            tintColor={getColor(colors.purple)}
+            colors={[getColor(colors.purple)]}
+          />
+        }
+      >
         {mapPreview ? (
           <Pressable
             onPress={() => {
