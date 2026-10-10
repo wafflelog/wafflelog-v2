@@ -58,6 +58,28 @@ describe("Storage access RLS", () => {
     expect(imageUploadError).toBeNull();
     expect(documentUploadError).toBeNull();
 
+    const ownerRetryFile = new Blob(["owner retry file"], {
+      type: "text/plain",
+    });
+    const { error: ownerRetryError } = await owner.client.storage
+      .from("travel-documents")
+      .upload(documentPath, ownerRetryFile, {
+        contentType: "text/plain",
+        upsert: true,
+      });
+    expect(ownerRetryError).toBeNull();
+
+    const companionOverwriteFile = new Blob(["companion overwrite file"], {
+      type: "text/plain",
+    });
+    const { error: companionOverwriteError } = await companion.client.storage
+      .from("travel-documents")
+      .upload(documentPath, companionOverwriteFile, {
+        contentType: "text/plain",
+        upsert: true,
+      });
+    expect(companionOverwriteError).not.toBeNull();
+
     const [companionUpload, unrelatedImageUpload, unrelatedDocumentUpload] =
       await Promise.all([
         companion.client.storage

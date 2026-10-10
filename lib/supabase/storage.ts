@@ -114,7 +114,7 @@ export async function uploadTravelDocumentToStorage(input: {
     .from(TRAVEL_DOCUMENT_STORAGE_BUCKET)
     .upload(storagePath, fileBytes, {
       contentType: input.mimeType,
-      upsert: false,
+      upsert: true,
     });
 
   if (error) {

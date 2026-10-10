@@ -49,4 +49,82 @@ describe("document sync", () => {
     expect(remote.softDelete).toHaveBeenCalledWith(document.id);
     await expect(testDb.getFirstAsync("select id from document where id = ?", [document.id])).resolves.toBeNull();
   });
+
+  it("continues syncing the document batch after one document fails", async () => {
+    remote.upload
+      .mockRejectedValueOnce(new Error("First upload failed"))
+      .mockResolvedValue({
+        storageBucket: "documents",
+        storagePath: "trip-a/document.pdf",
+      });
+    remote.upsert.mockResolvedValue(undefined);
+    const model = await import("@/lib/sqlite/model/document");
+
+    await model.actionCreateLocalDocument({
+      id: "document-a",
+      tripId: "trip-a",
+      userId: "user-a",
+      fileName: "First.pdf",
+      mimeType: "application/pdf",
+      localUri: "file:///first.pdf",
+    });
+    await model.actionCreateLocalDocument({
+      id: "document-b",
+      tripId: "trip-a",
+      userId: "user-a",
+      fileName: "Second.pdf",
+      mimeType: "application/pdf",
+      localUri: "file:///second.pdf",
+    });
+
+    await expect(
+      model.actionSyncPendingLocalDocuments("user-a"),
+    ).rejects.toThrow("First upload failed");
+
+    expect(remote.upload).toHaveBeenCalledTimes(2);
+    expect(remote.upsert).toHaveBeenCalledTimes(1);
+    await expect(
+      testDb.getAllAsync<{ sync_status: string }>(
+        "select sync_status from document order by sync_status",
+      ),
+    ).resolves.toEqual([
+      { sync_status: "failed" },
+      { sync_status: "synced" },
+    ]);
+  });
+
+  it("only lets the document creator soft-delete a local document", async () => {
+    const model = await import("@/lib/sqlite/model/document");
+    const document = await model.actionCreateLocalDocument({
+      id: "document-a",
+      tripId: "trip-a",
+      userId: "user-a",
+      fileName: "Ticket.pdf",
+      mimeType: "application/pdf",
+      localUri: "file:///ticket.pdf",
+    });
+
+    await expect(
+      model.actionSoftDeleteLocalDocument(document.id, "user-b"),
+    ).rejects.toThrow(
+      "Document not found or you do not have permission to delete it",
+    );
+    await expect(
+      testDb.getFirstAsync<{ deleted_at: string | null }>(
+        "select deleted_at from document where id = ?",
+        [document.id],
+      ),
+    ).resolves.toEqual({ deleted_at: null });
+
+    await model.actionSoftDeleteLocalDocument(document.id, "user-a");
+    const deletedDocument = await testDb.getFirstAsync<{
+      deleted_at: string | null;
+      sync_status: string;
+    }>("select deleted_at, sync_status from document where id = ?", [
+      document.id,
+    ]);
+
+    expect(deletedDocument?.deleted_at).not.toBeNull();
+    expect(deletedDocument?.sync_status).toBe("pending");
+  });
 });

@@ -26,6 +26,26 @@ async function uploadPendingBatch(
   }
 }
 
+async function uploadPendingMediaChanges(userId: string) {
+  const errors: unknown[] = [];
+  const mediaUploaders = [
+    actionSyncPendingLocalDocuments,
+    actionSyncPendingLocalImages,
+  ];
+
+  for (const uploadBatch of mediaUploaders) {
+    try {
+      await uploadPendingBatch(uploadBatch, userId);
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+
+  if (errors.length > 0) {
+    throw errors[0];
+  }
+}
+
 export async function uploadPendingChanges(userId: string) {
   await uploadPendingBatch(actionSyncPendingLocalTrips, userId);
   await uploadPendingBatch(actionSyncPendingLocalChecklistItems, userId);
@@ -34,6 +54,5 @@ export async function uploadPendingChanges(userId: string) {
   await uploadPendingBatch(actionSyncPendingLocalNotes, userId);
   await uploadPendingBatch(actionSyncPendingLocalReferenceLinks, userId);
   await uploadPendingBatch(actionSyncPendingLocalExpenses, userId);
-  await uploadPendingBatch(actionSyncPendingLocalDocuments, userId);
-  await uploadPendingBatch(actionSyncPendingLocalImages, userId);
+  await uploadPendingMediaChanges(userId);
 }

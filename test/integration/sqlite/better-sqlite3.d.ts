@@ -1,10 +1,15 @@
 declare module "better-sqlite3" {
   type SqliteValue = string | number | bigint | Buffer | null;
 
+  type RunResult = {
+    changes: number;
+    lastInsertRowid: number | bigint;
+  };
+
   type Statement = {
     all(...params: unknown[]): unknown[];
     get(...params: unknown[]): unknown;
-    run(...params: unknown[]): unknown;
+    run(...params: unknown[]): RunResult;
   };
 
   export default class Database {
@@ -14,4 +19,3 @@ declare module "better-sqlite3" {
     prepare(sql: string): Statement;
   }
 }
-

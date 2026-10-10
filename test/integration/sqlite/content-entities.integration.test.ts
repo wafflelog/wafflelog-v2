@@ -203,7 +203,11 @@ describe("local content entities", () => {
       expect.objectContaining({ id: pinDocument.id }),
     ]);
 
-    await actionSoftDeleteLocalDocument(pinDocument.id, "user-b");
+    await expect(
+      actionSoftDeleteLocalDocument(pinDocument.id, "user-b"),
+    ).rejects.toThrow(
+      "Document not found or you do not have permission to delete it",
+    );
     await expect(actionListLocalDocumentsByPin("pin-a", "user-a")).resolves.toHaveLength(
       1,
     );

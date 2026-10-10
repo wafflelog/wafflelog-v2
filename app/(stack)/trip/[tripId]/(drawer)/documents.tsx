@@ -171,10 +171,14 @@ export default function TripDocumentsScreen() {
                     localUri: item.localUri,
                   })
                 }
-                onDeletePress={() => {
-                  setSelectedDocumentId(item.id);
-                  setIsDeleteDialogOpen(true);
-                }}
+                onDeletePress={
+                  item.creator.isCurrentUser
+                    ? () => {
+                        setSelectedDocumentId(item.id);
+                        setIsDeleteDialogOpen(true);
+                      }
+                    : undefined
+                }
               />
             </View>
           </View>

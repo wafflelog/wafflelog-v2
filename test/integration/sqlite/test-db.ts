@@ -21,7 +21,12 @@ export function createTestSqliteDatabase() {
       return (db.prepare(sql).get(...(params ?? [])) ?? null) as T | null;
     },
     async runAsync(sql: string, params?: SqliteParams) {
-      db.prepare(sql).run(...(params ?? []));
+      const result = db.prepare(sql).run(...(params ?? []));
+
+      return {
+        changes: result.changes,
+        lastInsertRowId: Number(result.lastInsertRowid),
+      };
     },
     async withTransactionAsync<T>(callback: () => Promise<T>) {
       await db.exec("begin");
@@ -37,4 +42,3 @@ export function createTestSqliteDatabase() {
     },
   };
 }
-

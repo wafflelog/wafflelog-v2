@@ -79,10 +79,14 @@ export const PinDocuments = ({
                   localUri: document.localUri,
                 })
               }
-              onDeletePress={() => {
-                setSelectedDocumentId(document.id);
-                setIsDeleteDialogOpen(true);
-              }}
+              onDeletePress={
+                document.creator.isCurrentUser
+                  ? () => {
+                      setSelectedDocumentId(document.id);
+                      setIsDeleteDialogOpen(true);
+                    }
+                  : undefined
+              }
             />
             {index < localDocuments.length - 1 && (
               <View style={pinSectionStyles.divider} />

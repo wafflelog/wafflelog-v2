@@ -359,7 +359,9 @@ export async function actionListPendingLocalDocuments(
         deleted_at
       from document
       where user_id = ? and sync_status != 'synced'
-      order by created_at asc
+      order by
+        case when sync_status = 'failed' then 1 else 0 end,
+        created_at asc
       limit ?
     `,
     [userId, limit],
@@ -374,7 +376,7 @@ export async function actionSoftDeleteLocalDocument(
 ) {
   const now = new Date().toISOString();
 
-  await sqlite.runAsync(
+  const result = await sqlite.runAsync(
     `
       update document
       set
@@ -386,6 +388,12 @@ export async function actionSoftDeleteLocalDocument(
     `,
     [now, "pending", null, now, id, userId],
   );
+
+  if (result.changes === 0) {
+    throw new Error(
+      "Document not found or you do not have permission to delete it",
+    );
+  }
 }
 
 export async function actionHardDeleteLocalDocument(
@@ -562,9 +570,18 @@ export async function actionSyncPendingLocalDocuments(
   limit = DEFAULT_SYNC_BATCH_SIZE,
 ) {
   const pendingDocuments = await actionListPendingLocalDocuments(userId, limit);
+  let firstError: unknown = null;
 
   for (const document of pendingDocuments) {
-    await actionSyncLocalDocument(document);
+    try {
+      await actionSyncLocalDocument(document);
+    } catch (error) {
+      firstError ??= error;
+    }
+  }
+
+  if (firstError) {
+    throw firstError;
   }
 
   return {
