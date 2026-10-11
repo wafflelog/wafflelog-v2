@@ -1,4 +1,5 @@
 import { sqlite } from "@/lib/sqlite/client";
+import { removeLocalFile } from "@/lib/media/local-file";
 import {
   actionGetRemoteTripSyncBundle,
   actionListActiveCompanionMemberships,
@@ -268,6 +269,18 @@ async function upsertDocumentFromRemote(
   document: RemoteTripSyncBundle["documents"][number],
 ) {
   const now = new Date().toISOString();
+  const localDocument = document.deletedAt
+    ? await sqlite.getFirstAsync<{
+        local_uri: string | null;
+        sync_status: string;
+      }>("select local_uri, sync_status from document where id = ?", [
+        document.id,
+      ])
+    : null;
+
+  if (localDocument?.sync_status === "synced") {
+    await removeLocalFile(localDocument.local_uri);
+  }
 
   await sqlite.runAsync(
     `
@@ -329,6 +342,16 @@ async function upsertDocumentFromRemote(
 
 async function upsertImageFromRemote(image: RemoteTripSyncBundle["images"][number]) {
   const now = new Date().toISOString();
+  const localImage = image.deletedAt
+    ? await sqlite.getFirstAsync<{
+        local_uri: string | null;
+        sync_status: string;
+      }>("select local_uri, sync_status from image where id = ?", [image.id])
+    : null;
+
+  if (localImage?.sync_status === "synced") {
+    await removeLocalFile(localImage.local_uri);
+  }
 
   await sqlite.runAsync(
     `

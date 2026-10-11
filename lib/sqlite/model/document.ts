@@ -1,10 +1,12 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
+import { removeLocalFile } from "@/lib/media/local-file";
 import {
   actionSoftDeleteRemoteDocument,
   actionUpsertRemoteDocumentFromLocal,
 } from "@/lib/supabase/actions";
 import { uploadTravelDocumentToStorage } from "@/lib/supabase/storage";
+import { removeStorageObject } from "@/lib/supabase/storage-object";
 import { type PinMetadata } from "@/types/pin";
 import { type CreatorAttribution } from "./user-profile";
 
@@ -490,21 +492,28 @@ export async function actionMarkLocalDocumentSyncFailed(
 
 export async function actionSyncLocalDocument(localDocument: LocalDocument) {
   if (localDocument.deletedAt) {
-    if (!localDocument.lastSyncedAt) {
-      await actionHardDeleteLocalDocument(
-        localDocument.id,
-        localDocument.userId,
-      );
-      return;
-    }
-
     await actionMarkLocalDocumentSyncing(
       localDocument.id,
       localDocument.userId,
     );
 
     try {
-      await actionSoftDeleteRemoteDocument(localDocument.id);
+      const hasRemoteStorageObject = Boolean(
+        localDocument.storageBucket && localDocument.storagePath,
+      );
+
+      if (localDocument.lastSyncedAt || hasRemoteStorageObject) {
+        await actionSoftDeleteRemoteDocument(localDocument.id);
+      }
+
+      if (hasRemoteStorageObject) {
+        await removeStorageObject({
+          storageBucket: localDocument.storageBucket,
+          storagePath: localDocument.storagePath,
+        });
+      }
+
+      await removeLocalFile(localDocument.localUri);
       await actionHardDeleteLocalDocument(
         localDocument.id,
         localDocument.userId,

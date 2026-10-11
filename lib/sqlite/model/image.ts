@@ -1,10 +1,12 @@
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
+import { removeLocalFile } from "@/lib/media/local-file";
 import {
   actionSoftDeleteRemoteImage,
   actionUpsertRemoteImageFromLocal,
 } from "@/lib/supabase/actions";
 import { uploadImageToStorage } from "@/lib/media/image";
+import { removeStorageObject } from "@/lib/supabase/storage-object";
 import { type PinMetadata } from "@/types/pin";
 import { type CreatorAttribution } from "./user-profile";
 
@@ -503,15 +505,25 @@ export async function actionMarkLocalImageSyncFailed(
 
 export async function actionSyncLocalImage(localImage: LocalImage) {
   if (localImage.deletedAt) {
-    if (!localImage.lastSyncedAt) {
-      await actionHardDeleteLocalImage(localImage.id, localImage.userId);
-      return;
-    }
-
     await actionMarkLocalImageSyncing(localImage.id, localImage.userId);
 
     try {
-      await actionSoftDeleteRemoteImage(localImage.id);
+      const hasRemoteStorageObject = Boolean(
+        localImage.storageBucket && localImage.storagePath,
+      );
+
+      if (localImage.lastSyncedAt || hasRemoteStorageObject) {
+        await actionSoftDeleteRemoteImage(localImage.id);
+      }
+
+      if (hasRemoteStorageObject) {
+        await removeStorageObject({
+          storageBucket: localImage.storageBucket,
+          storagePath: localImage.storagePath,
+        });
+      }
+
+      await removeLocalFile(localImage.localUri);
       await actionHardDeleteLocalImage(localImage.id, localImage.userId);
       return;
     } catch (error) {

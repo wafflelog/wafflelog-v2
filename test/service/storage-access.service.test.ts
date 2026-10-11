@@ -10,18 +10,13 @@ describe("Storage access RLS", () => {
     const tripId = crypto.randomUUID();
     const imagePath = `trip/${tripId}/images/${crypto.randomUUID()}.txt`;
     const documentPath = `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
-    const companionDocumentPath =
-      `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
+    const companionDocumentPath = `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
     const unrelatedImagePath = `trip/${tripId}/images/${crypto.randomUUID()}.txt`;
-    const unrelatedDocumentPath =
-      `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
+    const unrelatedDocumentPath = `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
     const disabledImagePath = `trip/${tripId}/images/${crypto.randomUUID()}.txt`;
-    const disabledDocumentPath =
-      `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
-    const unsupportedDocumentPath =
-      `trip/${tripId}/documents/${crypto.randomUUID()}.txt`;
-    const oversizedDocumentPath =
-      `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
+    const disabledDocumentPath = `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
+    const unsupportedDocumentPath = `trip/${tripId}/documents/${crypto.randomUUID()}.txt`;
+    const oversizedDocumentPath = `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
 
     const { error: tripError } = await owner.client.from("trip").insert({
       id: tripId,
@@ -135,13 +130,17 @@ describe("Storage access RLS", () => {
     expect(unrelatedImageUpload.error).not.toBeNull();
     expect(unrelatedDocumentUpload.error).not.toBeNull();
 
-    const [companionImage, companionDocument, unrelatedImage, unrelatedDocument] =
-      await Promise.all([
-        companion.client.storage.from("images").download(imagePath),
-        companion.client.storage.from("travel-documents").download(documentPath),
-        unrelated.client.storage.from("images").download(imagePath),
-        unrelated.client.storage.from("travel-documents").download(documentPath),
-      ]);
+    const [
+      companionImage,
+      companionDocument,
+      unrelatedImage,
+      unrelatedDocument,
+    ] = await Promise.all([
+      companion.client.storage.from("images").download(imagePath),
+      companion.client.storage.from("travel-documents").download(documentPath),
+      unrelated.client.storage.from("images").download(imagePath),
+      unrelated.client.storage.from("travel-documents").download(documentPath),
+    ]);
     expect(companionImage.error).toBeNull();
     expect(companionImage.data).toBeInstanceOf(Blob);
     expect(companionDocument.error).toBeNull();
@@ -175,5 +174,94 @@ describe("Storage access RLS", () => {
     ]);
     expect(disabledImageUpload.error).not.toBeNull();
     expect(disabledDocumentUpload.error).not.toBeNull();
+  });
+
+  it("only lets the uploader delete an active trip Storage object", async () => {
+    const owner = await createTestUser("del_owner");
+    const companion = await createTestUser("del_member");
+    const tripId = crypto.randomUUID();
+    const imagePath = `trip/${tripId}/images/${crypto.randomUUID()}.jpg`;
+    const documentPath = `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
+
+    const { error: tripError } = await owner.client.from("trip").insert({
+      id: tripId,
+      user_id: owner.id,
+      title: "Storage deletion policy test trip",
+      start_date: "2026-05-01",
+      end_date: "2026-05-04",
+    });
+    expect(tripError).toBeNull();
+
+    const { data: invitation, error: invitationError } = await owner.client
+      .from("trip_invitation")
+      .insert({
+        trip_id: tripId,
+        inviter_user_id: owner.id,
+        invitee_user_id: companion.id,
+      })
+      .select("id")
+      .single();
+    expect(invitationError).toBeNull();
+
+    const { error: acceptError } = await companion.client
+      .from("trip_invitation")
+      .update({ status: "accepted" })
+      .eq("id", invitation!.id);
+    expect(acceptError).toBeNull();
+
+    const [imageUpload, documentUpload] = await Promise.all([
+      owner.client.storage
+        .from("images")
+        .upload(imagePath, new Blob(["image"], { type: "image/jpeg" }), {
+          contentType: "image/jpeg",
+        }),
+      owner.client.storage
+        .from("travel-documents")
+        .upload(
+          documentPath,
+          new Blob(["document"], { type: "application/pdf" }),
+          { contentType: "application/pdf" },
+        ),
+    ]);
+    expect(imageUpload.error).toBeNull();
+    expect(documentUpload.error).toBeNull();
+
+    const [companionImageDelete, companionDocumentDelete] = await Promise.all([
+      companion.client.storage.from("images").remove([imagePath]),
+      companion.client.storage.from("travel-documents").remove([documentPath]),
+    ]);
+    expect(companionImageDelete.error).toBeNull();
+    expect(companionImageDelete.data).toEqual([]);
+    expect(companionDocumentDelete.error).toBeNull();
+    expect(companionDocumentDelete.data).toEqual([]);
+
+    const [imageAfterCompanionDelete, documentAfterCompanionDelete] =
+      await Promise.all([
+        owner.client.storage.from("images").download(imagePath),
+        owner.client.storage
+          .from("travel-documents")
+          .download(documentPath),
+      ]);
+    expect(imageAfterCompanionDelete.error).toBeNull();
+    expect(documentAfterCompanionDelete.error).toBeNull();
+
+    const [ownerImageDelete, ownerDocumentDelete] = await Promise.all([
+      owner.client.storage.from("images").remove([imagePath]),
+      owner.client.storage.from("travel-documents").remove([documentPath]),
+    ]);
+    expect(ownerImageDelete.error).toBeNull();
+    expect(ownerImageDelete.data).toHaveLength(1);
+    expect(ownerDocumentDelete.error).toBeNull();
+    expect(ownerDocumentDelete.data).toHaveLength(1);
+
+    const [imageAfterOwnerDelete, documentAfterOwnerDelete] =
+      await Promise.all([
+        owner.client.storage.from("images").download(imagePath),
+        owner.client.storage
+          .from("travel-documents")
+          .download(documentPath),
+      ]);
+    expect(imageAfterOwnerDelete.error).not.toBeNull();
+    expect(documentAfterOwnerDelete.error).not.toBeNull();
   });
 });

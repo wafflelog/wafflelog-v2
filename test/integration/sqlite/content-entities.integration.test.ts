@@ -32,6 +32,14 @@ vi.mock("@/lib/media/image", () => ({
   uploadImageToStorage: vi.fn(),
 }));
 
+vi.mock("@/lib/media/local-file", () => ({
+  removeLocalFile: vi.fn(),
+}));
+
+vi.mock("@/lib/supabase/storage-object", () => ({
+  removeStorageObject: vi.fn(),
+}));
+
 describe("local content entities", () => {
   beforeEach(async () => {
     testDb = createTestSqliteDatabase();

@@ -9,6 +9,7 @@ const remote = vi.hoisted(() => ({
   getBundle: vi.fn(),
   listMemberships: vi.fn(),
   listOwnedTripIds: vi.fn(),
+  removeLocalFile: vi.fn(),
 }));
 
 let testDb: TestSqliteDatabase;
@@ -23,6 +24,10 @@ vi.mock("@/lib/supabase/actions", () => ({
   actionGetRemoteTripSyncBundle: remote.getBundle,
   actionListActiveCompanionMemberships: remote.listMemberships,
   actionListRemoteOwnedTripIds: remote.listOwnedTripIds,
+}));
+
+vi.mock("@/lib/media/local-file", () => ({
+  removeLocalFile: remote.removeLocalFile,
 }));
 
 const timestamps = {
@@ -175,6 +180,8 @@ describe("companion trip pull sync", () => {
     remote.getBundle.mockReset();
     remote.listMemberships.mockReset();
     remote.listOwnedTripIds.mockReset();
+    remote.removeLocalFile.mockReset();
+    remote.removeLocalFile.mockResolvedValue(undefined);
 
     const { initializeDatabase } = await import("@/lib/sqlite/init");
     await initializeDatabase();
@@ -357,7 +364,7 @@ describe("companion trip pull sync", () => {
     });
   });
 
-  it("applies a remote image tombstone and hides the local image", async () => {
+  it("applies remote media tombstones and removes downloaded files", async () => {
     remote.listMemberships.mockResolvedValue([
       {
         id: "membership-a",
@@ -374,14 +381,40 @@ describe("companion trip pull sync", () => {
     );
 
     await actionPullActiveCompanionTrips();
+    await testDb.runAsync(
+      "update document set local_uri = ? where id = ?",
+      ["file:///cached-document.pdf", "document-a"],
+    );
+    await testDb.runAsync(
+      "update image set local_uri = ? where id = ?",
+      ["file:///cached-image.jpg", "image-a"],
+    );
 
     const deletedAt = "2026-01-03T00:00:00.000Z";
     const refreshedBundle = createBundle();
+    refreshedBundle.documents[0].deletedAt = deletedAt;
+    refreshedBundle.documents[0].updatedAt = deletedAt;
     refreshedBundle.images[0].deletedAt = deletedAt;
     refreshedBundle.images[0].updatedAt = deletedAt;
     remote.getBundle.mockResolvedValue(refreshedBundle);
 
     await actionPullActiveCompanionTrips();
+
+    expect(remote.removeLocalFile).toHaveBeenCalledWith(
+      "file:///cached-document.pdf",
+    );
+    expect(remote.removeLocalFile).toHaveBeenCalledWith(
+      "file:///cached-image.jpg",
+    );
+
+    await expect(
+      testDb.getFirstAsync<{
+        deleted_at: string | null;
+        sync_status: string;
+      }>("select deleted_at, sync_status from document where id = ?", [
+        "document-a",
+      ]),
+    ).resolves.toEqual({ deleted_at: deletedAt, sync_status: "synced" });
 
     await expect(
       testDb.getFirstAsync<{
@@ -389,6 +422,12 @@ describe("companion trip pull sync", () => {
         sync_status: string;
       }>("select deleted_at, sync_status from image where id = ?", ["image-a"]),
     ).resolves.toEqual({ deleted_at: deletedAt, sync_status: "synced" });
+    await expect(
+      testDb.getAllAsync<{ id: string }>(
+        "select id from document where trip_id = ? and deleted_at is null",
+        ["trip-a"],
+      ),
+    ).resolves.toEqual([]);
     await expect(
       testDb.getAllAsync<{ id: string }>(
         "select id from image where trip_id = ? and deleted_at is null",
