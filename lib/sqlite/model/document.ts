@@ -442,6 +442,17 @@ export async function actionMarkLocalDocumentStorageUploaded(
   );
 }
 
+export async function actionSetLocalDocumentUri(id: string, localUri: string) {
+  await sqlite.runAsync(
+    `
+      update document
+      set local_uri = ?
+      where id = ?
+    `,
+    [localUri, id],
+  );
+}
+
 export async function actionMarkLocalDocumentSynced(id: string, userId: string) {
   const now = new Date().toISOString();
 

@@ -1,14 +1,13 @@
 import { match } from "ts-pattern";
 
 import { type Document } from "@/types/pin";
-import { useRouter } from "expo-router";
 import { StyleProp, ViewStyle } from "react-native";
 import { CardDocumentRegular } from "./regular";
 import { CardDocumentSquare } from "./square";
 
 type CardDocumentProps = {
   document: Document;
-  onPress?: () => void;
+  onPress: () => void;
   onDeletePress?: () => void;
   variant?: "regular" | "square";
   containerStyle?: StyleProp<ViewStyle>;
@@ -21,25 +20,12 @@ export const CardDocument = ({
   onPress,
   onDeletePress,
 }: CardDocumentProps) => {
-  const router = useRouter();
-  const onPressHandler = () => {
-    if (onPress) {
-      onPress();
-      return;
-    }
-
-    router.push({
-      pathname: "/web-viewer",
-      params: { url: document.url, title: document.fileName },
-    });
-  };
-
   return match(variant)
     .with("regular", () => (
       <CardDocumentRegular
         containerStyle={containerStyle}
         document={document}
-        onPress={onPressHandler}
+        onPress={onPress}
         onDeletePress={onDeletePress}
       />
     ))
@@ -47,7 +33,7 @@ export const CardDocument = ({
       <CardDocumentSquare
         containerStyle={containerStyle}
         document={document}
-        onPress={onPressHandler}
+        onPress={onPress}
         onDeletePress={onDeletePress}
       />
     ))

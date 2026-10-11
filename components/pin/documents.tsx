@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText as FileTextIcon } from "lucide-react-native";
 
-import { CardDocument } from "@/components/card/document";
+import { CardDocumentResolved } from "@/components/card/document/resolved";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { colors, getColor } from "@/constants/theme";
 import {
@@ -17,9 +17,11 @@ type PinDocumentsProps = {
   userId: string;
   onOpenDocument: (document: {
     fileName: string;
-    localUri: string | null;
+    localUri: string;
+    mimeType: string;
   }) => void;
   onAddDocument: () => void;
+  onDownloadError: (message: string) => void;
 };
 
 export const PinDocuments = ({
@@ -27,6 +29,7 @@ export const PinDocuments = ({
   userId,
   onOpenDocument,
   onAddDocument,
+  onDownloadError,
 }: PinDocumentsProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
@@ -63,22 +66,16 @@ export const PinDocuments = ({
       >
         {localDocuments.map((document, index) => (
           <View key={document.id}>
-            <CardDocument
-              document={{
-                id: document.id,
-                fileName: document.fileName,
-                mimeType: document.mimeType,
-                url: document.localUri ?? "",
-                caption: document.caption ?? undefined,
-                creator: document.creator,
-              }}
-              variant="regular"
-              onPress={() =>
+            <CardDocumentResolved
+              document={document}
+              onPress={(localUri) =>
                 onOpenDocument({
                   fileName: document.fileName,
-                  localUri: document.localUri,
+                  localUri,
+                  mimeType: document.mimeType,
                 })
               }
+              onError={onDownloadError}
               onDeletePress={
                 document.creator.isCurrentUser
                   ? () => {

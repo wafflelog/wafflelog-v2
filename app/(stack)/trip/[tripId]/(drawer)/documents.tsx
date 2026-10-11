@@ -1,5 +1,5 @@
 import { ButtonFab } from "@/components/button/fab";
-import { CardDocument } from "@/components/card/document";
+import { CardDocumentResolved } from "@/components/card/document/resolved";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { DialogNewDocument } from "@/components/dialog/new-document";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -15,13 +15,14 @@ import { useAuthSession } from "@/hook/use-auth-session";
 import { useKnownTripsRefresh } from "@/hook/use-known-trips-refresh";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { getPinTitle } from "@/lib/helper/pin";
+import { openLocalDocument } from "@/lib/media/open-document";
 import {
   actionListLocalDocumentsByTrip,
   actionSoftDeleteLocalDocument,
 } from "@/lib/sqlite/model/document";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import {
   FileText as FileTextIcon,
   Plus as PlusIcon,
@@ -37,7 +38,6 @@ export default function TripDocumentsScreen() {
     null,
   );
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
-  const router = useRouter();
   const { session } = useAuthSession();
   const { isRefreshing, refreshKnownTrips } = useKnownTripsRefresh();
   const { showMessage, SystemMessageModal } = useSystemMessage();
@@ -90,24 +90,12 @@ export default function TripDocumentsScreen() {
 
   const handleOpenDocument = async (document: {
     fileName: string;
-    localUri: string | null;
+    localUri: string;
+    mimeType: string;
   }) => {
     try {
-      if (!document.localUri) {
-        throw new Error(
-          "This document is not available offline on this device",
-        );
-      }
-
-      router.push({
-        pathname: "/web-viewer",
-        params: {
-          url: document.localUri,
-          title: document.fileName,
-        },
-      });
+      await openLocalDocument(document);
     } catch (error) {
-      console.error("Error opening document:", error);
       const message =
         error instanceof Error ? error.message : "Failed to open document";
       showMessage(message, "error");
@@ -155,22 +143,16 @@ export default function TripDocumentsScreen() {
         renderItem={({ item }) => (
           <View key={item.id} style={styles.item}>
             <View style={styles.document}>
-              <CardDocument
-                document={{
-                  id: item.id,
-                  fileName: item.fileName,
-                  mimeType: item.mimeType,
-                  url: "",
-                  caption: item.caption ?? undefined,
-                  creator: item.creator,
-                }}
-                variant="regular"
-                onPress={() =>
+              <CardDocumentResolved
+                document={item}
+                onPress={(localUri) =>
                   void handleOpenDocument({
                     fileName: item.fileName,
-                    localUri: item.localUri,
+                    localUri,
+                    mimeType: item.mimeType,
                   })
                 }
+                onError={(message) => showMessage(message, "error")}
                 onDeletePress={
                   item.creator.isCurrentUser
                     ? () => {

@@ -8,6 +8,7 @@ import {
   Trash2 as Trash2Icon,
 } from "lucide-react-native";
 import {
+  ActivityIndicator,
   StyleProp,
   StyleSheet,
   TouchableOpacity,
@@ -19,6 +20,7 @@ type CardDocumentRegularProps = {
   document: Document;
   onPress: () => void;
   onDeletePress?: () => void;
+  isLoading?: boolean;
   containerStyle?: StyleProp<ViewStyle>;
 };
 
@@ -26,12 +28,14 @@ export function CardDocumentRegular({
   document,
   onPress,
   onDeletePress,
+  isLoading = false,
   containerStyle,
 }: CardDocumentRegularProps) {
   return (
     <TouchableOpacity
       style={[styles.container, containerStyle]}
       onPress={onPress}
+      disabled={isLoading}
     >
       <View style={styles.iconContainer}>
         <FileTextIcon size={20} color={getColor(colors.pineGreen)} />
@@ -63,9 +67,13 @@ export function CardDocumentRegular({
             <Trash2Icon size={16} color={getColor(colors.red)} />
           </TouchableOpacity>
         )}
-        <View style={styles.button}>
-          <ExternalLinkIcon size={16} color={getColor(colors.pineGreen)} />
-        </View>
+        {isLoading ? (
+          <ActivityIndicator size="small" color={getColor(colors.purple)} />
+        ) : (
+          <View style={styles.button}>
+            <ExternalLinkIcon size={16} color={getColor(colors.pineGreen)} />
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );

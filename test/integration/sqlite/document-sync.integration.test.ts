@@ -127,4 +127,36 @@ describe("document sync", () => {
     expect(deletedDocument?.deleted_at).not.toBeNull();
     expect(deletedDocument?.sync_status).toBe("pending");
   });
+
+  it("records a downloaded local URI without changing sync metadata", async () => {
+    const model = await import("@/lib/sqlite/model/document");
+    const document = await model.actionCreateLocalDocument({
+      id: "document-a",
+      tripId: "trip-a",
+      userId: "user-a",
+      fileName: "Ticket.pdf",
+      mimeType: "application/pdf",
+      localUri: "file:///old-ticket.pdf",
+    });
+
+    await model.actionSetLocalDocumentUri(
+      document.id,
+      "file:///downloaded-ticket.pdf",
+    );
+
+    await expect(
+      testDb.getFirstAsync<{
+        local_uri: string;
+        sync_status: string;
+        updated_at: string;
+      }>(
+        "select local_uri, sync_status, updated_at from document where id = ?",
+        [document.id],
+      ),
+    ).resolves.toEqual({
+      local_uri: "file:///downloaded-ticket.pdf",
+      sync_status: document.syncStatus,
+      updated_at: document.updatedAt,
+    });
+  });
 });

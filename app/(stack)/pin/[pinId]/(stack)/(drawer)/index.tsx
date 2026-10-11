@@ -47,6 +47,7 @@ import {
 import { useSystemMessage } from "@/hook/use-system-message";
 import { canEditPin } from "@/lib/helper/permissions";
 import { getPinHeaderTimeLabel } from "@/lib/helper/pin";
+import { openLocalDocument } from "@/lib/media/open-document";
 import { actionGetLocalPinLocation } from "@/lib/sqlite/model/pin-location";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import {
@@ -205,24 +206,12 @@ export default function PinIndexScreen() {
 
   const handleOpenDocument = async (document: {
     fileName: string;
-    localUri: string | null;
+    localUri: string;
+    mimeType: string;
   }) => {
     try {
-      if (!document.localUri) {
-        throw new Error(
-          "This document is not available offline on this device",
-        );
-      }
-
-      router.push({
-        pathname: "/web-viewer",
-        params: {
-          url: document.localUri,
-          title: document.fileName,
-        },
-      });
+      await openLocalDocument(document);
     } catch (error) {
-      console.error("Error opening document:", error);
       const message =
         error instanceof Error ? error.message : "Failed to open document";
       showMessage(message, "error");
@@ -405,6 +394,7 @@ export default function PinIndexScreen() {
             userId={session.user.id}
             onOpenDocument={handleOpenDocument}
             onAddDocument={() => setActiveNewObjectDialog("document")}
+            onDownloadError={(message) => showMessage(message, "error")}
           />
 
           <PinLinks
