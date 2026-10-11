@@ -16,7 +16,7 @@ import { useSystemMessage } from "@/hook/use-system-message";
 import { actionPullActiveCompanionTrips } from "@/lib/sqlite/model/companion-trip-sync";
 import {
   actionAcceptTripInvitation,
-  actionMarkNotificationRead,
+  actionMarkNotificationsRead,
   actionRejectTripInvitation,
   type AppNotification,
 } from "@/lib/supabase/actions";
@@ -24,20 +24,26 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  ScrollView,
+  FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  type ViewToken,
 } from "react-native";
 
 type InvitationResponseInput = {
   notificationId: string;
   invitationId: string;
   response: "accepted" | "rejected";
+};
+
+const notificationViewabilityConfig = {
+  itemVisiblePercentThreshold: 60,
+  minimumViewTime: 500,
 };
 
 const formatNotificationTimestamp = (createdAt: string) => {
@@ -78,9 +84,11 @@ export default function NotificationCenterScreen() {
   const [activeNotificationId, setActiveNotificationId] = useState<string | null>(
     null,
   );
+  const attemptedReadIds = useRef(new Set<string>());
 
   const notificationsQuery = useAppNotifications(session?.user.id);
   const refetchNotifications = notificationsQuery.refetch;
+  const notificationsQueryKey = getAppNotificationsQueryKey(session?.user.id);
 
   useFocusEffect(
     useCallback(() => {
@@ -90,6 +98,70 @@ export default function NotificationCenterScreen() {
 
       void refetchNotifications();
     }, [refetchNotifications, session?.user.id]),
+  );
+
+  const markNotificationsReadMutation = useMutation({
+    mutationFn: (notificationIds: string[]) =>
+      actionMarkNotificationsRead(notificationIds),
+    onMutate: async (notificationIds) => {
+      await queryClient.cancelQueries({ queryKey: notificationsQueryKey });
+
+      const notificationIdSet = new Set(notificationIds);
+      const readAt = new Date().toISOString();
+
+      queryClient.setQueryData<AppNotification[]>(
+        notificationsQueryKey,
+        (currentNotifications) =>
+          currentNotifications?.map((notification) =>
+            notificationIdSet.has(notification.id) &&
+            notification.read_at === null
+              ? { ...notification, read_at: readAt }
+              : notification,
+          ),
+      );
+    },
+    onError: (_error, notificationIds) => {
+      const notificationIdSet = new Set(notificationIds);
+
+      queryClient.setQueryData<AppNotification[]>(
+        notificationsQueryKey,
+        (currentNotifications) =>
+          currentNotifications?.map((notification) =>
+            notificationIdSet.has(notification.id)
+              ? { ...notification, read_at: null }
+              : notification,
+          ),
+      );
+      notificationIds.forEach((notificationId) => {
+        attemptedReadIds.current.delete(notificationId);
+      });
+    },
+  });
+
+  const handleViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: ViewToken<AppNotification>[] }) => {
+      const notificationIds = viewableItems.flatMap(({ isViewable, item }) => {
+        if (
+          !isViewable ||
+          item.read_at !== null ||
+          attemptedReadIds.current.has(item.id)
+        ) {
+          return [];
+        }
+
+        return [item.id];
+      });
+
+      if (notificationIds.length === 0) {
+        return;
+      }
+
+      notificationIds.forEach((notificationId) => {
+        attemptedReadIds.current.add(notificationId);
+      });
+      markNotificationsReadMutation.mutate(notificationIds);
+    },
+    [markNotificationsReadMutation],
   );
 
   const invitationResponseMutation = useMutation({
@@ -104,8 +176,6 @@ export default function NotificationCenterScreen() {
       } else {
         await actionRejectTripInvitation(invitationId);
       }
-
-      await actionMarkNotificationRead(notificationId);
 
       return response;
     },
@@ -173,16 +243,14 @@ export default function NotificationCenterScreen() {
         }
       />
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {notificationsQuery.isLoading ? (
+      {notificationsQuery.isLoading ? (
+        <View style={styles.scrollView}>
           <View style={styles.loadingState}>
             <ActivityIndicator size="large" color={getColor(colors.turquoise)} />
           </View>
-        ) : notifications.length === 0 ? (
+        </View>
+      ) : notifications.length === 0 ? (
+        <View style={styles.scrollView}>
           <View style={styles.emptyState}>
             <Ionicons
               name="notifications-off-outline"
@@ -192,8 +260,16 @@ export default function NotificationCenterScreen() {
             <Text style={styles.emptyStateTitle}>No notifications</Text>
             <Text style={styles.emptyStateText}>{"You're all caught up!"}</Text>
           </View>
-        ) : (
-          notifications.map((notification) => {
+        </View>
+      ) : (
+        <FlatList
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          data={notifications}
+          extraData={activeNotificationId}
+          keyExtractor={(notification) => notification.id}
+          onViewableItemsChanged={handleViewableItemsChanged}
+          renderItem={({ item: notification }) => {
             const isUnread = notification.read_at === null;
             const isPendingInvitation =
               notification.type === "trip_invited" &&
@@ -202,7 +278,6 @@ export default function NotificationCenterScreen() {
 
             return (
               <View
-                key={notification.id}
                 style={[
                   styles.notificationItem,
                   isUnread && styles.notificationItemUnread,
@@ -260,9 +335,11 @@ export default function NotificationCenterScreen() {
                 {isUnread && <View style={styles.unreadDot} />}
               </View>
             );
-          })
-        )}
-      </ScrollView>
+          }}
+          showsVerticalScrollIndicator={false}
+          viewabilityConfig={notificationViewabilityConfig}
+        />
+      )}
       <SystemMessageModal />
     </View>
   );

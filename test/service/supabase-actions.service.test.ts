@@ -14,7 +14,7 @@ import {
   actionListRemoteOwnedTripIds,
   actionListTripCompanions,
   actionListTripInvitationsByTrip,
-  actionMarkNotificationRead,
+  actionMarkNotificationsRead,
   actionRejectTripInvitation,
   actionRestoreCompanionAccess,
   actionSignInWithEmail,
@@ -527,11 +527,12 @@ describe("Supabase actions", () => {
     expect(invitationNotification).toMatchObject({
       invitationStatus: "accepted",
     });
-    const readNotification = await actionMarkNotificationRead(
-      invitationNotification!.id,
+    const readNotifications = await actionMarkNotificationsRead(
+      [invitationNotification!.id],
       invitee.client,
     );
-    expect(readNotification.read_at).not.toBeNull();
+    expect(readNotifications).toHaveLength(1);
+    expect(readNotifications[0].read_at).not.toBeNull();
   });
 
   it("maps authentication, public-user, and sync-bundle action outputs", async () => {

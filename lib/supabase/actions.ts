@@ -1314,8 +1314,8 @@ export async function actionListAppNotifications(
   }));
 }
 
-export async function actionMarkNotificationRead(
-  notificationId: string,
+export async function actionMarkNotificationsRead(
+  notificationIds: string[],
   client: SupabaseClient<Database> = supabase,
 ) {
   const {
@@ -1331,15 +1331,21 @@ export async function actionMarkNotificationRead(
     throw new Error("You must be signed in to update notifications");
   }
 
+  const uniqueNotificationIds = Array.from(new Set(notificationIds));
+
+  if (uniqueNotificationIds.length === 0) {
+    return [];
+  }
+
   const { data, error } = await client
     .from("app_notification")
     .update({
       read_at: new Date().toISOString(),
     })
-    .eq("id", notificationId)
     .eq("user_id", user.id)
-    .select()
-    .single();
+    .in("id", uniqueNotificationIds)
+    .is("read_at", null)
+    .select();
 
   if (error) {
     throw error;
