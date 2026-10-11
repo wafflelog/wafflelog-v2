@@ -9,15 +9,19 @@ describe("Storage access RLS", () => {
     const unrelated = await createTestUser("unrelated");
     const tripId = crypto.randomUUID();
     const imagePath = `trip/${tripId}/images/${crypto.randomUUID()}.txt`;
-    const documentPath = `trip/${tripId}/documents/${crypto.randomUUID()}.txt`;
+    const documentPath = `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
     const companionDocumentPath =
-      `trip/${tripId}/documents/${crypto.randomUUID()}.txt`;
+      `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
     const unrelatedImagePath = `trip/${tripId}/images/${crypto.randomUUID()}.txt`;
     const unrelatedDocumentPath =
-      `trip/${tripId}/documents/${crypto.randomUUID()}.txt`;
+      `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
     const disabledImagePath = `trip/${tripId}/images/${crypto.randomUUID()}.txt`;
     const disabledDocumentPath =
+      `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
+    const unsupportedDocumentPath =
       `trip/${tripId}/documents/${crypto.randomUUID()}.txt`;
+    const oversizedDocumentPath =
+      `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
 
     const { error: tripError } = await owner.client.from("trip").insert({
       id: tripId,
@@ -46,36 +50,67 @@ describe("Storage access RLS", () => {
       .eq("id", invitation!.id);
     expect(acceptError).toBeNull();
 
-    const file = new Blob(["service test file"], { type: "text/plain" });
-    const [{ error: imageUploadError }, { error: documentUploadError }] = await Promise.all([
-      owner.client.storage
-        .from("images")
-        .upload(imagePath, file, { contentType: "text/plain" }),
-      owner.client.storage
-        .from("travel-documents")
-        .upload(documentPath, file, { contentType: "text/plain" }),
-    ]);
+    const imageFile = new Blob(["service test image"], {
+      type: "text/plain",
+    });
+    const documentFile = new Blob(["service test document"], {
+      type: "application/pdf",
+    });
+    const [{ error: imageUploadError }, { error: documentUploadError }] =
+      await Promise.all([
+        owner.client.storage
+          .from("images")
+          .upload(imagePath, imageFile, { contentType: "text/plain" }),
+        owner.client.storage
+          .from("travel-documents")
+          .upload(documentPath, documentFile, {
+            contentType: "application/pdf",
+          }),
+      ]);
     expect(imageUploadError).toBeNull();
     expect(documentUploadError).toBeNull();
 
-    const ownerRetryFile = new Blob(["owner retry file"], {
+    const unsupportedDocumentFile = new Blob(["unsupported document"], {
       type: "text/plain",
+    });
+    const oversizedDocumentFile = new Blob(
+      [new Uint8Array(5 * 1024 * 1024 + 1)],
+      { type: "application/pdf" },
+    );
+    const [unsupportedDocumentUpload, oversizedDocumentUpload] =
+      await Promise.all([
+        owner.client.storage
+          .from("travel-documents")
+          .upload(unsupportedDocumentPath, unsupportedDocumentFile, {
+            contentType: "text/plain",
+          }),
+        owner.client.storage
+          .from("travel-documents")
+          .upload(oversizedDocumentPath, oversizedDocumentFile, {
+            contentType: "application/pdf",
+          }),
+      ]);
+    expect(unsupportedDocumentUpload.error).not.toBeNull();
+    expect(oversizedDocumentUpload.error).not.toBeNull();
+
+    const ownerRetryFile = new Blob(["owner retry file"], {
+      type: "application/pdf",
     });
     const { error: ownerRetryError } = await owner.client.storage
       .from("travel-documents")
       .upload(documentPath, ownerRetryFile, {
-        contentType: "text/plain",
+        contentType: "application/pdf",
         upsert: true,
       });
     expect(ownerRetryError).toBeNull();
 
     const companionOverwriteFile = new Blob(["companion overwrite file"], {
-      type: "text/plain",
+      type: "application/pdf",
     });
     const { error: companionOverwriteError } = await companion.client.storage
       .from("travel-documents")
       .upload(documentPath, companionOverwriteFile, {
-        contentType: "text/plain",
+        contentType: "application/pdf",
         upsert: true,
       });
     expect(companionOverwriteError).not.toBeNull();
@@ -84,13 +119,17 @@ describe("Storage access RLS", () => {
       await Promise.all([
         companion.client.storage
           .from("travel-documents")
-          .upload(companionDocumentPath, file, { contentType: "text/plain" }),
+          .upload(companionDocumentPath, documentFile, {
+            contentType: "application/pdf",
+          }),
         unrelated.client.storage
           .from("images")
-          .upload(unrelatedImagePath, file, { contentType: "text/plain" }),
+          .upload(unrelatedImagePath, imageFile, { contentType: "text/plain" }),
         unrelated.client.storage
           .from("travel-documents")
-          .upload(unrelatedDocumentPath, file, { contentType: "text/plain" }),
+          .upload(unrelatedDocumentPath, documentFile, {
+            contentType: "application/pdf",
+          }),
       ]);
     expect(companionUpload.error).toBeNull();
     expect(unrelatedImageUpload.error).not.toBeNull();
@@ -127,10 +166,12 @@ describe("Storage access RLS", () => {
     const [disabledImageUpload, disabledDocumentUpload] = await Promise.all([
       companion.client.storage
         .from("images")
-        .upload(disabledImagePath, file, { contentType: "text/plain" }),
+        .upload(disabledImagePath, imageFile, { contentType: "text/plain" }),
       companion.client.storage
         .from("travel-documents")
-        .upload(disabledDocumentPath, file, { contentType: "text/plain" }),
+        .upload(disabledDocumentPath, documentFile, {
+          contentType: "application/pdf",
+        }),
     ]);
     expect(disabledImageUpload.error).not.toBeNull();
     expect(disabledDocumentUpload.error).not.toBeNull();
