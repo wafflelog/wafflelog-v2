@@ -18,6 +18,7 @@ import {
   actionCreateLocalPin,
   actionUpdateLocalPin,
 } from "@/lib/sqlite/model/pin";
+import { sendTrackingEvent } from "@/lib/tracking";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useState } from "react";
@@ -162,6 +163,11 @@ const DialogNewPinVisible = ({
   const createPinMutation = useMutation({
     mutationFn: actionCreateLocalPin,
     onSuccess: async (localPin) => {
+      void sendTrackingEvent("trip_item_created", {
+        item_type: "pin",
+        source: "manual",
+      });
+
       if (session?.user.id) {
         await Promise.all([
           queryClient.invalidateQueries({

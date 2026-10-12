@@ -4,6 +4,7 @@ import { gaps } from "@/constants/theme";
 import { type SystemMessageType } from "@/hook/use-system-message";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { actionCreateLocalReferenceLink } from "@/lib/sqlite/model/reference-link";
+import { sendTrackingEvent } from "@/lib/tracking";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -34,6 +35,11 @@ export const DialogNewReferenceLink = ({
   const createReferenceLinkMutation = useMutation({
     mutationFn: actionCreateLocalReferenceLink,
     onSuccess: () => {
+      void sendTrackingEvent("trip_item_created", {
+        item_type: "link",
+        source: "manual",
+      });
+
       if (session?.user.id) {
         if (pinId) {
           queryClient.invalidateQueries({

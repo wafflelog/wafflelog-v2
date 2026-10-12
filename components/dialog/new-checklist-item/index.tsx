@@ -7,6 +7,7 @@ import {
   actionCreateLocalChecklistItem,
   type LocalChecklistItem,
 } from "@/lib/sqlite/model/checklist-item";
+import { sendTrackingEvent } from "@/lib/tracking";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -30,6 +31,11 @@ export const DialogNewChecklistItem = ({
   const createChecklistItemMutation = useMutation({
     mutationFn: actionCreateLocalChecklistItem,
     onSuccess: (checklistItem) => {
+      void sendTrackingEvent("trip_item_created", {
+        item_type: "checklist",
+        source: "manual",
+      });
+
       if (session?.user.id) {
         queryClient.setQueryData<LocalChecklistItem[]>(
           ["local-checklist-items", tripId, session.user.id],

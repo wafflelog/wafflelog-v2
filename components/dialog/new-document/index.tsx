@@ -17,6 +17,7 @@ import {
   isAllowedTravelDocumentMimeType,
   persistLocalTravelDocument,
 } from "@/lib/supabase/storage";
+import { sendTrackingEvent } from "@/lib/tracking";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as DocumentPicker from "expo-document-picker";
 import { type ReactNode, useState } from "react";
@@ -92,6 +93,11 @@ export const DialogNewDocument = ({
       });
     },
     onSuccess: () => {
+      void sendTrackingEvent("trip_item_created", {
+        item_type: "document",
+        source: "manual",
+      });
+
       if (session?.user.id) {
         queryClient.invalidateQueries({
           queryKey: ["local-trip-documents", tripId, session.user.id],

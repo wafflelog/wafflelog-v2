@@ -39,7 +39,7 @@ activated after creating a trip and adding at least one meaningful item.
 | `sign_up` | Registration succeeds | `method: email` |
 | `email_verified` | Email confirmation succeeds | `method: email` |
 | `trip_created` | A trip is saved | `creation_method`, `has_start_date` |
-| `trip_item_created` | A trip item is saved | `item_type`, `source`, `user_role` |
+| `trip_item_created` | A trip item is saved | `item_type`, `source`, optional `user_role` |
 
 Allowed values:
 
@@ -47,6 +47,9 @@ Allowed values:
 - `item_type`: `pin`, `checklist`, `expense`, `image`, `document`, `link`, `note`
 - `source`: `manual`, `assistant_import`
 - `user_role`: `owner`, `companion`
+
+`user_role` remains optional until the collaboration instrumentation can obtain
+the role from reliable trip-membership context. It must not be guessed.
 
 ## Funnel 2: Trip assistant
 
@@ -145,7 +148,7 @@ and stored content. Analytics is used for behavioural funnels and trends.
 
 1. **Complete:** validate manual screen-view events in Google Analytics.
 2. Add a central, typed event catalogue and safe tracking helpers.
-3. Instrument the activation funnel.
+3. **Complete:** instrument the activation funnel.
 4. Instrument the trip-assistant funnel.
 5. Instrument the collaboration funnel.
 6. Review the collected data before adding more events.

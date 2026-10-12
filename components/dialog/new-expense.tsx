@@ -11,6 +11,7 @@ import {
   actionCreateLocalExpense,
   actionListLocalExpenseSplitParticipants,
 } from "@/lib/sqlite/model/expense";
+import { sendTrackingEvent } from "@/lib/tracking";
 import { Currency } from "@/types/pin";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckSquare, Square } from "lucide-react-native";
@@ -86,6 +87,11 @@ const DialogNewExpenseVisible = ({
   const createExpenseMutation = useMutation({
     mutationFn: actionCreateLocalExpense,
     onSuccess: async () => {
+      void sendTrackingEvent("trip_item_created", {
+        item_type: "expense",
+        source: "manual",
+      });
+
       if (session?.user.id) {
         const invalidations = [
           queryClient.invalidateQueries({

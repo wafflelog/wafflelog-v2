@@ -7,6 +7,7 @@ import {
   type AuthCallbackFlow,
 } from "@/lib/auth/auth-callback";
 import { actionSetSessionFromAuthCallback } from "@/lib/supabase/actions";
+import { sendTrackingEvent } from "@/lib/tracking";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { CircleAlert } from "lucide-react-native";
@@ -69,6 +70,10 @@ export default function AuthCallbackScreen() {
     const createSession = async () => {
       try {
         await actionSetSessionFromAuthCallback(callback);
+
+        if (callback.flow === "signup") {
+          void sendTrackingEvent("email_verified", { method: "email" });
+        }
 
         if (isActive) {
           router.replace(CALLBACK_COPY_BY_FLOW[callback.flow].destination);

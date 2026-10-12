@@ -18,6 +18,7 @@ import {
   actionListLocalNotesByTrip,
   actionSoftDeleteLocalNote,
 } from "@/lib/sqlite/model/note";
+import { sendTrackingEvent } from "@/lib/tracking";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
@@ -92,6 +93,11 @@ export default function NotesScreen() {
   const createNoteMutation = useMutation({
     mutationFn: actionCreateLocalNote,
     onSuccess: async () => {
+      void sendTrackingEvent("trip_item_created", {
+        item_type: "note",
+        source: "manual",
+      });
+
       setNewNote("");
       await queryClient.invalidateQueries({
         queryKey: localNotesQueryKey,

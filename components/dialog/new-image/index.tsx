@@ -18,6 +18,7 @@ import {
   inferLocalImageMimeType,
   persistLocalImage,
 } from "@/lib/media/image";
+import { sendTrackingEvent } from "@/lib/tracking";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { type ReactNode, useState } from "react";
@@ -99,6 +100,11 @@ export const DialogNewImage = ({
       }
     },
     onSuccess: () => {
+      void sendTrackingEvent("trip_item_created", {
+        item_type: "image",
+        source: "manual",
+      });
+
       if (session?.user.id) {
         queryClient.invalidateQueries({
           queryKey: ["local-trip-images", tripId, session.user.id],

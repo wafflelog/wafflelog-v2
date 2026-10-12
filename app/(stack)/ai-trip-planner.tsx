@@ -34,6 +34,7 @@ import { buildCreatePlanningSessionRequest } from "@/lib/ai-trip-planning/sessio
 import { actionImportAiPlanningResult } from "@/lib/ai-trip-planning/trip-import";
 import { type CreatePlanningRefinementRequest } from "@/lib/ai-trip-planning/types";
 import { type LocalAiPlanningSession } from "@/lib/sqlite/model/ai-planning-session";
+import { sendTrackingEvent } from "@/lib/tracking";
 import {
   type AiPlannerDraftSelection,
   type AiPlannerIntakeAnswers,
@@ -216,6 +217,30 @@ export default function AiTripPlannerScreen() {
   const importTrip = useMutation({
     mutationFn: actionImportAiPlanningResult,
     onSuccess: (imported) => {
+      if (!imported.alreadyImported) {
+        void sendTrackingEvent("trip_created", {
+          creation_method: "assistant",
+          has_start_date: Boolean(imported.trip.startDate),
+        });
+
+        const importedItemType = (
+          [
+            [imported.pins.length, "pin"],
+            [imported.checklistItems.length, "checklist"],
+            [imported.notes.length, "note"],
+            [imported.referenceLinks.length, "link"],
+          ] as const
+        ).find(([itemCount]) => itemCount > 0)?.[1];
+
+        if (importedItemType) {
+          void sendTrackingEvent("trip_item_created", {
+            item_type: importedItemType,
+            source: "assistant_import",
+            user_role: "owner",
+          });
+        }
+      }
+
       setReviewVisible(false);
       queryClient.setQueryData(
         ["local-trip", imported.trip.id, imported.trip.userId],

@@ -8,6 +8,7 @@ import {
   actionCreateLocalTrip,
   actionUpdateLocalTrip,
 } from "@/lib/sqlite/model/trip";
+import { sendTrackingEvent } from "@/lib/tracking";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -78,7 +79,11 @@ const DialogNewTripVisible = ({
 
   const createTripMutation = useMutation({
     mutationFn: actionCreateLocalTrip,
-    onSuccess: () => {
+    onSuccess: (localTrip) => {
+      void sendTrackingEvent("trip_created", {
+        creation_method: "manual",
+        has_start_date: Boolean(localTrip.startDate),
+      });
       queryClient.invalidateQueries({
         queryKey: ["local-trips", session?.user.id],
       });

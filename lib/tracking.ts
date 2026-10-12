@@ -31,7 +31,7 @@ export type TrackingEventParameters = {
       | "link"
       | "note";
     source: "manual" | "assistant_import";
-    user_role: "owner" | "companion";
+    user_role?: "owner" | "companion";
   };
   trip_assistant_started: {
     entry_point: "home" | "unfinished_plan";

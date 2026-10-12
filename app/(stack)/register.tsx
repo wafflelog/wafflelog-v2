@@ -6,6 +6,7 @@ import { colors, gaps, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionSignUpWithEmail } from "@/lib/supabase/actions";
+import { sendTrackingEvent } from "@/lib/tracking";
 import { useMutation } from "@tanstack/react-query";
 import * as Linking from "expo-linking";
 import { Link, Redirect, router } from "expo-router";
@@ -30,6 +31,7 @@ export default function RegisterScreen() {
     mutationFn: (input: Parameters<typeof actionSignUpWithEmail>[0]) =>
       actionSignUpWithEmail(input),
     onSuccess: (data, input) => {
+      void sendTrackingEvent("sign_up", { method: "email" });
       setPassword("");
 
       if (data.session) {
