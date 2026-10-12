@@ -7,6 +7,7 @@ import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionSignUpWithEmail } from "@/lib/supabase/actions";
 import { useMutation } from "@tanstack/react-query";
+import * as Linking from "expo-linking";
 import { Link, Redirect, router } from "expo-router";
 import { LockKeyhole, Mail, UserRound } from "lucide-react-native";
 import { useRef, useState } from "react";
@@ -28,7 +29,7 @@ export default function RegisterScreen() {
   const signUpMutation = useMutation({
     mutationFn: (input: Parameters<typeof actionSignUpWithEmail>[0]) =>
       actionSignUpWithEmail(input),
-    onSuccess: (data) => {
+    onSuccess: (data, input) => {
       setPassword("");
 
       if (data.session) {
@@ -37,7 +38,10 @@ export default function RegisterScreen() {
         return;
       }
 
-      showMessage("Check your email to confirm your account", "info");
+      router.replace({
+        pathname: "/verify-email",
+        params: { email: input.email.trim() },
+      });
     },
     onError: (error) => {
       const message =
@@ -86,6 +90,7 @@ export default function RegisterScreen() {
       email,
       password,
       username: normalizedUsername,
+      emailRedirectTo: Linking.createURL("auth/callback"),
     });
   };
 

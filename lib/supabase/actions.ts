@@ -98,11 +98,22 @@ export type SignUpInput = {
   email: string;
   password: string;
   username: string;
+  emailRedirectTo?: string;
+};
+
+export type ResendSignUpConfirmationInput = {
+  email: string;
+  emailRedirectTo?: string;
 };
 
 export type SignInInput = {
   email: string;
   password: string;
+};
+
+export type AuthCallbackSessionInput = {
+  accessToken: string;
+  refreshToken: string;
 };
 
 export type CreateTripInvitationInput = {
@@ -1124,6 +1135,7 @@ export async function actionSignUpWithEmail(
     email: input.email.trim(),
     password: input.password,
     options: {
+      emailRedirectTo: input.emailRedirectTo,
       data: {
         username: input.username.trim().toLowerCase(),
       },
@@ -1135,6 +1147,45 @@ export async function actionSignUpWithEmail(
   }
 
   return data;
+}
+
+export async function actionResendSignUpConfirmation(
+  input: ResendSignUpConfirmationInput,
+  client: SupabaseClient<Database> = supabase,
+) {
+  const { data, error } = await client.auth.resend({
+    type: "signup",
+    email: input.email.trim(),
+    options: {
+      emailRedirectTo: input.emailRedirectTo,
+    },
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function actionSetSessionFromAuthCallback(
+  input: AuthCallbackSessionInput,
+  client: SupabaseClient<Database> = supabase,
+) {
+  const { data, error } = await client.auth.setSession({
+    access_token: input.accessToken,
+    refresh_token: input.refreshToken,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data.session) {
+    throw new Error("The confirmation link did not create a session");
+  }
+
+  return data.session;
 }
 
 export async function actionListPublicUsers(

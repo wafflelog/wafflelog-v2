@@ -41,7 +41,11 @@ import {
   actionWithdrawTripInvitation,
 } from "@/lib/supabase/actions";
 
-import { createPublicClient, createTestUser } from "./local-supabase";
+import {
+  adminClient,
+  createPublicClient,
+  createTestUser,
+} from "./local-supabase";
 
 vi.mock("expo-secure-store", () => ({
   deleteItemAsync: vi.fn(),
@@ -545,10 +549,19 @@ describe("Supabase actions", () => {
         email: `  ${email}  `,
         password: "service-test-password",
         username: `  ${username}  `,
+        emailRedirectTo: "wafflelogv2-dev://auth/callback",
       },
       publicClient,
     );
     expect(signUp.user?.email).toBe(email);
+    expect(signUp.session).toBeNull();
+
+    const { error: confirmEmailError } =
+      await adminClient.auth.admin.updateUserById(signUp.user!.id, {
+        email_confirm: true,
+      });
+    expect(confirmEmailError).toBeNull();
+
     const signIn = await actionSignInWithEmail(
       { email: `  ${email}  `, password: "service-test-password" },
       createPublicClient(),
