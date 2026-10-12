@@ -5,6 +5,14 @@ import appJson from "./app.json";
 type AppVariant = "development" | "preview" | "production";
 
 const baseConfig = appJson.expo as ExpoConfig;
+const firebaseFilesByVariant: Partial<
+  Record<AppVariant, { ios: string; android: string }>
+> = {
+  development: {
+    ios: "./firebase/development/GoogleService-Info.plist",
+    android: "./firebase/development/google-services.json",
+  },
+};
 
 function getAppVariant(): AppVariant {
   if (process.env.APP_VARIANT === "development") {
@@ -60,6 +68,19 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const variant = getAppVariant();
   const uniqueIdentifier = getUniqueIdentifier(variant);
   const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const firebaseFiles = firebaseFilesByVariant[variant];
+  const plugins: NonNullable<ExpoConfig["plugins"]> =
+    baseConfig.plugins?.map((plugin) =>
+      Array.isArray(plugin) && plugin[0] === "react-native-maps"
+        ? ([
+            "react-native-maps",
+            {
+              iosGoogleMapsApiKey: googleMapsApiKey,
+              androidGoogleMapsApiKey: googleMapsApiKey,
+            },
+          ] as [string, Record<string, string | undefined>])
+        : plugin,
+    ) ?? [];
 
   return {
     ...config,
@@ -69,21 +90,40 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       ...baseConfig.ios,
       bundleIdentifier: uniqueIdentifier,
+      ...(firebaseFiles
+        ? { googleServicesFile: firebaseFiles.ios }
+        : undefined),
     },
     android: {
       ...baseConfig.android,
       package: uniqueIdentifier,
+      ...(firebaseFiles
+        ? { googleServicesFile: firebaseFiles.android }
+        : undefined),
     },
-    plugins: baseConfig.plugins?.map((plugin) =>
-      Array.isArray(plugin) && plugin[0] === "react-native-maps"
-        ? [
-            "react-native-maps",
-            {
-              iosGoogleMapsApiKey: googleMapsApiKey,
-              androidGoogleMapsApiKey: googleMapsApiKey,
-            },
-          ]
-        : plugin,
-    ),
+    plugins: [
+      ...plugins,
+      [
+        "@react-native-firebase/app",
+        {
+          ios: {
+            disableSPM: true,
+          },
+        },
+      ],
+      [
+        "@react-native-firebase/analytics",
+        { ios: { withoutAdIdSupport: true } },
+      ],
+      [
+        "expo-build-properties",
+        {
+          ios: {
+            useFrameworks: "static",
+            forceStaticLinking: ["RNFBApp", "RNFBAnalytics"],
+          },
+        },
+      ],
+    ],
   };
 };

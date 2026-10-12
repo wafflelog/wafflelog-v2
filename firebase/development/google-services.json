@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "100823239818",
+    "project_id": "wafflelog-898d5",
+    "storage_bucket": "wafflelog-898d5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:100823239818:android:70138dc0078f49abd03173",
+        "android_client_info": {
+          "package_name": "com.wafflelog.wafflelogv2.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOqeL_Z69uBHnL0oojH2Ro7vYV2gq2cPM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

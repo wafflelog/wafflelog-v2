@@ -1,9 +1,10 @@
 import { GlobalAppNotifications } from "@/components/global/app-notifications";
 import { DataBootstrapGate } from "@/components/global/data-bootstrap-gate";
-import { DatabaseInitializationGate } from "@/components/global/database-initialization-gate";
 import { GlobalDataSyncMessages } from "@/components/global/data-sync-messages";
 import { DataSyncProvider } from "@/components/global/data-sync-provider";
+import { DatabaseInitializationGate } from "@/components/global/database-initialization-gate";
 import { AuthSessionProvider } from "@/hook/use-auth-session";
+import { useRouteChange } from "@/hook/use-route-change";
 import {
   Montserrat_400Regular,
   Montserrat_500Medium,
@@ -14,6 +15,8 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+
+import { sendScreenViewEvent } from "@/lib/tracking";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +33,10 @@ export default function RootLayout() {
     Montserrat_500Medium,
     Montserrat_600SemiBold,
     Montserrat_700Bold,
+  });
+
+  useRouteChange((from, to) => {
+    sendScreenViewEvent(from, to);
   });
 
   return (
