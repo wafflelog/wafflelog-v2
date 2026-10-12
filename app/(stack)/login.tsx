@@ -103,6 +103,13 @@ export default function LoginScreen() {
             onSubmitEditing={handleLogin}
             disabled={signInMutation.isPending}
           />
+          <Link href="/forgot-password" asChild>
+            <Pressable style={styles.forgotPasswordButton} hitSlop={8}>
+              <TitleRegular size="sm" color={colors.purple} weight="700">
+                Forgot password?
+              </TitleRegular>
+            </Pressable>
+          </Link>
           <AuthSubmitButton
             label="Log in"
             pendingLabel="Logging in..."
@@ -147,6 +154,11 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   switchButton: {
+    paddingVertical: gaps.xxs,
+  },
+  forgotPasswordButton: {
+    alignSelf: "flex-end",
+    marginTop: -gaps.sm,
     paddingVertical: gaps.xxs,
   },
 });

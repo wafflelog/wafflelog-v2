@@ -3,14 +3,22 @@ export type AuthCallbackResult =
       type: "session";
       accessToken: string;
       refreshToken: string;
+      flow: AuthCallbackFlow;
     }
   | {
       type: "error";
       message: string;
     };
 
+export type AuthCallbackFlow = "signup" | "recovery" | "unknown";
+
 const INVALID_LINK_MESSAGE =
-  "Unable to confirm your email. The link may be invalid or expired.";
+  "Unable to use this email link. It may be invalid or expired.";
+
+const AUTH_CALLBACK_FLOW_BY_TYPE: Record<string, AuthCallbackFlow> = {
+  signup: "signup",
+  recovery: "recovery",
+};
 
 function getCallbackParameters(url: string) {
   const queryStart = url.indexOf("?");
@@ -54,5 +62,7 @@ export function parseAuthCallbackUrl(url: string): AuthCallbackResult {
     type: "session",
     accessToken,
     refreshToken,
+    flow:
+      AUTH_CALLBACK_FLOW_BY_TYPE[parameters.get("type") ?? ""] ?? "unknown",
   };
 }

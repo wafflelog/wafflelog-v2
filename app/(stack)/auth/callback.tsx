@@ -2,13 +2,45 @@ import { AuthScreen } from "@/components/auth/auth-screen";
 import { AuthSubmitButton } from "@/components/auth/auth-submit-button";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
-import { parseAuthCallbackUrl } from "@/lib/auth/auth-callback";
+import {
+  parseAuthCallbackUrl,
+  type AuthCallbackFlow,
+} from "@/lib/auth/auth-callback";
 import { actionSetSessionFromAuthCallback } from "@/lib/supabase/actions";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { CircleAlert } from "lucide-react-native";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
+
+const CALLBACK_COPY_BY_FLOW: Record<
+  AuthCallbackFlow,
+  {
+    eyebrow: string;
+    title: string;
+    message: string;
+    destination: "/" | "/reset-password";
+  }
+> = {
+  signup: {
+    eyebrow: "EMAIL CONFIRMATION",
+    title: "Confirming your email",
+    message: "Verifying your confirmation link and securely signing you in.",
+    destination: "/",
+  },
+  recovery: {
+    eyebrow: "PASSWORD RECOVERY",
+    title: "Opening password reset",
+    message: "Verifying your reset link and securely opening your account.",
+    destination: "/reset-password",
+  },
+  unknown: {
+    eyebrow: "SECURE SIGN IN",
+    title: "Opening Wafflelog",
+    message: "Verifying your email link and securely signing you in.",
+    destination: "/",
+  },
+};
 
 export default function AuthCallbackScreen() {
   const linkingUrl = Linking.useLinkingURL();
@@ -39,7 +71,7 @@ export default function AuthCallbackScreen() {
         await actionSetSessionFromAuthCallback(callback);
 
         if (isActive) {
-          router.replace("/");
+          router.replace(CALLBACK_COPY_BY_FLOW[callback.flow].destination);
         }
       } catch (error) {
         if (!isActive) {
@@ -51,7 +83,7 @@ export default function AuthCallbackScreen() {
           message:
             error instanceof Error
               ? error.message
-              : "Unable to confirm your email. Please try again.",
+              : "Unable to use this email link. Please try again.",
         });
       }
     };
@@ -68,14 +100,16 @@ export default function AuthCallbackScreen() {
     sessionError?.url === linkingUrl ? sessionError.message : null;
   const errorMessage = callbackError || activeSessionError;
   const hasError = Boolean(errorMessage);
+  const flow = callback?.type === "session" ? callback.flow : "unknown";
+  const copy = CALLBACK_COPY_BY_FLOW[flow];
 
   return (
     <AuthScreen
-      eyebrow="EMAIL CONFIRMATION"
-      title={hasError ? "We couldn't confirm your email" : "Confirming your email"}
+      eyebrow={copy.eyebrow}
+      title={hasError ? "We couldn't open this link" : copy.title}
       subtitle={
         hasError
-          ? "Return to log in or open a newer confirmation email and try again."
+          ? "Return to log in or open a newer email and try again."
           : "This should only take a moment."
       }
     >
@@ -107,7 +141,7 @@ export default function AuthCallbackScreen() {
               color={colors.textLightGrey}
               style={styles.message}
             >
-              Verifying your confirmation link and securely signing you in.
+              {copy.message}
             </TitleRegular>
           </>
         )}

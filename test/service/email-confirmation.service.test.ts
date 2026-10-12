@@ -2,11 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 
 import { parseAuthCallbackUrl } from "@/lib/auth/auth-callback";
 import {
+  actionRequestPasswordReset,
   actionSetSessionFromAuthCallback,
+  actionSignInWithEmail,
   actionSignUpWithEmail,
+  actionUpdatePassword,
 } from "@/lib/supabase/actions";
 
-import { createPublicClient } from "./local-supabase";
+import { adminClient, createPublicClient } from "./local-supabase";
 
 vi.mock("expo-secure-store", () => ({
   deleteItemAsync: vi.fn(),
@@ -37,7 +40,7 @@ async function getMailpitJson<T>(path: string) {
   return (await response.json()) as T;
 }
 
-async function waitForConfirmationEmail(email: string) {
+async function waitForAuthEmail(email: string) {
   const deadline = Date.now() + 3_000;
   const query = new URLSearchParams({
     query: `to:"${email}"`,
@@ -60,17 +63,19 @@ async function waitForConfirmationEmail(email: string) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
-  throw new Error(`Mailpit did not receive a confirmation email for ${email}`);
+  throw new Error(
+    `Mailpit did not receive an authentication email for ${email}`,
+  );
 }
 
-function getConfirmationUrl(html: string) {
+function getAuthActionUrl(html: string) {
   const href = html.match(
     /href=["']([^"']*\/auth\/v1\/verify[^"']*)["']/i,
   )?.[1];
 
   if (!href) {
     throw new Error(
-      "The confirmation email did not contain a verification URL",
+      "The authentication email did not contain a verification URL",
     );
   }
 
@@ -95,8 +100,8 @@ describe("email confirmation", () => {
     expect(signUp.user?.email).toBe(email);
     expect(signUp.session).toBeNull();
 
-    const message = await waitForConfirmationEmail(email);
-    const confirmationResponse = await fetch(getConfirmationUrl(message.HTML), {
+    const message = await waitForAuthEmail(email);
+    const confirmationResponse = await fetch(getAuthActionUrl(message.HTML), {
       redirect: "manual",
     });
     const callbackUrl = confirmationResponse.headers.get("location");
@@ -122,5 +127,57 @@ describe("email confirmation", () => {
 
     expect(session.user.email).toBe(email);
     expect(session.user.email_confirmed_at).toBeTruthy();
+  });
+
+  it("resets a password through Mailpit and signs in with the new password", async () => {
+    const suffix = crypto.randomUUID().replaceAll("-", "").slice(0, 10);
+    const email = `recover_${suffix}@service-test.local`;
+    const oldPassword = "old-service-test-password";
+    const newPassword = "new-service-test-password";
+    const { data: createdUser, error: createError } =
+      await adminClient.auth.admin.createUser({
+        email,
+        password: oldPassword,
+        email_confirm: true,
+        user_metadata: { username: `recover_${suffix}` },
+      });
+
+    expect(createError).toBeNull();
+    expect(createdUser.user?.email).toBe(email);
+
+    const recoveryClient = createPublicClient();
+    await actionRequestPasswordReset(
+      { email, redirectTo: EMAIL_REDIRECT_URL },
+      recoveryClient,
+    );
+
+    const message = await waitForAuthEmail(email);
+    const recoveryResponse = await fetch(getAuthActionUrl(message.HTML), {
+      redirect: "manual",
+    });
+    const callbackUrl = recoveryResponse.headers.get("location");
+
+    expect(recoveryResponse.status).toBeGreaterThanOrEqual(300);
+    expect(recoveryResponse.status).toBeLessThan(400);
+    expect(callbackUrl).toMatch(/^wafflelogv2-dev:\/\/auth\/callback(?:\?|#)/);
+
+    const callback = parseAuthCallbackUrl(callbackUrl!);
+    expect(callback.type).toBe("session");
+
+    if (callback.type !== "session") {
+      throw new Error(callback.message);
+    }
+
+    expect(callback.flow).toBe("recovery");
+    await actionSetSessionFromAuthCallback(callback, recoveryClient);
+    await actionUpdatePassword({ password: newPassword }, recoveryClient);
+    await recoveryClient.auth.signOut({ scope: "local" });
+
+    const signIn = await actionSignInWithEmail(
+      { email, password: newPassword },
+      createPublicClient(),
+    );
+
+    expect(signIn.session?.user.email).toBe(email);
   });
 });

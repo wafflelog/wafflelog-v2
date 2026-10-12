@@ -12,6 +12,20 @@ describe("parseAuthCallbackUrl", () => {
       type: "session",
       accessToken: "access-token",
       refreshToken: "refresh-token",
+      flow: "signup",
+    });
+  });
+
+  it("identifies a password recovery callback", () => {
+    expect(
+      parseAuthCallbackUrl(
+        "wafflelogv2-dev://auth/callback#access_token=access-token&refresh_token=refresh-token&type=recovery",
+      ),
+    ).toEqual({
+      type: "session",
+      accessToken: "access-token",
+      refreshToken: "refresh-token",
+      flow: "recovery",
     });
   });
 
@@ -24,6 +38,7 @@ describe("parseAuthCallbackUrl", () => {
       type: "session",
       accessToken: "access-token",
       refreshToken: "refresh-token",
+      flow: "unknown",
     });
   });
 
@@ -45,8 +60,7 @@ describe("parseAuthCallbackUrl", () => {
       ),
     ).toEqual({
       type: "error",
-      message:
-        "Unable to confirm your email. The link may be invalid or expired.",
+      message: "Unable to use this email link. It may be invalid or expired.",
     });
   });
 });

@@ -111,6 +111,15 @@ export type SignInInput = {
   password: string;
 };
 
+export type RequestPasswordResetInput = {
+  email: string;
+  redirectTo?: string;
+};
+
+export type UpdatePasswordInput = {
+  password: string;
+};
+
 export type AuthCallbackSessionInput = {
   accessToken: string;
   refreshToken: string;
@@ -1182,10 +1191,43 @@ export async function actionSetSessionFromAuthCallback(
   }
 
   if (!data.session) {
-    throw new Error("The confirmation link did not create a session");
+    throw new Error("The email link did not create a session");
   }
 
   return data.session;
+}
+
+export async function actionRequestPasswordReset(
+  input: RequestPasswordResetInput,
+  client: SupabaseClient<Database> = supabase,
+) {
+  const { data, error } = await client.auth.resetPasswordForEmail(
+    input.email.trim(),
+    {
+      redirectTo: input.redirectTo,
+    },
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function actionUpdatePassword(
+  input: UpdatePasswordInput,
+  client: SupabaseClient<Database> = supabase,
+) {
+  const { data, error } = await client.auth.updateUser({
+    password: input.password,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
 }
 
 export async function actionListPublicUsers(
