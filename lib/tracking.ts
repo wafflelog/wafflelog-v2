@@ -64,6 +64,9 @@ export type TrackingEventParameters = {
   trip_invite_responded: {
     outcome: "accepted" | "rejected";
   };
+  pin_map_opened: {
+    provider: "apple_maps" | "google_maps";
+  };
 };
 
 export type TrackingEventName = keyof TrackingEventParameters;

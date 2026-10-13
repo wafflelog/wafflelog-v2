@@ -19,6 +19,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -47,9 +48,14 @@ import {
 import { useSystemMessage } from "@/hook/use-system-message";
 import { canEditPin } from "@/lib/helper/permissions";
 import { getPinHeaderTimeLabel } from "@/lib/helper/pin";
+import {
+  openLocationInMaps,
+  type ExternalMapProvider,
+} from "@/lib/maps/open-location";
 import { openLocalDocument } from "@/lib/media/open-document";
 import { actionGetLocalPinLocation } from "@/lib/sqlite/model/pin-location";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
+import { sendTrackingEvent } from "@/lib/tracking";
 import {
   CalendarDays as CalendarDaysIcon,
   MapPin as MapPinIcon,
@@ -239,6 +245,31 @@ export default function PinIndexScreen() {
     });
   };
 
+  const handleOpenMap = async () => {
+    if (!localPinLocation) {
+      return;
+    }
+
+    const provider: ExternalMapProvider =
+      Platform.OS === "ios" ? "apple_maps" : "google_maps";
+
+    try {
+      await openLocationInMaps(
+        {
+          latitude: localPinLocation.latitude,
+          longitude: localPinLocation.longitude,
+          name: localPinLocation.displayName,
+          placeId: localPinLocation.placeId,
+        },
+        provider,
+      );
+      void sendTrackingEvent("pin_map_opened", { provider });
+    } catch (error) {
+      console.error("Failed to open pin location in Maps", error);
+      showMessage("Unable to open this location in Maps", "error");
+    }
+  };
+
   if (!pin || !localPin || !session?.user.id) {
     return (
       <View
@@ -360,7 +391,8 @@ export default function PinIndexScreen() {
             </View>
             <CardPinLocationRegular
               pin={pin}
-              onPress={
+              onOpenMap={localPinLocation ? handleOpenMap : undefined}
+              onChangePlace={
                 isPinEditable
                   ? () => {
                       router.push({
