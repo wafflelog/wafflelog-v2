@@ -20,6 +20,7 @@ import {
   actionRejectTripInvitation,
   type AppNotification,
 } from "@/lib/supabase/actions";
+import { sendTrackingEvent } from "@/lib/tracking";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -183,6 +184,10 @@ export default function NotificationCenterScreen() {
       setActiveNotificationId(notificationId);
     },
     onSuccess: (response) => {
+      void sendTrackingEvent("trip_invite_responded", {
+        outcome: response,
+      });
+
       void queryClient.invalidateQueries({
         queryKey: getAppNotificationsQueryKey(session?.user.id),
       });

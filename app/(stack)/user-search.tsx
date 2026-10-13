@@ -16,6 +16,7 @@ import {
   actionCreateTripInvitation,
   actionListPublicUsers,
 } from "@/lib/supabase/actions";
+import { sendTrackingEvent } from "@/lib/tracking";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -67,6 +68,10 @@ export default function UserSearchScreen() {
       const invitedUser = availableUsers.find(
         (user) => user.id === variables.inviteeUserId,
       );
+
+      void sendTrackingEvent("trip_invite_sent", {
+        channel: "in_app",
+      });
 
       setLocallyInvitedUserIds((currentUserIds) =>
         currentUserIds.includes(variables.inviteeUserId)

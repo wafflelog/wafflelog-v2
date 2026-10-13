@@ -31,10 +31,18 @@ import { useAuthSession } from "@/hook/use-auth-session";
 import { isPlanningApiError } from "@/lib/ai-trip-planning/errors";
 import { adaptPlanningResultToPlanPreview } from "@/lib/ai-trip-planning/plan-adapter";
 import { buildCreatePlanningSessionRequest } from "@/lib/ai-trip-planning/session-request";
+import {
+  getPlanningFailureReason,
+  getTripDurationBucket,
+} from "@/lib/ai-trip-planning/tracking";
 import { actionImportAiPlanningResult } from "@/lib/ai-trip-planning/trip-import";
 import { type CreatePlanningRefinementRequest } from "@/lib/ai-trip-planning/types";
 import { type LocalAiPlanningSession } from "@/lib/sqlite/model/ai-planning-session";
-import { sendTrackingEvent } from "@/lib/tracking";
+import {
+  getCountBucket,
+  getRefinementCountBucket,
+  sendTrackingEvent,
+} from "@/lib/tracking";
 import {
   type AiPlannerDraftSelection,
   type AiPlannerIntakeAnswers,
@@ -42,7 +50,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { MessageCircle, ScrollText } from "lucide-react-native";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -116,6 +124,10 @@ export default function AiTripPlannerScreen() {
     });
   const [localImportError, setLocalImportError] = useState<string | null>(null);
   const isImportingRef = useRef(false);
+  const trackedPlanningSessionIdsRef = useRef(new Set<string>());
+  const trackedRefinementJobIdsRef = useRef(new Set<string>());
+  const trackedDraftJobIdsRef = useRef(new Set<string>());
+  const trackedPlanningFailureKeysRef = useRef(new Set<string>());
   const [openedDraftJobId, setOpenedDraftJobId] = useState<string | null>(null);
   const localPlanningSessions = useLocalAiPlanningSessions(userId);
   const recoverableSession = useMemo(
@@ -214,31 +226,102 @@ export default function AiTripPlannerScreen() {
       ? job.result
       : (planningSession.data?.currentRevision?.result ?? null);
 
+  useEffect(() => {
+    if (!planningContext || !job) {
+      return;
+    }
+
+    if (job.status === "completed") {
+      if (trackedDraftJobIdsRef.current.has(job.id)) {
+        return;
+      }
+
+      trackedDraftJobIdsRef.current.add(job.id);
+      void sendTrackingEvent("trip_assistant_draft_generated", {
+        draft_type: planningContext.operation,
+        duration_bucket: getTripDurationBucket(job.result.durationDays),
+      });
+      return;
+    }
+
+    if (job.status !== "failed") {
+      return;
+    }
+
+    const failureKey = `job:${job.id}`;
+
+    if (trackedPlanningFailureKeysRef.current.has(failureKey)) {
+      return;
+    }
+
+    trackedPlanningFailureKeysRef.current.add(failureKey);
+    void sendTrackingEvent("trip_assistant_failed", {
+      stage:
+        planningContext.operation === "refinement" ? "refine" : "generate",
+      reason: "server",
+    });
+  }, [job, planningContext]);
+
+  useEffect(() => {
+    if (!planningContext || (job && isTerminalPlanningJob(job))) {
+      return;
+    }
+
+    const failure = planningJob.isPollingTimedOut
+      ? {
+          key: `poll-timeout:${planningContext.jobId}`,
+          reason: "timeout" as const,
+        }
+      : planningJob.isError
+        ? {
+            key: `poll-error:${planningContext.jobId}`,
+            reason: getPlanningFailureReason(planningJob.error),
+          }
+        : null;
+
+    if (
+      !failure ||
+      trackedPlanningFailureKeysRef.current.has(failure.key)
+    ) {
+      return;
+    }
+
+    trackedPlanningFailureKeysRef.current.add(failure.key);
+    void sendTrackingEvent("trip_assistant_failed", {
+      stage: "poll",
+      reason: failure.reason,
+    });
+  }, [
+    job,
+    planningContext,
+    planningJob.error,
+    planningJob.isError,
+    planningJob.isPollingTimedOut,
+  ]);
+
   const importTrip = useMutation({
     mutationFn: actionImportAiPlanningResult,
-    onSuccess: (imported) => {
+    onSuccess: (imported, input) => {
       if (!imported.alreadyImported) {
         void sendTrackingEvent("trip_created", {
           creation_method: "assistant",
           has_start_date: Boolean(imported.trip.startDate),
         });
 
-        const importedItemType = (
-          [
-            [imported.pins.length, "pin"],
-            [imported.checklistItems.length, "checklist"],
-            [imported.notes.length, "note"],
-            [imported.referenceLinks.length, "link"],
-          ] as const
-        ).find(([itemCount]) => itemCount > 0)?.[1];
+        const selectedItemCount =
+          input.selection.itineraryItemIds.length +
+          input.selection.checklistItems.length;
+        const revisionNumber =
+          job?.status === "completed"
+            ? job.revisionNumber
+            : (planningSession.data?.currentRevision?.revisionNumber ?? 1);
 
-        if (importedItemType) {
-          void sendTrackingEvent("trip_item_created", {
-            item_type: importedItemType,
-            source: "assistant_import",
-            user_role: "owner",
-          });
-        }
+        void sendTrackingEvent("trip_assistant_plan_accepted", {
+          selected_item_count_bucket: getCountBucket(selectedItemCount),
+          refinement_count_bucket: getRefinementCountBucket(
+            revisionNumber - 1,
+          ),
+        });
       }
 
       setReviewVisible(false);
@@ -255,6 +338,10 @@ export default function AiTripPlannerScreen() {
       router.replace(`/trip/${imported.trip.id}`);
     },
     onError: (error) => {
+      void sendTrackingEvent("trip_assistant_failed", {
+        stage: "import",
+        reason: getPlanningFailureReason(error),
+      });
       console.error("AI trip import failed", error);
     },
     onSettled: () => {
@@ -341,6 +428,14 @@ export default function AiTripPlannerScreen() {
         idempotencyKey: attempt.idempotencyKey,
       });
 
+      if (!trackedPlanningSessionIdsRef.current.has(result.planningSession.id)) {
+        trackedPlanningSessionIdsRef.current.add(result.planningSession.id);
+        void sendTrackingEvent("trip_assistant_started", {
+          entry_point: "home",
+          resumed: false,
+        });
+      }
+
       setPlanningContext({
         answers: attempt.answers,
         sessionId: result.planningSession.id,
@@ -348,6 +443,10 @@ export default function AiTripPlannerScreen() {
         operation: "initial",
       });
     } catch (error) {
+      void sendTrackingEvent("trip_assistant_failed", {
+        stage: "create",
+        reason: getPlanningFailureReason(error),
+      });
       // The mutation exposes its normalized error to the progress UI.
       console.error("Planning submission failed", error);
     }
@@ -379,6 +478,10 @@ export default function AiTripPlannerScreen() {
       void executeSubmission(attempt);
     } catch (error) {
       setLocalSubmissionError(getPlanningErrorMessage(error));
+      void sendTrackingEvent("trip_assistant_failed", {
+        stage: "create",
+        reason: "validation",
+      });
     }
   };
 
@@ -430,6 +533,14 @@ export default function AiTripPlannerScreen() {
 
     if (!apiSession) {
       void planningSession.refetch();
+    }
+
+    if (!trackedPlanningSessionIdsRef.current.has(recoverableSession.id)) {
+      trackedPlanningSessionIdsRef.current.add(recoverableSession.id);
+      void sendTrackingEvent("trip_assistant_started", {
+        entry_point: "unfinished_plan",
+        resumed: true,
+      });
     }
 
     setRecoveryDismissed(true);
@@ -490,6 +601,11 @@ export default function AiTripPlannerScreen() {
         idempotencyKey: attempt.idempotencyKey,
       });
 
+      if (!trackedRefinementJobIdsRef.current.has(result.refinement.job.id)) {
+        trackedRefinementJobIdsRef.current.add(result.refinement.job.id);
+        void sendTrackingEvent("trip_assistant_refinement_requested", {});
+      }
+
       setRefinementAttempt({
         ...attempt,
         messageId: result.refinement.messageId,
@@ -505,6 +621,10 @@ export default function AiTripPlannerScreen() {
       );
       void planningSession.refetch();
     } catch (error) {
+      void sendTrackingEvent("trip_assistant_failed", {
+        stage: "refine",
+        reason: getPlanningFailureReason(error),
+      });
       // The mutation exposes its normalized error to the progress UI.
       console.error("Planning refinement failed", error);
     }

@@ -4,7 +4,7 @@
 
 Initial launch scope agreed.
 
-Last reviewed: 12 October 2026.
+Last reviewed: 13 October 2026.
 
 Firebase Analytics is configured for the development app. Manual screen-view
 events have been validated in the Google Analytics dashboard.
@@ -53,9 +53,14 @@ the role from reliable trip-membership context. It must not be guessed.
 
 ## Funnel 2: Trip assistant
 
+The primary product question is:
+
+> Is the trip assistant useful and sufficiently aligned with what users expect?
+
 ```text
 trip_assistant_started
 → trip_assistant_draft_generated
+→ trip_assistant_refinement_requested (optional)
 → trip_assistant_plan_accepted
 ```
 
@@ -65,18 +70,57 @@ from a technical failure.
 | Event | Trigger | Parameters |
 | --- | --- | --- |
 | `trip_assistant_started` | A new or unfinished session is opened | `entry_point`, `resumed` |
-| `trip_assistant_draft_generated` | A usable draft is returned | `duration_bucket` |
+| `trip_assistant_draft_generated` | A usable draft is returned | `draft_type`, `duration_bucket` |
+| `trip_assistant_refinement_requested` | The API accepts a request to revise a draft | None |
 | `trip_assistant_plan_accepted` | The draft is accepted and imported | `selected_item_count_bucket`, `refinement_count_bucket` |
 | `trip_assistant_failed` | Planning or import fails | `stage`, `reason` |
 
 Allowed values:
 
 - `entry_point`: `home`, `unfinished_plan`
-- `stage`: `create`, `poll`, `refine`, `import`
+- `draft_type`: `initial`, `refinement`
+- `stage`: `create`, `generate`, `poll`, `refine`, `import`
 - `reason`: `network`, `timeout`, `authentication`, `server`, `validation`, `unknown`
+
+`generate` identifies a planning job that failed on the service. `poll` is
+reserved for client-side retrieval failures and polling timeouts. User-requested
+cancellation is not recorded as a failure.
 
 The destination, trip brief, refinement feedback, and generated content must
 never be sent to analytics.
+
+### Assistant quality measures
+
+- **First-draft acceptance rate:** accepted plans with zero refinements divided
+  by generated initial drafts.
+- **Refinement rate:** users requesting at least one change divided by users
+  receiving a draft.
+- **Post-refinement acceptance rate:** refined plans eventually accepted divided
+  by plans where a refinement was requested.
+- **Abandonment after draft:** drafts followed by neither refinement nor
+  acceptance.
+- **Refinement-count distribution:** the bucket recorded when the user accepts
+  a plan.
+
+Refinement is a useful proxy for alignment, but it is not a perfect accuracy
+measure. A user may request a change because their preference changed rather
+than because the draft was wrong. Acceptance, refinement, and abandonment
+together provide the initial quality signal.
+
+### Monetisation relevance
+
+These events connect assistant usefulness to unit economics:
+
+- first-draft acceptance indicates the lowest model cost per useful trip;
+- refinements followed by acceptance show that conversational revision adds
+  value;
+- refinements followed by abandonment indicate model cost without a useful
+  outcome;
+- the refinement-count distribution helps define a sensible revision allowance
+  for a future AI Trip Pass.
+
+Analytics measures behaviour only. Server-side planning-job usage remains the
+authoritative source for token cost, credits, and billing.
 
 ## Funnel 3: Collaboration
 
@@ -97,7 +141,8 @@ Allowed values:
 
 An accepted invitation alone does not prove collaboration. A later
 `trip_item_created` event with `user_role: companion` shows that the companion
-contributed to the trip.
+contributed to the trip. Invitation sending and response tracking are complete;
+reliable companion-contribution attribution remains deferred.
 
 ## Screen tracking
 
@@ -149,8 +194,8 @@ and stored content. Analytics is used for behavioural funnels and trends.
 1. **Complete:** validate manual screen-view events in Google Analytics.
 2. Add a central, typed event catalogue and safe tracking helpers.
 3. **Complete:** instrument the activation funnel.
-4. Instrument the trip-assistant funnel.
-5. Instrument the collaboration funnel.
+4. **Complete:** instrument the trip-assistant funnel.
+5. **Complete:** instrument the invitation lifecycle in the collaboration funnel.
 6. Review the collected data before adding more events.
 
 ## Deferred events

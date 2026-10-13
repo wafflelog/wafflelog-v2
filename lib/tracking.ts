@@ -4,11 +4,19 @@ const analytics = getAnalytics();
 
 type CountBucket = "0" | "1" | "2_5" | "6_10" | "11_plus";
 type RefinementCountBucket = "0" | "1" | "2_3" | "4_plus";
-type TripDurationBucket =
+export type TripDurationBucket =
   | "1_3_days"
   | "4_7_days"
   | "8_14_days"
   | "15_plus";
+
+export type TripAssistantFailureReason =
+  | "network"
+  | "timeout"
+  | "authentication"
+  | "server"
+  | "validation"
+  | "unknown";
 
 export type TrackingEventParameters = {
   sign_up: {
@@ -38,21 +46,17 @@ export type TrackingEventParameters = {
     resumed: boolean;
   };
   trip_assistant_draft_generated: {
+    draft_type: "initial" | "refinement";
     duration_bucket: TripDurationBucket;
   };
+  trip_assistant_refinement_requested: Record<string, never>;
   trip_assistant_plan_accepted: {
     selected_item_count_bucket: CountBucket;
     refinement_count_bucket: RefinementCountBucket;
   };
   trip_assistant_failed: {
-    stage: "create" | "poll" | "refine" | "import";
-    reason:
-      | "network"
-      | "timeout"
-      | "authentication"
-      | "server"
-      | "validation"
-      | "unknown";
+    stage: "create" | "generate" | "poll" | "refine" | "import";
+    reason: TripAssistantFailureReason;
   };
   trip_invite_sent: {
     channel: "in_app";
@@ -63,6 +67,40 @@ export type TrackingEventParameters = {
 };
 
 export type TrackingEventName = keyof TrackingEventParameters;
+
+const COUNT_BUCKETS = [
+  { maximum: 0, value: "0" },
+  { maximum: 1, value: "1" },
+  { maximum: 5, value: "2_5" },
+  { maximum: 10, value: "6_10" },
+] as const;
+
+const REFINEMENT_COUNT_BUCKETS = [
+  { maximum: 0, value: "0" },
+  { maximum: 1, value: "1" },
+  { maximum: 3, value: "2_3" },
+] as const;
+
+export function getCountBucket(count: number): CountBucket {
+  const normalizedCount = Math.max(0, Math.floor(count));
+
+  return (
+    COUNT_BUCKETS.find(({ maximum }) => normalizedCount <= maximum)?.value ??
+    "11_plus"
+  );
+}
+
+export function getRefinementCountBucket(
+  count: number,
+): RefinementCountBucket {
+  const normalizedCount = Math.max(0, Math.floor(count));
+
+  return (
+    REFINEMENT_COUNT_BUCKETS.find(
+      ({ maximum }) => normalizedCount <= maximum,
+    )?.value ?? "4_plus"
+  );
+}
 
 export const sendTrackingEvent = async <EventName extends TrackingEventName>(
   eventName: EventName,
