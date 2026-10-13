@@ -77,6 +77,12 @@
         "projectId": "6da4a283-28db-422d-9518-6a89b5ea677a"
       }
     },
-    "owner": "wafflelog"
+    "owner": "wafflelog",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6da4a283-28db-422d-9518-6a89b5ea677a"
+    }
   }
 }

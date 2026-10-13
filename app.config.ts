@@ -12,6 +12,14 @@ const firebaseFilesByVariant: Partial<
     ios: "./firebase/development/GoogleService-Info.plist",
     android: "./firebase/development/google-services.json",
   },
+  preview: {
+    ios: "./firebase/preview/GoogleService-Info.plist",
+    android: "./firebase/preview/google-services.json",
+  },
+  production: {
+    ios: "./firebase/production/GoogleService-Info.plist",
+    android: "./firebase/production/google-services.json",
+  },
 };
 
 function getAppVariant(): AppVariant {
