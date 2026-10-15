@@ -1,5 +1,9 @@
 import { buildUUID } from "@/lib/sqlite/utils";
-import { PlanningApiError, isPlanningApiError } from "./errors";
+import {
+  PlanningApiError,
+  isPlanningApiError,
+  type PlanningApiErrorCode,
+} from "./errors";
 import type {
   CreatePlanningRefinementRequest,
   CreatePlanningSessionRequest,
@@ -141,6 +145,19 @@ function readErrorDetail(body: unknown) {
   return null;
 }
 
+function readErrorCode(body: unknown): PlanningApiErrorCode | null {
+  if (
+    typeof body === "object" &&
+    body !== null &&
+    "code" in body &&
+    typeof body.code === "string"
+  ) {
+    return body.code as PlanningApiErrorCode;
+  }
+
+  return null;
+}
+
 export function createPlanningRequestId() {
   return buildUUID();
 }
@@ -222,11 +239,13 @@ export function createPlanningApiClient(
 
     if (!response.ok) {
       const detail = readErrorDetail(responseBody);
+      const code = readErrorCode(responseBody);
 
       throw new PlanningApiError(
         detail ?? `Planning service request failed (${response.status})`,
         {
           kind: response.status === 401 ? "authentication" : "api",
+          code: code ?? undefined,
           status: response.status,
           detail: detail ?? undefined,
         },

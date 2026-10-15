@@ -3,6 +3,7 @@ import { DataBootstrapGate } from "@/components/global/data-bootstrap-gate";
 import { GlobalDataSyncMessages } from "@/components/global/data-sync-messages";
 import { DataSyncProvider } from "@/components/global/data-sync-provider";
 import { DatabaseInitializationGate } from "@/components/global/database-initialization-gate";
+import { RevenueCatInitialization } from "@/components/global/revenuecat-initialization";
 import { AuthSessionProvider } from "@/hook/use-auth-session";
 import { useRouteChange } from "@/hook/use-route-change";
 import {
@@ -43,6 +44,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <DatabaseInitializationGate>
         <AuthSessionProvider>
+          <RevenueCatInitialization />
           <DataSyncProvider>
             <GlobalAppNotifications />
             <GlobalDataSyncMessages />

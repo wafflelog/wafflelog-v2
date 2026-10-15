@@ -114,6 +114,11 @@ export interface components {
       eventsUrl?: null;
     };
     ErrorResponse: {
+      /** @enum {string} */
+      code?:
+        | "TRIPPASS_REQUIRED"
+        | "TRIPPASS_DEBIT_FAILED"
+        | "TRIPPASS_REVERSAL_FAILED";
       detail: string;
     };
     PlanningRefinementAccepted: {
@@ -384,6 +389,21 @@ export interface operations {
           "application/json": components["schemas"]["ErrorResponse"];
         };
       };
+      /** @description The user needs a Trip Pass for this planning session. */
+      402: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "code": "TRIPPASS_REQUIRED",
+           *       "detail": "A Trip Pass is required to start a new planning session."
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponse"];
+        };
+      };
       /** @description The idempotency key has already been used for another request. */
       409: {
         headers: {
@@ -412,17 +432,12 @@ export interface operations {
           "application/json": components["schemas"]["ErrorResponse"];
         };
       };
-      /** @description Agent Server could not accept the planning job. */
+      /** @description Trip Pass funding or the Agent Server could not accept the planning job. */
       503: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          /**
-           * @example {
-           *       "detail": "Planning service is unavailable."
-           *     }
-           */
           "application/json": components["schemas"]["ErrorResponse"];
         };
       };

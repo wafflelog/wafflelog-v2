@@ -179,10 +179,48 @@ describe("planning API client", () => {
       ),
     ).rejects.toMatchObject({
       kind: "api",
+      code: null,
       status: 409,
       detail: "Idempotency key conflicts with an earlier request.",
     });
   });
+
+  it.each([
+    {
+      status: 402,
+      code: "TRIPPASS_REQUIRED",
+      detail: "A Trip Pass is required to start a new planning session.",
+    },
+    {
+      status: 503,
+      code: "TRIPPASS_DEBIT_FAILED",
+      detail: "The Trip Pass could not be used. Please try again.",
+    },
+  ] as const)(
+    "preserves the $code API error code",
+    async ({ status, code, detail }) => {
+      const fetchMock = vi
+        .fn<PlanningFetch>()
+        .mockResolvedValue(jsonResponse({ code, detail }, { status }));
+      const client = createClient(fetchMock);
+
+      await expect(
+        client.createPlanningSession(
+          {
+            destination: "Kyoto",
+            durationDays: 3,
+            tripBrief: "A relaxed trip.",
+          },
+          "request-1",
+        ),
+      ).rejects.toMatchObject({
+        kind: "api",
+        code,
+        status,
+        detail,
+      });
+    },
+  );
 
   it("normalizes network failures", async () => {
     const cause = new TypeError("fetch failed");

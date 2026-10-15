@@ -1,5 +1,6 @@
 import { AppHeader } from "@/components/header/app-header";
 import { HeaderBackButton } from "@/components/header/icon-button";
+import { RevenueCatTestPurchaseCard } from "@/components/revenuecat/test-purchase-card";
 import { UIText } from "@/components/ui/text";
 import {
   borderRadiuses,
@@ -80,6 +81,18 @@ export default function SettingsScreen() {
             </UIText>
           </View>
         </View>
+
+        {__DEV__ && (
+          <>
+            <UIText
+              style={[styles.sectionLabel, styles.testStoreSectionLabel]}
+              weight="700"
+            >
+              Test Store
+            </UIText>
+            <RevenueCatTestPurchaseCard />
+          </>
+        )}
 
         <UIText
           style={[styles.sectionLabel, styles.notificationSectionLabel]}
@@ -177,6 +190,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   notificationSectionLabel: {
+    marginTop: gaps.lg,
+  },
+  testStoreSectionLabel: {
     marginTop: gaps.lg,
   },
   accountCard: {
