@@ -7,7 +7,7 @@ import {
   semanticColors,
 } from "@/constants/theme";
 import { getRevenueCatCatalogueSnapshot } from "@/lib/revenuecat/catalog";
-import { purchaseTripAssistantPass } from "@/lib/revenuecat/purchase";
+import { presentTripPassPaywall } from "@/lib/revenuecat/paywall";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,42 +16,38 @@ import {
   View,
 } from "react-native";
 
-type ProductDetails = {
-  balance: number;
-  price: string;
-};
+async function getTripPassBalance() {
+  const catalogue = await getRevenueCatCatalogueSnapshot();
+
+  if (!catalogue?.offering || !catalogue.tripAssistantCurrency) {
+    throw new Error("The Test Store Offering or TRIPPASS currency is unavailable.");
+  }
+
+  return catalogue.tripAssistantCurrency.balance;
+}
 
 export function RevenueCatTestPurchaseCard() {
-  const [productDetails, setProductDetails] =
-    useState<ProductDetails | null>(null);
+  const [balance, setBalance] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [isPresenting, setIsPresenting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
-    const loadProductDetails = async () => {
+    const loadBalance = async () => {
       try {
-        const catalogue = await getRevenueCatCatalogueSnapshot();
-        const firstPackage = catalogue?.offering?.packages[0];
-
-        if (!catalogue?.tripAssistantCurrency || !firstPackage) {
-          throw new Error("The test product or TRIPPASS currency is unavailable.");
-        }
+        const nextBalance = await getTripPassBalance();
 
         if (isMounted) {
-          setProductDetails({
-            balance: catalogue.tripAssistantCurrency.balance,
-            price: firstPackage.price,
-          });
+          setBalance(nextBalance);
         }
       } catch (error) {
         if (isMounted) {
           setMessage(
             error instanceof Error
               ? error.message
-              : "Unable to load the Test Store product.",
+              : "Unable to load the RevenueCat Offering.",
           );
         }
       } finally {
@@ -61,40 +57,54 @@ export function RevenueCatTestPurchaseCard() {
       }
     };
 
-    void loadProductDetails();
+    void loadBalance();
 
     return () => {
       isMounted = false;
     };
   }, []);
 
-  const handlePurchase = async () => {
-    setIsPurchasing(true);
+  const handleOpenPaywall = async () => {
+    if (isPresenting) {
+      return;
+    }
+
+    setIsPresenting(true);
     setMessage(null);
 
     try {
-      const result = await purchaseTripAssistantPass();
+      const result = await presentTripPassPaywall();
 
       switch (result.status) {
         case "cancelled":
-          setMessage("Purchase cancelled. Nothing was charged.");
           break;
-        case "purchased":
-          setProductDetails((currentDetails) => ({
-            balance: result.balance,
-            price: currentDetails?.price ?? "",
-          }));
-          setMessage("Test purchase completed successfully.");
+        case "purchased": {
+          if (result.balance !== null) {
+            setBalance(result.balance);
+          }
+          setMessage(
+            result.balance === null
+              ? "Purchase completed. Your pass balance will refresh shortly."
+              : `Purchase completed. ${result.balance} ${result.balance === 1 ? "pass" : "passes"} available.`,
+          );
           break;
+        }
+        case "restored": {
+          if (result.balance !== null) {
+            setBalance(result.balance);
+          }
+          setMessage("Purchases restored.");
+          break;
+        }
       }
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "The Test Store purchase failed.",
+          : "Unable to open the RevenueCat Paywall.",
       );
     } finally {
-      setIsPurchasing(false);
+      setIsPresenting(false);
     }
   };
 
@@ -106,36 +116,34 @@ export function RevenueCatTestPurchaseCard() {
             Trip Assistant Pass
           </UIText>
           <UIText style={styles.description}>
-            Development-only RevenueCat Test Store control.
+            Development-only RevenueCat Paywall preview.
           </UIText>
         </View>
         <UIText style={styles.balance} weight="700">
-          {isLoading ? "…" : `${productDetails?.balance ?? 0} passes`}
+          {isLoading ? "…" : `${balance ?? 0} passes`}
         </UIText>
       </View>
 
       <Pressable
-        accessibilityLabel="Buy one test Trip Assistant Pass"
+        accessibilityLabel="Open RevenueCat Trip Assistant Pass Paywall"
         accessibilityRole="button"
-        disabled={isLoading || isPurchasing || !productDetails}
-        onPress={() => void handlePurchase()}
+        disabled={isLoading || isPresenting || balance === null}
+        onPress={() => void handleOpenPaywall()}
         style={({ pressed }) => [
           styles.purchaseButton,
           pressed && styles.purchaseButtonPressed,
-          (isLoading || isPurchasing || !productDetails) &&
+          (isLoading || isPresenting || balance === null) &&
             styles.purchaseButtonDisabled,
         ]}
       >
-        {isPurchasing && (
+        {isPresenting && (
           <ActivityIndicator
             color={semanticColors.primaryActionContent}
             size="small"
           />
         )}
         <UIText style={styles.purchaseButtonText} weight="700">
-          {isPurchasing
-            ? "Purchasing…"
-            : `Buy test pass${productDetails ? ` · ${productDetails.price}` : ""}`}
+          {isPresenting ? "Opening…" : "Open RevenueCat Paywall"}
         </UIText>
       </Pressable>
 

@@ -37,6 +37,7 @@ import {
 } from "@/lib/ai-trip-planning/tracking";
 import { actionImportAiPlanningResult } from "@/lib/ai-trip-planning/trip-import";
 import { type CreatePlanningRefinementRequest } from "@/lib/ai-trip-planning/types";
+import { presentTripPassPaywall } from "@/lib/revenuecat/paywall";
 import { type LocalAiPlanningSession } from "@/lib/sqlite/model/ai-planning-session";
 import {
   getCountBucket,
@@ -67,6 +68,10 @@ type SubmissionAttempt = {
   idempotencyKey: string;
 };
 
+type SubmissionExecutionOptions = {
+  openPaywallOnTripPassRequired?: boolean;
+};
+
 type RefinementAttempt = {
   request: CreatePlanningRefinementRequest;
   idempotencyKey: string;
@@ -93,6 +98,12 @@ function getPlanningErrorMessage(error: unknown) {
   return "Something went wrong. Please try again.";
 }
 
+function isTripPassRequiredError(error: unknown) {
+  return (
+    isPlanningApiError(error) && error.code === "TRIPPASS_REQUIRED"
+  );
+}
+
 export default function AiTripPlannerScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -113,6 +124,8 @@ export default function AiTripPlannerScreen() {
   const [localSubmissionError, setLocalSubmissionError] = useState<
     string | null
   >(null);
+  const [isPresentingTripPassPaywall, setIsPresentingTripPassPaywall] =
+    useState(false);
   const [localRefinementError, setLocalRefinementError] = useState<
     string | null
   >(null);
@@ -411,7 +424,35 @@ export default function AiTripPlannerScreen() {
     !isRefinementBusy &&
     !cancelPlanningJob.isPending;
 
-  const executeSubmission = async (attempt: SubmissionAttempt) => {
+  async function openTripPassPaywall(attempt: SubmissionAttempt) {
+    if (isPresentingTripPassPaywall) {
+      return;
+    }
+
+    setIsPresentingTripPassPaywall(true);
+    setLocalSubmissionError(null);
+
+    try {
+      const result = await presentTripPassPaywall();
+
+      if (result.status === "cancelled") {
+        return;
+      }
+
+      await executeSubmission(attempt, {
+        openPaywallOnTripPassRequired: false,
+      });
+    } catch (error) {
+      setLocalSubmissionError(getPlanningErrorMessage(error));
+    } finally {
+      setIsPresentingTripPassPaywall(false);
+    }
+  }
+
+  async function executeSubmission(
+    attempt: SubmissionAttempt,
+    options: SubmissionExecutionOptions = {},
+  ) {
     if (!userId) {
       setLocalSubmissionError("You must be signed in to plan a trip.");
       return;
@@ -443,6 +484,13 @@ export default function AiTripPlannerScreen() {
         operation: "initial",
       });
     } catch (error) {
+      if (isTripPassRequiredError(error)) {
+        if (options.openPaywallOnTripPassRequired !== false) {
+          await openTripPassPaywall(attempt);
+        }
+        return;
+      }
+
       void sendTrackingEvent("trip_assistant_failed", {
         stage: "create",
         reason: getPlanningFailureReason(error),
@@ -450,7 +498,7 @@ export default function AiTripPlannerScreen() {
       // The mutation exposes its normalized error to the progress UI.
       console.error("Planning submission failed", error);
     }
-  };
+  }
 
   const handleStartPlanning = (answers: AiPlannerIntakeAnswers) => {
     if (createPlanningSession.isPending) {
@@ -488,6 +536,12 @@ export default function AiTripPlannerScreen() {
   const handleRetrySubmission = () => {
     if (submissionAttempt) {
       void executeSubmission(submissionAttempt);
+    }
+  };
+
+  const handleOpenTripPassPaywall = () => {
+    if (submissionAttempt) {
+      void openTripPassPaywall(submissionAttempt);
     }
   };
 
@@ -716,6 +770,9 @@ export default function AiTripPlannerScreen() {
     (createPlanningSession.error
       ? getPlanningErrorMessage(createPlanningSession.error)
       : null);
+  const tripPassRequired = isTripPassRequiredError(
+    createPlanningSession.error,
+  );
   const refinementError =
     localRefinementError ||
     (createPlanningRefinement.error
@@ -831,6 +888,17 @@ export default function AiTripPlannerScreen() {
     }
   } else if (createPlanningSession.isPending) {
     progressVariant = "submitting";
+  } else if (tripPassRequired && !planningContext) {
+    progressVariant = "submission-error";
+    progressTitle = "A Trip Assistant Pass is needed";
+    progressMessage =
+      localSubmissionError ??
+      "Choose a pass to start this planning session. Your answers are still here.";
+    primaryAction = {
+      label: isPresentingTripPassPaywall ? "Opening…" : "View Trip Passes",
+      onPress: handleOpenTripPassPaywall,
+      disabled: isPresentingTripPassPaywall || !submissionAttempt,
+    };
   } else if (submissionError && !planningContext) {
     progressVariant = "submission-error";
     progressMessage = submissionError;
