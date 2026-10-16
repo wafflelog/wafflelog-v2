@@ -60,6 +60,18 @@ describe("local content entities", () => {
       actionListPendingLocalNotes,
       actionSoftDeleteLocalNote,
     } = await import("@/lib/sqlite/model/note");
+    await testDb.runAsync(
+      `insert into user_profile (id, username, updated_at)
+       values (?, ?, ?), (?, ?, ?)`,
+      [
+        "user-a",
+        "owner",
+        "2026-01-01T00:00:00.000Z",
+        "user-b",
+        "companion",
+        "2026-01-01T00:00:00.000Z",
+      ],
+    );
     const pinNote = await actionCreateLocalNote({
       tripId: "trip-a",
       pinId: "pin-a",
@@ -83,10 +95,22 @@ describe("local content entities", () => {
 
     expect(pinNote).toMatchObject({ text: "Pin note", syncStatus: "pending" });
     await expect(actionListLocalNotesByPin("pin-a", "user-a")).resolves.toEqual([
-      expect.objectContaining({ id: pinNote.id }),
+      expect.objectContaining({
+        id: pinNote.id,
+        creatorUsername: "owner",
+      }),
     ]);
     await expect(actionListLocalNotesByTrip("trip-a", "user-a")).resolves.toEqual(
-      expect.arrayContaining([expect.objectContaining({ id: tripNote.id })]),
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: tripNote.id,
+          creatorUsername: "owner",
+        }),
+        expect.objectContaining({
+          id: otherUser.id,
+          creatorUsername: "companion",
+        }),
+      ]),
     );
     await expect(actionListPendingLocalNotes("user-a", 1)).resolves.toEqual([
       expect.objectContaining({ id: pinNote.id }),

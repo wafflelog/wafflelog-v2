@@ -1,4 +1,7 @@
+import { getUserDisplayName } from "./user-display";
+
 export type CreatorDisplayInput = {
+  userId: string;
   username: string | null;
   isCurrentUser: boolean;
 };
@@ -8,9 +11,9 @@ export function getCreatorDisplayName(creator?: CreatorDisplayInput | null) {
     return "Unknown creator";
   }
 
-  if (creator.isCurrentUser) {
-    return "You";
-  }
-
-  return creator.username ? `@${creator.username}` : "Unknown creator";
+  return getUserDisplayName(
+    creator,
+    creator.isCurrentUser ? creator.userId : null,
+    "Unknown creator",
+  );
 }

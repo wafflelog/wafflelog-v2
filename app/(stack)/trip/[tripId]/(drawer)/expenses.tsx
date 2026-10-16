@@ -20,6 +20,7 @@ import {
   getExpensePayerDisplayName,
 } from "@/lib/helper/expense";
 import { getPinTitle } from "@/lib/helper/pin";
+import { getUserDisplayName } from "@/lib/helper/user-display";
 import { actionListLocalExpensesByTrip } from "@/lib/sqlite/model/expense";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { type Currency } from "@/types/pin";
@@ -128,10 +129,11 @@ export default function TripExpensesScreen() {
     },
     new Map<string, string>(),
   );
-  const getUserDisplayName = (userId: string) =>
-    userId === session?.user.id
-      ? "You"
-      : `@${displayNameByUserId.get(userId) ?? "unknown"}`;
+  const getTripUserDisplayName = (userId: string) =>
+    getUserDisplayName(
+      { userId, username: displayNameByUserId.get(userId) },
+      session?.user.id,
+    );
 
   const tabs = availableCurrencies.map((currency) => ({
     id: currency,
@@ -176,7 +178,7 @@ export default function TripExpensesScreen() {
             </TitleRegular>
             {activeLedger.balances.map((balance) => (
               <View key={balance.userId} style={styles.ledgerRow}>
-                <UIText>{getUserDisplayName(balance.userId)}</UIText>
+                <UIText>{getTripUserDisplayName(balance.userId)}</UIText>
                 <UIText>
                   {Number(balance.net) > 0
                     ? `is owed ${balance.net}`
@@ -195,8 +197,8 @@ export default function TripExpensesScreen() {
                   <UIText
                     key={`${settlement.fromUserId}-${settlement.toUserId}`}
                   >
-                    {getUserDisplayName(settlement.fromUserId)} pays{" "}
-                    {getUserDisplayName(settlement.toUserId)} {settlement.amount}{" "}
+                    {getTripUserDisplayName(settlement.fromUserId)} pays{" "}
+                    {getTripUserDisplayName(settlement.toUserId)} {settlement.amount}{" "}
                     {activeLedger.currency}
                   </UIText>
                 ))}
@@ -242,9 +244,7 @@ export default function TripExpensesScreen() {
                     }),
                   },
                   participantNames: item.participants.map((participant) =>
-                    participant.userId === session?.user.id
-                      ? "You"
-                      : `@${participant.username ?? "unknown"}`,
+                    getUserDisplayName(participant, session?.user.id),
                   ),
                   creator: item.creator,
                 }}

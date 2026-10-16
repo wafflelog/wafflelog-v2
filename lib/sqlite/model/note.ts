@@ -10,6 +10,7 @@ export type LocalNote = {
   tripId: string;
   pinId: string | null;
   userId: string;
+  creatorUsername: string | null;
   text: string;
   createdAt: string;
   updatedAt: string;
@@ -40,12 +41,14 @@ function mapLocalNoteRow(row: {
   last_synced_at: string | null;
   sync_error: string | null;
   deleted_at: string | null;
+  creator_username?: string | null;
 }): LocalNote {
   return {
     id: row.id,
     tripId: row.trip_id,
     pinId: row.pin_id,
     userId: row.user_id,
+    creatorUsername: row.creator_username ?? null,
     text: row.text,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -145,23 +148,27 @@ export async function actionListLocalNotesByPin(pinId: string, _userId: string) 
     last_synced_at: string | null;
     sync_error: string | null;
     deleted_at: string | null;
+    creator_username: string | null;
   }>(
     `
       select
-        id,
-        trip_id,
-        pin_id,
-        user_id,
-        text,
-        created_at,
-        updated_at,
-        sync_status,
-        last_synced_at,
-        sync_error,
-        deleted_at
+        note.id,
+        note.trip_id,
+        note.pin_id,
+        note.user_id,
+        note.text,
+        note.created_at,
+        note.updated_at,
+        note.sync_status,
+        note.last_synced_at,
+        note.sync_error,
+        note.deleted_at,
+        user_profile.username as creator_username
       from note
-      where pin_id = ? and deleted_at is null
-      order by created_at desc
+      left join user_profile
+        on user_profile.id = note.user_id
+      where note.pin_id = ? and note.deleted_at is null
+      order by note.created_at desc
     `,
     [pinId],
   );
@@ -182,23 +189,29 @@ export async function actionListLocalNotesByTrip(tripId: string, _userId: string
     last_synced_at: string | null;
     sync_error: string | null;
     deleted_at: string | null;
+    creator_username: string | null;
   }>(
     `
       select
-        id,
-        trip_id,
-        pin_id,
-        user_id,
-        text,
-        created_at,
-        updated_at,
-        sync_status,
-        last_synced_at,
-        sync_error,
-        deleted_at
+        note.id,
+        note.trip_id,
+        note.pin_id,
+        note.user_id,
+        note.text,
+        note.created_at,
+        note.updated_at,
+        note.sync_status,
+        note.last_synced_at,
+        note.sync_error,
+        note.deleted_at,
+        user_profile.username as creator_username
       from note
-      where trip_id = ? and pin_id is null and deleted_at is null
-      order by created_at desc
+      left join user_profile
+        on user_profile.id = note.user_id
+      where note.trip_id = ?
+        and note.pin_id is null
+        and note.deleted_at is null
+      order by note.created_at desc
     `,
     [tripId],
   );

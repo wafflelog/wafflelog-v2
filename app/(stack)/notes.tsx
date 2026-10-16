@@ -133,7 +133,12 @@ export default function NotesScreen() {
     createdAt: note.createdAt,
     createdBy: {
       id: note.userId,
-      fullname: session?.user.user_metadata.username ?? "You",
+      fullname:
+        note.creatorUsername ??
+        (note.userId === session?.user.id
+          ? session.user.user_metadata.username
+          : null) ??
+        "Unknown",
     },
   }));
 
@@ -164,15 +169,19 @@ export default function NotesScreen() {
       />
       <FlatList
         data={notes}
-        renderItem={({ item, index }) => (
+        renderItem={({ item }) => (
           <CardNoteRegular
             note={item}
+            currentUserId={session!.user.id}
             containerStyle={styles.note}
-            variant={index % 2 === 0 ? "user" : "self"}
-            onDeletePress={() => {
-              setSelectedNoteId(item.id);
-              setIsDeleteDialogOpen(true);
-            }}
+            onDeletePress={
+              item.createdBy.id === session?.user.id
+                ? () => {
+                    setSelectedNoteId(item.id);
+                    setIsDeleteDialogOpen(true);
+                  }
+                : undefined
+            }
           />
         )}
         keyExtractor={(item) => item.id}

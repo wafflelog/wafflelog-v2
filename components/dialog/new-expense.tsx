@@ -7,6 +7,7 @@ import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { type SystemMessageType } from "@/hook/use-system-message";
 import { splitExpenseEqually } from "@/lib/helper/expense";
+import { getUserDisplayName } from "@/lib/helper/user-display";
 import {
   actionCreateLocalExpense,
   actionListLocalExpenseSplitParticipants,
@@ -70,6 +71,9 @@ const DialogNewExpenseVisible = ({
     ? (session?.user.id ?? null)
     : (splitParticipants[0]?.userId ?? null);
   const paidByUserId = paidByUserIdOverride ?? defaultPaidByUserId;
+  const getParticipantDisplayName = (
+    participant: (typeof splitParticipants)[number],
+  ) => getUserDisplayName(participant, session?.user.id);
 
   const resetForm = () => {
     setExpenseCurrency("EUR");
@@ -232,10 +236,7 @@ const DialogNewExpenseVisible = ({
             placeholder="Select payer"
             options={splitParticipants.map((participant) => ({
               value: participant.userId,
-              label:
-                participant.userId === session?.user.id
-                  ? "You"
-                  : `@${participant.username ?? "unknown"}`,
+              label: getParticipantDisplayName(participant),
             }))}
             onValueChange={setPaidByUserIdOverride}
           />
@@ -251,10 +252,7 @@ const DialogNewExpenseVisible = ({
           </View>
           {splitParticipants.map((participant) => {
             const selected = participantUserIds.includes(participant.userId);
-            const displayName =
-              participant.userId === session?.user.id
-                ? "You"
-                : `@${participant.username ?? "unknown"}`;
+            const displayName = getParticipantDisplayName(participant);
 
             return (
               <TouchableOpacity

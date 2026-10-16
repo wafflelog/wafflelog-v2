@@ -7,6 +7,7 @@ import { CardExpenseRegular } from "@/components/card/expense/regular";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { colors, getColor } from "@/constants/theme";
 import { getExpensePayerDisplayName } from "@/lib/helper/expense";
+import { getUserDisplayName } from "@/lib/helper/user-display";
 import {
   actionListLocalExpensesByPin,
   actionSoftDeleteLocalExpense,
@@ -50,9 +51,7 @@ export const PinExpenses = ({
       }),
     },
     participantNames: expense.participants.map((participant) =>
-      participant.userId === userId
-        ? "You"
-        : `@${participant.username ?? "unknown"}`,
+      getUserDisplayName(participant, userId),
     ),
     creator: expense.creator,
   }));

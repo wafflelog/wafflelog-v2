@@ -18,7 +18,7 @@ import { type Trip } from "@/types/trip";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { Image } from "expo-image";
-import { Redirect, useRouter } from "expo-router";
+import { Redirect, useFocusEffect, useRouter } from "expo-router";
 import {
   Bell as BellIcon,
   Calendar as CalendarIcon,
@@ -27,7 +27,7 @@ import {
   Plus as PlusIcon,
   Sparkles as SparklesIcon,
 } from "lucide-react-native";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ImageBackground,
   Pressable,
@@ -76,7 +76,18 @@ export default function IndexScreen() {
   });
   const localPlanningSessions = useLocalAiPlanningSessions(session?.user.id);
   const notificationsQuery = useAppNotifications(session?.user.id);
+  const refetchNotifications = notificationsQuery.refetch;
   const homeHeaderContent = getHomeHeaderContent();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!session?.user.id) {
+        return;
+      }
+
+      void refetchNotifications();
+    }, [refetchNotifications, session?.user.id]),
+  );
 
   if (isLoading) {
     return (

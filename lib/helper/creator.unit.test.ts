@@ -11,6 +11,7 @@ describe("getCreatorDisplayName", () => {
   it("returns You for the current user", () => {
     expect(
       getCreatorDisplayName({
+        userId: "user-1",
         username: "ka",
         isCurrentUser: true,
       }),
@@ -20,6 +21,7 @@ describe("getCreatorDisplayName", () => {
   it("returns the username for another known user", () => {
     expect(
       getCreatorDisplayName({
+        userId: "user-2",
         username: "companion",
         isCurrentUser: false,
       }),
@@ -29,6 +31,7 @@ describe("getCreatorDisplayName", () => {
   it("returns Unknown creator for another user without a cached username", () => {
     expect(
       getCreatorDisplayName({
+        userId: "user-2",
         username: null,
         isCurrentUser: false,
       }),

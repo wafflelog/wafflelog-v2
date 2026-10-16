@@ -1,6 +1,7 @@
 import { CardUserIcon } from "@/components/card/user/icon";
 import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
+import { getUserDisplayName } from "@/lib/helper/user-display";
 import { formatCreatedAt } from "@/lib/helper/utils";
 import { type Note } from "@/types/pin";
 import { Trash2 as Trash2Icon } from "lucide-react-native";
@@ -14,17 +15,19 @@ import {
 
 type CardNoteRegularProps = {
   note: Note;
+  currentUserId: string;
   containerStyle?: StyleProp<ViewStyle>;
   onDeletePress?: () => void;
-  variant?: "user" | "self";
 };
 
 export function CardNoteRegular({
   note,
+  currentUserId,
   containerStyle,
   onDeletePress,
-  variant = "user",
 }: CardNoteRegularProps) {
+  const isCurrentUser = note.createdBy.id === currentUserId;
+
   return (
     <View style={[styles.container, containerStyle]}>
       <View style={styles.userContainer}>
@@ -35,10 +38,16 @@ export function CardNoteRegular({
         <View style={styles.metadata}>
           <TitleRegular
             size="xs"
-            color={variant === "self" ? colors.orange : colors.pineGreen}
+            color={isCurrentUser ? colors.orange : colors.pineGreen}
             weight="600"
           >
-            {variant === "user" ? note.createdBy.fullname : "You"}
+            {getUserDisplayName(
+              {
+                userId: note.createdBy.id,
+                username: note.createdBy.fullname,
+              },
+              currentUserId,
+            )}
           </TitleRegular>
           <TitleRegular size="xxs">
             {formatCreatedAt(note.createdAt)}

@@ -1,4 +1,5 @@
 import { Decimal } from "decimal.js";
+import { getUserDisplayName } from "./user-display";
 
 export type ExpensePayerDisplayInput = {
   paidByUserId: string;
@@ -13,15 +14,13 @@ export function getExpensePayerDisplayName({
   paidByUsername,
   currentUserId,
 }: ExpensePayerDisplayInput) {
-  if (paidByUserId === currentUserId) {
-    return "You";
-  }
+  const fallback = paidByName === "You" ? "Unknown payer" : paidByName;
 
-  if (paidByUsername) {
-    return `@${paidByUsername}`;
-  }
-
-  return paidByName === "You" ? "Unknown payer" : paidByName;
+  return getUserDisplayName(
+    { userId: paidByUserId, username: paidByUsername },
+    currentUserId,
+    fallback,
+  );
 }
 
 export type SharedExpenseParticipant = {
