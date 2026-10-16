@@ -25,7 +25,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import {
+  useCallback,
+  useRef,
+  useState,
+  type ComponentProps,
+} from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -41,6 +46,57 @@ type InvitationResponseInput = {
   invitationId: string;
   response: "accepted" | "rejected";
 };
+
+type NotificationPresentation = {
+  icon: ComponentProps<typeof Ionicons>["name"];
+  iconColor: string;
+  iconBackgroundColor: string;
+};
+
+const defaultNotificationPresentation: NotificationPresentation = {
+  icon: "notifications",
+  iconColor: getColor(colors.turquoise),
+  iconBackgroundColor: getColor(colors.turquoise, 0.1),
+};
+
+const notificationPresentationByType: Record<
+  string,
+  NotificationPresentation
+> = {
+  trip_invited: {
+    icon: "person-add",
+    iconColor: getColor(colors.turquoise),
+    iconBackgroundColor: getColor(colors.turquoise, 0.1),
+  },
+  trip_invite_accepted: {
+    icon: "checkmark-circle",
+    iconColor: getColor(colors.pineGreen),
+    iconBackgroundColor: getColor(colors.pineGreen, 0.1),
+  },
+  trip_invite_rejected: {
+    icon: "close-circle",
+    iconColor: getColor(colors.red),
+    iconBackgroundColor: getColor(colors.red, 0.1),
+  },
+  expense_added: {
+    icon: "receipt",
+    iconColor: getColor(colors.orange),
+    iconBackgroundColor: getColor(colors.orange, 0.1),
+  },
+  note_added: {
+    icon: "document-text",
+    iconColor: getColor(colors.blue),
+    iconBackgroundColor: getColor(colors.blue, 0.1),
+  },
+  trip_updated: {
+    icon: "calendar",
+    iconColor: getColor(colors.purple),
+    iconBackgroundColor: getColor(colors.purple, 0.1),
+  },
+};
+
+const getNotificationPresentation = (type: AppNotification["type"]) =>
+  notificationPresentationByType[type] ?? defaultNotificationPresentation;
 
 const notificationViewabilityConfig = {
   itemVisiblePercentThreshold: 60,
@@ -208,19 +264,6 @@ export default function NotificationCenterScreen() {
     },
   });
 
-  const getNotificationIcon = (type: AppNotification["type"]) => {
-    switch (type) {
-      case "trip_invited":
-        return "person-add";
-      case "trip_invite_accepted":
-        return "checkmark-circle";
-      case "trip_invite_rejected":
-        return "close-circle";
-      default:
-        return "notifications";
-    }
-  };
-
   const handleInvitationResponse = (
     notification: AppNotification,
     response: InvitationResponseInput["response"],
@@ -280,6 +323,7 @@ export default function NotificationCenterScreen() {
               notification.type === "trip_invited" &&
               notification.invitationStatus === "pending";
             const isUpdating = activeNotificationId === notification.id;
+            const presentation = getNotificationPresentation(notification.type);
 
             return (
               <View
@@ -288,11 +332,16 @@ export default function NotificationCenterScreen() {
                   isUnread && styles.notificationItemUnread,
                 ]}
               >
-                <View style={styles.notificationIconContainer}>
+                <View
+                  style={[
+                    styles.notificationIconContainer,
+                    { backgroundColor: presentation.iconBackgroundColor },
+                  ]}
+                >
                   <Ionicons
-                    name={getNotificationIcon(notification.type) as any}
+                    name={presentation.icon}
                     size={24}
-                    color={getColor(colors.turquoise)}
+                    color={presentation.iconColor}
                   />
                 </View>
                 <View style={styles.notificationContent}>
@@ -387,7 +436,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: getColor(colors.turquoise, 0.1),
     alignItems: "center",
     justifyContent: "center",
     marginRight: gaps.md,

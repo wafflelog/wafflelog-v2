@@ -32,6 +32,8 @@ type ExpoPushMessage = {
 const pushEnabledNotificationTypes = new Set([
   "trip_invited",
   "trip_invite_accepted",
+  "expense_added",
+  "trip_updated",
 ]);
 const expoPushUrl = "https://exp.host/--/api/v2/push/send";
 
