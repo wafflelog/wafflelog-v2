@@ -36,6 +36,7 @@ import {
   getTripDurationBucket,
 } from "@/lib/ai-trip-planning/tracking";
 import { actionImportAiPlanningResult } from "@/lib/ai-trip-planning/trip-import";
+import { runTripPassPaywallFlow } from "@/lib/ai-trip-planning/trip-pass-retry";
 import { type CreatePlanningRefinementRequest } from "@/lib/ai-trip-planning/types";
 import { presentTripPassPaywall } from "@/lib/revenuecat/paywall";
 import { type LocalAiPlanningSession } from "@/lib/sqlite/model/ai-planning-session";
@@ -433,14 +434,13 @@ export default function AiTripPlannerScreen() {
     setLocalSubmissionError(null);
 
     try {
-      const result = await presentTripPassPaywall();
-
-      if (result.status === "cancelled") {
-        return;
-      }
-
-      await executeSubmission(attempt, {
-        openPaywallOnTripPassRequired: false,
+      await runTripPassPaywallFlow({
+        attempt,
+        presentPaywall: presentTripPassPaywall,
+        retrySubmission: (paidAttempt) =>
+          executeSubmission(paidAttempt, {
+            openPaywallOnTripPassRequired: false,
+          }),
       });
     } catch (error) {
       setLocalSubmissionError(getPlanningErrorMessage(error));
