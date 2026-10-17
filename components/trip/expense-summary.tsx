@@ -1,78 +1,55 @@
 import { TitleRegular } from "@/components/title/regular";
-import { colors, gaps, getCardBasicStyle, getColor } from "@/constants/theme";
-import { Fragment } from "react";
+import {
+  borderRadiuses,
+  colors,
+  gaps,
+  getCardBasicStyle,
+  getColor,
+} from "@/constants/theme";
 import { StyleSheet, View } from "react-native";
 
 type TripExpenseSummaryProps = {
   currency: string;
-  total: string;
-  youPaid: string;
-  yourBalance: string;
+  totalSpent: string;
+  youOwe: string;
+  owedToYou: string;
 };
 
 export function TripExpenseSummary({
   currency,
-  total,
-  youPaid,
-  yourBalance,
+  totalSpent,
+  youOwe,
+  owedToYou,
 }: TripExpenseSummaryProps) {
-  const isOwed = !yourBalance.startsWith("-");
-  const columns = [
-    {
-      label: "Total",
-      amount: total,
-      color: colors.textDarkGrey,
-    },
-    {
-      label: "You paid",
-      amount: youPaid,
-      color: colors.turquoise,
-    },
-    {
-      label: isOwed ? "You are owed" : "You owe",
-      amount: yourBalance.replace("-", ""),
-      color: isOwed ? colors.turquoise : colors.red,
-    },
-  ];
-
-  const renderColumn = (
-    label: string,
-    amount: string,
-    color: [number, number, number],
-  ) => {
-    return (
-      <View style={styles.column}>
-        <TitleRegular size="xs" weight="500">
-          {label}
-        </TitleRegular>
-        <TitleRegular size="md" weight="600" color={color}>
-          {amount}
-        </TitleRegular>
-      </View>
-    );
-  };
-
   return (
     <View style={styles.container}>
-      <TitleRegular
-        size="md"
-        weight="600"
-        style={styles.header}
-        color={colors.pineGreen}
-      >
-        {currency}
-      </TitleRegular>
+      <View style={styles.heading}>
+        <TitleRegular size="sm" weight="700" color={colors.purple}>
+          Your position
+        </TitleRegular>
+        <TitleRegular size="xs" color={colors.textLightGrey}>
+          {totalSpent} {currency} trip spending
+        </TitleRegular>
+      </View>
 
-      <View style={styles.content}>
-        {columns.map((column, index) => {
-          return (
-            <Fragment key={column.label}>
-              {renderColumn(column.label, column.amount, column.color)}
+      <View style={styles.balances}>
+        <View style={[styles.balance, styles.oweBalance]}>
+          <TitleRegular size="xs" color={colors.textLightGrey}>
+            You owe
+          </TitleRegular>
+          <TitleRegular size="lg" weight="700" color={colors.red}>
+            {youOwe} {currency}
+          </TitleRegular>
+        </View>
 
-              {index < columns.length - 1 && <View style={styles.divider} />}
-            </Fragment>
-          );
-        })}
+        <View style={[styles.balance, styles.owedBalance]}>
+          <TitleRegular size="xs" color={colors.textLightGrey}>
+            Owed to you
+          </TitleRegular>
+          <TitleRegular size="lg" weight="700" color={colors.pineGreen}>
+            {owedToYou} {currency}
+          </TitleRegular>
+        </View>
       </View>
     </View>
   );
@@ -81,36 +58,25 @@ export function TripExpenseSummary({
 const styles = StyleSheet.create({
   container: {
     ...getCardBasicStyle("md"),
-    backgroundColor: getColor(colors.pineGreen, 0.15),
-    gap: gaps.sm,
-    borderWidth: 0,
-    borderColor: getColor(colors.pineGreen, 0.3),
+    gap: gaps.md,
   },
-  header: {},
-  content: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  column: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+  heading: {
     gap: gaps.xxs,
-    padding: gaps.xs,
   },
-  left: {
+  balances: {
+    flexDirection: "row",
+    gap: gaps.sm,
+  },
+  balance: {
     flex: 1,
+    gap: gaps.xxs,
+    padding: gaps.sm,
+    borderRadius: borderRadiuses.sm,
   },
-  center: {
-    flex: 1,
+  oweBalance: {
+    backgroundColor: getColor(colors.red, 0.08),
   },
-  right: {
-    flex: 1,
-  },
-  divider: {
-    width: 1,
-    height: 40,
-    backgroundColor: getColor(colors.paleGrey),
+  owedBalance: {
+    backgroundColor: getColor(colors.turquoise, 0.1),
   },
 });

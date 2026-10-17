@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  calculatePersonalExpenseLedger,
   calculateSharedExpenseLedger,
   getExpensePayerDisplayName,
   splitExpenseEqually,
@@ -179,5 +180,164 @@ describe("shared expense calculations", () => {
         },
       ]),
     ).toThrow("Participant split amounts must equal the expense amount");
+  });
+});
+
+describe("personal expense calculations", () => {
+  it("groups direct balances and their expense breakdown by member", () => {
+    const [ledger] = calculatePersonalExpenseLedger(
+      [
+        {
+          id: "tickets",
+          description: "Tickets",
+          context: "For the museum",
+          currency: "gbp",
+          amount: "60.00",
+          paidByUserId: "alice",
+          participants: [
+            { userId: "alice", splitAmount: "30.00" },
+            { userId: "you", splitAmount: "30.00" },
+          ],
+        },
+        {
+          id: "dinner",
+          description: "Dinner",
+          currency: "GBP",
+          amount: "80.00",
+          paidByUserId: "alice",
+          participants: [
+            { userId: "alice", splitAmount: "40.00" },
+            { userId: "you", splitAmount: "40.00" },
+          ],
+        },
+        {
+          id: "taxi",
+          description: "Taxi",
+          currency: "GBP",
+          amount: "20.00",
+          paidByUserId: "you",
+          participants: [
+            { userId: "alice", splitAmount: "10.00" },
+            { userId: "you", splitAmount: "10.00" },
+          ],
+        },
+        {
+          id: "hotel",
+          description: "Hotel",
+          currency: "GBP",
+          amount: "50.00",
+          paidByUserId: "you",
+          participants: [{ userId: "bob", splitAmount: "50.00" }],
+        },
+      ],
+      "you",
+    );
+
+    expect(ledger).toEqual({
+      currency: "GBP",
+      totalSpent: "210.00",
+      youOwe: "60.00",
+      owedToYou: "50.00",
+      members: [
+        {
+          userId: "alice",
+          direction: "you_owe",
+          amount: "60.00",
+          items: [
+            {
+              id: "tickets",
+              description: "Tickets",
+              context: "For the museum",
+              direction: "you_owe",
+              amount: "30.00",
+            },
+            {
+              id: "dinner",
+              description: "Dinner",
+              context: undefined,
+              direction: "you_owe",
+              amount: "40.00",
+            },
+            {
+              id: "taxi",
+              description: "Taxi",
+              context: undefined,
+              direction: "owed_to_you",
+              amount: "10.00",
+            },
+          ],
+        },
+        {
+          userId: "bob",
+          direction: "owed_to_you",
+          amount: "50.00",
+          items: [
+            {
+              id: "hotel",
+              description: "Hotel",
+              context: undefined,
+              direction: "owed_to_you",
+              amount: "50.00",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("keeps currencies separate and ignores expenses unrelated to the user", () => {
+    expect(
+      calculatePersonalExpenseLedger(
+        [
+          {
+            id: "eur",
+            description: "Lunch",
+            currency: "EUR",
+            amount: "30.00",
+            paidByUserId: "alice",
+            participants: [{ userId: "bob", splitAmount: "30.00" }],
+          },
+          {
+            id: "usd",
+            description: "Coffee",
+            currency: "USD",
+            amount: "10.00",
+            paidByUserId: "bob",
+            participants: [{ userId: "you", splitAmount: "10.00" }],
+          },
+        ],
+        "you",
+      ),
+    ).toEqual([
+      {
+        currency: "EUR",
+        totalSpent: "30.00",
+        youOwe: "0.00",
+        owedToYou: "0.00",
+        members: [],
+      },
+      {
+        currency: "USD",
+        totalSpent: "10.00",
+        youOwe: "10.00",
+        owedToYou: "0.00",
+        members: [
+          {
+            userId: "bob",
+            direction: "you_owe",
+            amount: "10.00",
+            items: [
+              {
+                id: "usd",
+                description: "Coffee",
+                context: undefined,
+                direction: "you_owe",
+                amount: "10.00",
+              },
+            ],
+          },
+        ],
+      },
+    ]);
   });
 });

@@ -1,8 +1,8 @@
 import { ButtonFab } from "@/components/button/fab";
 import { CardExpenseRegular } from "@/components/card/expense/regular";
 import { DialogNewExpense } from "@/components/dialog/new-expense";
-import { TitleRegular } from "@/components/title/regular";
 import { TripExpenseSummary } from "@/components/trip/expense-summary";
+import { MemberExpenseGroup } from "@/components/trip/member-expense-group";
 import { UITab } from "@/components/ui/tab";
 import { UIText } from "@/components/ui/text";
 import {
@@ -16,7 +16,7 @@ import { useAuthSession } from "@/hook/use-auth-session";
 import { useKnownTripsRefresh } from "@/hook/use-known-trips-refresh";
 import { useSystemMessage } from "@/hook/use-system-message";
 import {
-  calculateSharedExpenseLedger,
+  calculatePersonalExpenseLedger,
   getExpensePayerDisplayName,
 } from "@/lib/helper/expense";
 import { getPinTitle } from "@/lib/helper/pin";
@@ -28,15 +28,25 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { Plus as PlusIcon } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
+import {
+  FlatList,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 
 export default function TripExpensesScreen() {
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const { session } = useAuthSession();
+  const currentUserId = session?.user.id;
   const { isRefreshing, refreshKnownTrips } = useKnownTripsRefresh();
   const { showMessage, SystemMessageModal } = useSystemMessage();
 
   const [activeCurrency, setActiveCurrency] = useState<Currency | null>(null);
+  const [activeView, setActiveView] = useState<"balances" | "expenses">(
+    "balances",
+  );
   const [isDialogNewExpenseVisible, setIsDialogNewExpenseVisible] =
     useState(false);
 
@@ -84,11 +94,17 @@ export default function TripExpensesScreen() {
     ? localExpenses.filter((expense) => expense.currency === selectedCurrency)
     : localExpenses;
 
-  const ledgers = useMemo(
-    () =>
-      calculateSharedExpenseLedger(
+  const personalLedgers = useMemo(
+    () => {
+      if (!currentUserId) {
+        return [];
+      }
+
+      return calculatePersonalExpenseLedger(
         localExpenses.map((expense) => ({
           id: expense.id,
+          description: expense.description,
+          context: expense.pin ? `For ${getPinTitle(expense.pin)}` : undefined,
           currency: expense.currency,
           amount: expense.amount.toFixed(2),
           paidByUserId: expense.paidByUserId,
@@ -97,23 +113,14 @@ export default function TripExpensesScreen() {
             splitAmount: participant.splitAmount,
           })),
         })),
-      ),
-    [localExpenses],
+        currentUserId,
+      );
+    },
+    [currentUserId, localExpenses],
   );
-  const activeLedger = ledgers.find(
+  const activeLedger = personalLedgers.find(
     (ledger) => ledger.currency === selectedCurrency,
   );
-  const total = activeLedger
-    ? activeLedger.balances
-        .reduce((sum, balance) => sum + Number(balance.paid), 0)
-        .toFixed(2)
-    : "0.00";
-  const currentUserBalance =
-    activeLedger?.balances.find((balance) => balance.userId === session?.user.id)
-      ?.net ?? "0.00";
-  const currentUserPaid =
-    activeLedger?.balances.find((balance) => balance.userId === session?.user.id)
-      ?.paid ?? "0.00";
   const displayNameByUserId = localExpenses.reduce(
     (names, expense) => {
       names.set(
@@ -162,97 +169,113 @@ export default function TripExpensesScreen() {
       )}
 
       <View style={styles.content}>
-        <View style={styles.summary}>
-          <TripExpenseSummary
-            currency={selectedCurrency ?? "N/A"}
-            total={total}
-            youPaid={currentUserPaid}
-            yourBalance={currentUserBalance}
+        <View style={styles.viewTabs}>
+          <UITab
+            text="Your balances"
+            onPress={() => setActiveView("balances")}
+            isActive={activeView === "balances"}
+            style={styles.viewTab}
+          />
+          <UITab
+            text="All expenses"
+            onPress={() => setActiveView("expenses")}
+            isActive={activeView === "expenses"}
+            style={styles.viewTab}
           />
         </View>
 
-        {activeLedger && (
-          <View style={styles.ledger}>
-            <TitleRegular size="sm" weight="600">
-              Balances
-            </TitleRegular>
-            {activeLedger.balances.map((balance) => (
-              <View key={balance.userId} style={styles.ledgerRow}>
-                <UIText>{getTripUserDisplayName(balance.userId)}</UIText>
-                <UIText>
-                  {Number(balance.net) > 0
-                    ? `is owed ${balance.net}`
-                    : Number(balance.net) < 0
-                      ? `owes ${balance.net.slice(1)}`
-                      : "settled up"} {activeLedger.currency}
-                </UIText>
-              </View>
-            ))}
-            {activeLedger.settlements.length > 0 && (
-              <>
-                <TitleRegular size="sm" weight="600" style={styles.settlementTitle}>
-                  Settle up
-                </TitleRegular>
-                {activeLedger.settlements.map((settlement) => (
-                  <UIText
-                    key={`${settlement.fromUserId}-${settlement.toUserId}`}
-                  >
-                    {getTripUserDisplayName(settlement.fromUserId)} pays{" "}
-                    {getTripUserDisplayName(settlement.toUserId)} {settlement.amount}{" "}
-                    {activeLedger.currency}
-                  </UIText>
-                ))}
-              </>
-            )}
-          </View>
-        )}
-
-        <FlatList
-          contentContainerStyle={styles.checklist}
-          data={filteredExpenses}
-          keyExtractor={(item) => item.id}
-          alwaysBounceVertical
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={refreshKnownTrips}
-              tintColor={getColor(colors.purple)}
-              colors={[getColor(colors.purple)]}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <UIText>No expenses yet</UIText>
-            </View>
-          }
-          renderItem={({ item }) => (
-            <View style={styles.expense}>
-              <CardExpenseRegular
-                expense={{
-                  id: item.id,
-                  description: item.description,
-                  context: item.pin
-                    ? `For ${getPinTitle(item.pin)}`
-                    : undefined,
-                  amount: item.amount,
-                  currency: item.currency as Currency,
-                  paidBy: {
-                    id: item.paidByUserId,
-                    fullname: getExpensePayerDisplayName({
-                      ...item,
-                      currentUserId: session!.user.id,
-                    }),
-                  },
-                  participantNames: item.participants.map((participant) =>
-                    getUserDisplayName(participant, session?.user.id),
-                  ),
-                  creator: item.creator,
-                }}
-                onPress={() => {}}
+        {activeView === "balances" ? (
+          <ScrollView
+            alwaysBounceVertical
+            contentContainerStyle={styles.balanceContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={refreshKnownTrips}
+                tintColor={getColor(colors.purple)}
+                colors={[getColor(colors.purple)]}
               />
-            </View>
-          )}
-        />
+            }
+          >
+            {activeLedger ? (
+              <>
+                <TripExpenseSummary
+                  currency={activeLedger.currency}
+                  totalSpent={activeLedger.totalSpent}
+                  youOwe={activeLedger.youOwe}
+                  owedToYou={activeLedger.owedToYou}
+                />
+                {activeLedger.members.length > 0 ? (
+                  <View style={styles.memberGroups}>
+                    {activeLedger.members.map((member) => (
+                      <MemberExpenseGroup
+                        key={member.userId}
+                        member={member}
+                        displayName={getTripUserDisplayName(member.userId)}
+                        currency={activeLedger.currency}
+                      />
+                    ))}
+                  </View>
+                ) : (
+                  <View style={styles.emptyState}>
+                    <UIText>No balances with other travellers yet</UIText>
+                  </View>
+                )}
+              </>
+            ) : (
+              <View style={styles.emptyState}>
+                <UIText>No expenses yet</UIText>
+              </View>
+            )}
+          </ScrollView>
+        ) : (
+          <FlatList
+            contentContainerStyle={styles.expenseList}
+            data={filteredExpenses}
+            keyExtractor={(item) => item.id}
+            alwaysBounceVertical
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={refreshKnownTrips}
+                tintColor={getColor(colors.purple)}
+                colors={[getColor(colors.purple)]}
+              />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <UIText>No expenses yet</UIText>
+              </View>
+            }
+            renderItem={({ item }) => (
+              <View style={styles.expense}>
+                <CardExpenseRegular
+                  expense={{
+                    id: item.id,
+                    description: item.description,
+                    context: item.pin
+                      ? `For ${getPinTitle(item.pin)}`
+                      : undefined,
+                    amount: item.amount,
+                    currency: item.currency as Currency,
+                    paidBy: {
+                      id: item.paidByUserId,
+                      fullname: getExpensePayerDisplayName({
+                        ...item,
+                        currentUserId: session!.user.id,
+                      }),
+                    },
+                    participantNames: item.participants.map((participant) =>
+                      getUserDisplayName(participant, session?.user.id),
+                    ),
+                    creator: item.creator,
+                  }}
+                  onPress={() => {}}
+                />
+              </View>
+            )}
+          />
+        )}
       </View>
       <ButtonFab
         onPress={() => {
@@ -288,24 +311,29 @@ const styles = StyleSheet.create({
     gap: gaps.md,
     padding: gaps.md,
   },
+  viewTabs: {
+    flexDirection: "row",
+    gap: gaps.xs,
+    padding: gaps.xxs,
+    borderRadius: 12,
+    backgroundColor: getColor(colors.whiteGrey, 0.35),
+  },
+  viewTab: {
+    flex: 1,
+  },
+  balanceContent: {
+    gap: gaps.md,
+    paddingBottom: 88,
+  },
+  memberGroups: {
+    gap: gaps.sm,
+  },
   expense: {
     ...getCardBasicStyle("sm"),
   },
-  summary: {},
-  ledger: {
-    ...getCardBasicStyle("sm"),
-    gap: gaps.xs,
-  },
-  ledgerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: gaps.sm,
-  },
-  settlementTitle: {
-    marginTop: gaps.xs,
-  },
-  checklist: {
+  expenseList: {
     gap: gaps.md,
+    paddingBottom: 88,
   },
   emptyState: {
     ...getCardBasicStyle("sm"),

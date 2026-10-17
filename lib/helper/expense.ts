@@ -55,6 +55,34 @@ export type SharedExpenseCurrencyLedger = {
   settlements: SharedExpenseSettlement[];
 };
 
+export type PersonalExpenseInput = SharedExpenseInput & {
+  description: string;
+  context?: string;
+};
+
+export type PersonalExpenseBreakdownItem = {
+  id: string;
+  description: string;
+  context?: string;
+  direction: "you_owe" | "owed_to_you";
+  amount: string;
+};
+
+export type PersonalExpenseMemberBalance = {
+  userId: string;
+  direction: "you_owe" | "owed_to_you" | "settled";
+  amount: string;
+  items: PersonalExpenseBreakdownItem[];
+};
+
+export type PersonalExpenseCurrencyLedger = {
+  currency: string;
+  totalSpent: string;
+  youOwe: string;
+  owedToYou: string;
+  members: PersonalExpenseMemberBalance[];
+};
+
 const MONEY_PATTERN = /^(0|[1-9]\d*)(?:\.(\d{1,2}))?$/;
 const CENT = new Decimal("0.01");
 
@@ -227,6 +255,161 @@ export function calculateSharedExpenseLedger(
           net: formatAmount(balance.net),
         })),
         settlements: calculateSettlements(balancesWithDecimals),
+      };
+    });
+}
+
+/**
+ * Builds a traceable, user-centric ledger. Each member balance is derived only
+ * from expenses directly shared with the current user, and currencies are
+ * never combined.
+ */
+export function calculatePersonalExpenseLedger(
+  expenses: PersonalExpenseInput[],
+  currentUserId: string,
+): PersonalExpenseCurrencyLedger[] {
+  validateUserId(currentUserId, "Current user ID");
+
+  const ledgersByCurrency = new Map<
+    string,
+    {
+      totalSpent: Decimal;
+      members: Map<
+        string,
+        {
+          youOwe: Decimal;
+          owedToYou: Decimal;
+          items: PersonalExpenseBreakdownItem[];
+        }
+      >;
+    }
+  >();
+
+  for (const expense of expenses) {
+    const total = validateSharedExpense(expense);
+    const currency = expense.currency.trim().toUpperCase();
+    const ledger = ledgersByCurrency.get(currency) ?? {
+      totalSpent: new Decimal(0),
+      members: new Map(),
+    };
+    ledger.totalSpent = ledger.totalSpent.plus(total);
+    ledgersByCurrency.set(currency, ledger);
+
+    if (expense.paidByUserId === currentUserId) {
+      for (const participant of expense.participants) {
+        if (participant.userId === currentUserId) {
+          continue;
+        }
+
+        const amount = parseAmount(
+          participant.splitAmount,
+          "Participant split amount",
+        );
+        if (amount.isZero()) {
+          continue;
+        }
+
+        const member = ledger.members.get(participant.userId) ?? {
+          youOwe: new Decimal(0),
+          owedToYou: new Decimal(0),
+          items: [],
+        };
+        member.owedToYou = member.owedToYou.plus(amount);
+        member.items.push({
+          id: expense.id,
+          description: expense.description,
+          context: expense.context,
+          direction: "owed_to_you",
+          amount: formatAmount(amount),
+        });
+        ledger.members.set(participant.userId, member);
+      }
+      continue;
+    }
+
+    const currentUserShare = expense.participants.find(
+      (participant) => participant.userId === currentUserId,
+    );
+    if (!currentUserShare) {
+      continue;
+    }
+
+    const amount = parseAmount(
+      currentUserShare.splitAmount,
+      "Participant split amount",
+    );
+    if (amount.isZero()) {
+      continue;
+    }
+
+    const member = ledger.members.get(expense.paidByUserId) ?? {
+      youOwe: new Decimal(0),
+      owedToYou: new Decimal(0),
+      items: [],
+    };
+    member.youOwe = member.youOwe.plus(amount);
+    member.items.push({
+      id: expense.id,
+      description: expense.description,
+      context: expense.context,
+      direction: "you_owe",
+      amount: formatAmount(amount),
+    });
+    ledger.members.set(expense.paidByUserId, member);
+  }
+
+  return Array.from(ledgersByCurrency.entries())
+    .sort(([leftCurrency], [rightCurrency]) =>
+      leftCurrency.localeCompare(rightCurrency),
+    )
+    .map(([currency, ledger]) => {
+      let youOwe = new Decimal(0);
+      let owedToYou = new Decimal(0);
+      const members = Array.from(ledger.members.entries()).map(
+        ([userId, member]) => {
+          const net = member.owedToYou.minus(member.youOwe);
+          const direction = net.isZero()
+            ? "settled"
+            : net.isPositive()
+              ? "owed_to_you"
+              : "you_owe";
+          const amount = net.abs();
+
+          if (direction === "you_owe") {
+            youOwe = youOwe.plus(amount);
+          } else if (direction === "owed_to_you") {
+            owedToYou = owedToYou.plus(amount);
+          }
+
+          return {
+            userId,
+            direction,
+            amount: formatAmount(amount),
+            items: member.items,
+          } satisfies PersonalExpenseMemberBalance;
+        },
+      );
+
+      members.sort((left, right) => {
+        const leftSettled = left.direction === "settled";
+        const rightSettled = right.direction === "settled";
+
+        if (leftSettled !== rightSettled) {
+          return leftSettled ? 1 : -1;
+        }
+
+        return (
+          new Decimal(right.amount).comparedTo(left.amount) ||
+          left.userId.localeCompare(right.userId)
+        );
+      });
+
+      return {
+        currency,
+        totalSpent: formatAmount(ledger.totalSpent),
+        youOwe: formatAmount(youOwe),
+        owedToYou: formatAmount(owedToYou),
+        members,
       };
     });
 }
