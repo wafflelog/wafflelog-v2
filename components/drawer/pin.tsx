@@ -5,7 +5,7 @@ import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
 } from "expo-router/drawer";
-import { MapPinIcon } from "lucide-react-native";
+import { ChevronLeftIcon, MapPinIcon } from "lucide-react-native";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { DrawerItemRegular } from "@/components/drawer/item/regular";
@@ -74,9 +74,19 @@ export function DrawerPin({ pinId, navigation }: DrawerPinProps) {
     >
       <View style={styles.header}>
         {trip && (
-          <TouchableOpacity onPress={() => router.back()}>
-            <TitleRegular size="lg" weight="600" color={colors.textDarkGrey}>
-              {trip.title}
+          <TouchableOpacity
+            style={styles.tripLink}
+            onPress={() => {
+              navigation.closeDrawer();
+              router.dismissTo(`/trip/${trip.id}`);
+            }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Back to ${trip.title}`}
+          >
+            <ChevronLeftIcon size={20} color={getColor(colors.purple)} />
+            <TitleRegular size="sm" weight="600" color={colors.purple}>
+              Back to trip overview
             </TitleRegular>
           </TouchableOpacity>
         )}
@@ -128,6 +138,12 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: gaps.sm,
+  },
+  tripLink: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: gaps.xs,
   },
   divider: {
     height: 1,
