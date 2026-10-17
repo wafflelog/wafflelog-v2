@@ -236,6 +236,8 @@ describe("personal expense calculations", () => {
     expect(ledger).toEqual({
       currency: "GBP",
       totalSpent: "210.00",
+      youPaid: "70.00",
+      yourShare: "80.00",
       youOwe: "60.00",
       owedToYou: "50.00",
       members: [
@@ -312,6 +314,8 @@ describe("personal expense calculations", () => {
       {
         currency: "EUR",
         totalSpent: "30.00",
+        youPaid: "0.00",
+        yourShare: "0.00",
         youOwe: "0.00",
         owedToYou: "0.00",
         members: [],
@@ -319,6 +323,8 @@ describe("personal expense calculations", () => {
       {
         currency: "USD",
         totalSpent: "10.00",
+        youPaid: "0.00",
+        yourShare: "10.00",
         youOwe: "10.00",
         owedToYou: "0.00",
         members: [

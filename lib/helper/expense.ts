@@ -78,6 +78,8 @@ export type PersonalExpenseMemberBalance = {
 export type PersonalExpenseCurrencyLedger = {
   currency: string;
   totalSpent: string;
+  youPaid: string;
+  yourShare: string;
   youOwe: string;
   owedToYou: string;
   members: PersonalExpenseMemberBalance[];
@@ -274,6 +276,8 @@ export function calculatePersonalExpenseLedger(
     string,
     {
       totalSpent: Decimal;
+      youPaid: Decimal;
+      yourShare: Decimal;
       members: Map<
         string,
         {
@@ -290,10 +294,25 @@ export function calculatePersonalExpenseLedger(
     const currency = expense.currency.trim().toUpperCase();
     const ledger = ledgersByCurrency.get(currency) ?? {
       totalSpent: new Decimal(0),
+      youPaid: new Decimal(0),
+      yourShare: new Decimal(0),
       members: new Map(),
     };
     ledger.totalSpent = ledger.totalSpent.plus(total);
     ledgersByCurrency.set(currency, ledger);
+
+    if (expense.paidByUserId === currentUserId) {
+      ledger.youPaid = ledger.youPaid.plus(total);
+    }
+
+    const currentUserShare = expense.participants.find(
+      (participant) => participant.userId === currentUserId,
+    );
+    if (currentUserShare) {
+      ledger.yourShare = ledger.yourShare.plus(
+        parseAmount(currentUserShare.splitAmount, "Participant split amount"),
+      );
+    }
 
     if (expense.paidByUserId === currentUserId) {
       for (const participant of expense.participants) {
@@ -327,9 +346,6 @@ export function calculatePersonalExpenseLedger(
       continue;
     }
 
-    const currentUserShare = expense.participants.find(
-      (participant) => participant.userId === currentUserId,
-    );
     if (!currentUserShare) {
       continue;
     }
@@ -407,6 +423,8 @@ export function calculatePersonalExpenseLedger(
       return {
         currency,
         totalSpent: formatAmount(ledger.totalSpent),
+        youPaid: formatAmount(ledger.youPaid),
+        yourShare: formatAmount(ledger.yourShare),
         youOwe: formatAmount(youOwe),
         owedToYou: formatAmount(owedToYou),
         members,

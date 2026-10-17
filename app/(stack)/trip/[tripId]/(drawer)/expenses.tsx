@@ -202,6 +202,8 @@ export default function TripExpensesScreen() {
                 <TripExpenseSummary
                   currency={activeLedger.currency}
                   totalSpent={activeLedger.totalSpent}
+                  youPaid={activeLedger.youPaid}
+                  yourShare={activeLedger.yourShare}
                   youOwe={activeLedger.youOwe}
                   owedToYou={activeLedger.owedToYou}
                 />
@@ -305,9 +307,9 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.screen,
   },
   tabs: {
-    gap: gaps.md,
+    gap: gaps.xs,
     backgroundColor: semanticColors.surface,
-    padding: gaps.md,
+    padding: gaps.xs,
     flexDirection: "row",
   },
   content: {
