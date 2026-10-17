@@ -1,7 +1,6 @@
 import { TitleRegular } from "@/components/title/regular";
 import { Dialog } from "@/components/ui/dialog";
 import { UIInputExpense } from "@/components/ui/input/expense";
-import { UIInputSelect } from "@/components/ui/input/select";
 import { UIInputText } from "@/components/ui/input/text";
 import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
@@ -15,7 +14,7 @@ import {
 import { sendTrackingEvent } from "@/lib/tracking";
 import { Currency } from "@/types/pin";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckSquare, Square } from "lucide-react-native";
+import { CheckSquare, Circle, CircleDot, Square } from "lucide-react-native";
 import { type ReactNode, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { newExpenseFormSchema } from "./new-expense/schema";
@@ -57,9 +56,13 @@ const DialogNewExpenseVisible = ({
   >(null);
 
   const { data: splitParticipants = [] } = useQuery({
-    queryKey: ["local-expense-split-participants", tripId],
+    queryKey: [
+      "local-expense-split-participants",
+      tripId,
+      session?.user.id,
+    ],
     queryFn: () => actionListLocalExpenseSplitParticipants(tripId!),
-    enabled: Boolean(visible && tripId),
+    enabled: Boolean(visible && tripId && session?.user.id),
   });
 
   const participantUserIds =
@@ -231,15 +234,28 @@ const DialogNewExpenseVisible = ({
           <TitleRegular size="sm" weight="600">
             Paid by
           </TitleRegular>
-          <UIInputSelect
-            selectedValue={paidByUserId ?? undefined}
-            placeholder="Select payer"
-            options={splitParticipants.map((participant) => ({
-              value: participant.userId,
-              label: getParticipantDisplayName(participant),
-            }))}
-            onValueChange={setPaidByUserIdOverride}
-          />
+          {splitParticipants.map((participant) => {
+            const selected = participant.userId === paidByUserId;
+
+            return (
+              <TouchableOpacity
+                key={participant.userId}
+                style={[styles.participant, selected && styles.participantSelected]}
+                onPress={() => setPaidByUserIdOverride(participant.userId)}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: selected }}
+              >
+                {selected ? (
+                  <CircleDot size={20} color={getColor(colors.pineGreen)} />
+                ) : (
+                  <Circle size={20} color={getColor(colors.textLightGrey)} />
+                )}
+                <TitleRegular size="sm" style={styles.participantName}>
+                  {getParticipantDisplayName(participant)}
+                </TitleRegular>
+              </TouchableOpacity>
+            );
+          })}
         </View>
         <View style={styles.section}>
           <View style={styles.splitHeading}>

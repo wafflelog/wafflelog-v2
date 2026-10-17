@@ -163,11 +163,34 @@ function createBundle(title = "Companion trip") {
         deletedAt: null as string | null,
       },
     ],
+    tripMembers: [
+      {
+        id: "membership-a",
+        tripId: "trip-a",
+        userId: "companion-a",
+        role: "companion",
+        status: "active",
+        ...timestamps,
+      },
+      {
+        id: "membership-b",
+        tripId: "trip-a",
+        userId: "companion-b",
+        role: "companion",
+        status: "active",
+        ...timestamps,
+      },
+    ],
     userProfiles: [
       { id: "owner-a", username: "owner", updatedAt: timestamps.updatedAt },
       {
         id: "companion-a",
         username: "companion",
+        updatedAt: timestamps.updatedAt,
+      },
+      {
+        id: "companion-b",
+        username: "companion_two",
         updatedAt: timestamps.updatedAt,
       },
     ],
@@ -234,7 +257,30 @@ describe("companion trip pull sync", () => {
       ),
     ).resolves.toEqual([
       { id: "companion-a", username: "companion" },
+      { id: "companion-b", username: "companion_two" },
       { id: "owner-a", username: "owner" },
+    ]);
+    await expect(
+      testDb.getAllAsync<{
+        user_id: string;
+        source: string;
+      }>(
+        "select user_id, source from trip_membership where trip_id = ? order by user_id",
+        ["trip-a"],
+      ),
+    ).resolves.toEqual([
+      { user_id: "companion-a", source: "companion" },
+      { user_id: "companion-b", source: "remote" },
+    ]);
+    const { actionListLocalExpenseSplitParticipants } = await import(
+      "@/lib/sqlite/model/expense"
+    );
+    await expect(
+      actionListLocalExpenseSplitParticipants("trip-a"),
+    ).resolves.toEqual([
+      { userId: "companion-a", username: "companion" },
+      { userId: "companion-b", username: "companion_two" },
+      { userId: "owner-a", username: "owner" },
     ]);
     await expect(
       testDb.getFirstAsync<{
@@ -324,6 +370,42 @@ describe("companion trip pull sync", () => {
         "select id, title from trip order by id",
       ),
     ).resolves.toEqual([{ id: "trip-a", title: "Updated title" }]);
+  });
+
+  it("removes companions that are no longer active from the local split list", async () => {
+    remote.listMemberships.mockResolvedValue([
+      {
+        id: "membership-a",
+        tripId: "trip-a",
+        userId: "companion-a",
+        role: "companion",
+        status: "active",
+        ...timestamps,
+      },
+    ]);
+    remote.getBundle.mockResolvedValueOnce(createBundle());
+    const { actionPullActiveCompanionTrips } = await import(
+      "@/lib/sqlite/model/companion-trip-sync"
+    );
+    const { actionListLocalExpenseSplitParticipants } = await import(
+      "@/lib/sqlite/model/expense"
+    );
+
+    await actionPullActiveCompanionTrips();
+
+    const refreshedBundle = createBundle();
+    refreshedBundle.tripMembers = refreshedBundle.tripMembers.filter(
+      (membership) => membership.userId !== "companion-b",
+    );
+    remote.getBundle.mockResolvedValue(refreshedBundle);
+    await actionPullActiveCompanionTrips();
+
+    await expect(
+      actionListLocalExpenseSplitParticipants("trip-a"),
+    ).resolves.toEqual([
+      { userId: "companion-a", username: "companion" },
+      { userId: "owner-a", username: "owner" },
+    ]);
   });
 
   it("preserves a downloaded image URI when refreshing remote metadata", async () => {

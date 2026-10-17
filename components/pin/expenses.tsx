@@ -86,10 +86,14 @@ export const PinExpenses = ({
             <CardExpenseRegular
               expense={expense}
               onPress={() => {}}
-              onDeletePress={() => {
-                setSelectedExpenseId(expense.id);
-                setIsDeleteDialogOpen(true);
-              }}
+              onDeletePress={
+                expense.creator?.isCurrentUser
+                  ? () => {
+                      setSelectedExpenseId(expense.id);
+                      setIsDeleteDialogOpen(true);
+                    }
+                  : undefined
+              }
             />
             {index < expenses.length - 1 && (
               <View style={pinSectionStyles.divider} />

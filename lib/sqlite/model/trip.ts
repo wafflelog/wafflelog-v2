@@ -390,6 +390,29 @@ export async function actionUpsertLocalTripMembershipFromRemote(
   );
 }
 
+export async function actionReplaceLocalTripMembershipsFromRemote(
+  tripId: string,
+  memberships: Omit<
+    UpsertLocalTripMembershipInput,
+    "tripId" | "source"
+  >[],
+) {
+  await sqlite.withTransactionAsync(async () => {
+    await sqlite.runAsync(
+      "delete from trip_membership where trip_id = ?",
+      [tripId],
+    );
+
+    for (const membership of memberships) {
+      await actionUpsertLocalTripMembershipFromRemote({
+        ...membership,
+        tripId,
+        source: "remote",
+      });
+    }
+  });
+}
+
 export async function actionListPendingLocalTrips(
   userId: string,
   limit = DEFAULT_SYNC_BATCH_SIZE,

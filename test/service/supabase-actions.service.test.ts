@@ -702,6 +702,7 @@ describe("Supabase actions", () => {
     ]);
     expect(bundle.documents).toHaveLength(1);
     expect(bundle.images).toHaveLength(1);
+    expect(bundle.tripMembers).toEqual([]);
     expect(bundle.images[0]).toEqual(
       expect.objectContaining({
         id: imageId,

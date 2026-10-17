@@ -9,6 +9,7 @@ import {
 import { actionUpsertLocalPinFromRemote } from "./pin";
 import { actionUpsertLocalPinLocationFromRemote } from "./pin-location";
 import {
+  actionReplaceLocalTripMembershipsFromRemote,
   actionUpsertLocalTripFromRemote,
   actionUpsertLocalTripMembershipFromRemote,
 } from "./trip";
@@ -439,6 +440,10 @@ async function actionPullTripBundle(tripId: string) {
 
   await actionUpsertLocalUserProfilesFromRemote(bundle.userProfiles);
   await actionUpsertLocalTripFromRemote(bundle.trip);
+  await actionReplaceLocalTripMembershipsFromRemote(
+    bundle.trip.id,
+    bundle.tripMembers,
+  );
 
   for (const pin of bundle.pins) {
     await actionUpsertLocalPinFromRemote(pin);

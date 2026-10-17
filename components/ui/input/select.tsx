@@ -8,7 +8,7 @@ import {
   getColor,
 } from "@/constants/theme";
 import { useState } from "react";
-import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 type SelectOption = {
   label: string;
@@ -78,11 +78,10 @@ export const UIInputSelect = ({
         title={placeholder}
         size="md"
       >
-        <FlatList
-          data={normalizedOptions}
-          keyExtractor={(item) => item.value}
-          renderItem={({ item }) => (
+        <View style={styles.optionsList}>
+          {normalizedOptions.map((item) => (
             <TouchableOpacity
+              key={item.value}
               style={[
                 styles.option,
                 selectedValue === item.value && styles.optionSelected,
@@ -99,9 +98,8 @@ export const UIInputSelect = ({
                 {item.label}
               </TitleRegular>
             </TouchableOpacity>
-          )}
-          contentContainerStyle={styles.optionsList}
-        />
+          ))}
+        </View>
       </Dialog>
     </>
   );

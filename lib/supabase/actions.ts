@@ -189,6 +189,7 @@ export type RemoteTripSyncBundle = {
   }[];
   documents: ReturnType<typeof mapDocumentRow>[];
   images: ReturnType<typeof mapImageRow>[];
+  tripMembers: ActiveCompanionMembership[];
   userProfiles: {
     id: string;
     username: string;
@@ -1887,6 +1888,7 @@ export async function actionGetRemoteTripSyncBundle(
     expensesResult,
     documentsResult,
     imagesResult,
+    tripMembersResult,
   ] = await Promise.all([
     client
       .from("pin")
@@ -1928,6 +1930,12 @@ export async function actionGetRemoteTripSyncBundle(
         "id, pin_id, trip_id, user_id, storage_bucket, storage_path, mime_type, width, height, caption, created_at, updated_at, deleted_at",
       )
       .eq("trip_id", tripId),
+    client
+      .from("trip_member")
+      .select("id, trip_id, user_id, role, status, created_at, updated_at")
+      .eq("trip_id", tripId)
+      .eq("status", "active")
+      .order("created_at", { ascending: true }),
   ]);
 
   const results = [
@@ -1938,6 +1946,7 @@ export async function actionGetRemoteTripSyncBundle(
     expensesResult,
     documentsResult,
     imagesResult,
+    tripMembersResult,
   ];
   const firstError = results.find((result) => result.error)?.error;
 
@@ -1986,6 +1995,7 @@ export async function actionGetRemoteTripSyncBundle(
       ...(expenseParticipants ?? []).map((participant) => participant.user_id),
       ...(documentsResult.data ?? []).map((document) => document.user_id),
       ...(imagesResult.data ?? []).map((image) => image.user_id),
+      ...(tripMembersResult.data ?? []).map((membership) => membership.user_id),
     ]),
   );
 
@@ -2015,6 +2025,15 @@ export async function actionGetRemoteTripSyncBundle(
     })),
     documents: (documentsResult.data ?? []).map(mapDocumentRow),
     images: (imagesResult.data ?? []).map(mapImageRow),
+    tripMembers: (tripMembersResult.data ?? []).map((membership) => ({
+      id: membership.id,
+      tripId: membership.trip_id,
+      userId: membership.user_id,
+      role: membership.role,
+      status: membership.status,
+      createdAt: membership.created_at,
+      updatedAt: membership.updated_at,
+    })),
     userProfiles: (userProfiles ?? []).map((profile) => ({
       id: profile.id,
       username: profile.username,
