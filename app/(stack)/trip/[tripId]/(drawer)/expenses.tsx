@@ -265,12 +265,16 @@ export default function TripExpensesScreen() {
                         currentUserId: session!.user.id,
                       }),
                     },
-                    participantNames: item.participants.map((participant) =>
-                      getUserDisplayName(participant, session?.user.id),
-                    ),
+                    participants: item.participants.map((participant) => ({
+                      id: participant.userId,
+                      fullname: getUserDisplayName(
+                        participant,
+                        session?.user.id,
+                      ),
+                      splitAmount: participant.splitAmount,
+                    })),
                     creator: item.creator,
                   }}
-                  onPress={() => {}}
                 />
               </View>
             )}

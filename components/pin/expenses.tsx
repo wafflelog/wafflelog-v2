@@ -50,9 +50,11 @@ export const PinExpenses = ({
         currentUserId: userId,
       }),
     },
-    participantNames: expense.participants.map((participant) =>
-      getUserDisplayName(participant, userId),
-    ),
+    participants: expense.participants.map((participant) => ({
+      id: participant.userId,
+      fullname: getUserDisplayName(participant, userId),
+      splitAmount: participant.splitAmount,
+    })),
     creator: expense.creator,
   }));
 
@@ -85,7 +87,6 @@ export const PinExpenses = ({
           <View key={expense.id}>
             <CardExpenseRegular
               expense={expense}
-              onPress={() => {}}
               onDeletePress={
                 expense.creator?.isCurrentUser
                   ? () => {

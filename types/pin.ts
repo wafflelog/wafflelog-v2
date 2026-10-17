@@ -69,7 +69,11 @@ export type Expense = {
   amount: number;
   currency: Currency;
   paidBy: User;
-  participantNames?: string[];
+  participants: {
+    id: string;
+    fullname: string;
+    splitAmount: string;
+  }[];
   creator?: Creator;
 };
 
