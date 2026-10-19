@@ -9,7 +9,12 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.wafflelog.wafflelogv2"
+      "bundleIdentifier": "com.wafflelog.wafflelogv2",
+      "googleServicesFile": "./firebase/production/GoogleService-Info.plist",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Wafflelog uses your location to show where you are in relation to places saved in your trip."
+      }
     },
     "android": {
       "predictiveBackGestureEnabled": false,
