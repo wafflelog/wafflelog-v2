@@ -3,6 +3,11 @@ import Purchases, { LOG_LEVEL } from "react-native-purchases";
 
 const testStoreApiKey =
   process.env.EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY;
+const revenueCatApiKey = __DEV__
+  ? testStoreApiKey
+  : Platform.select({
+      ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY,
+    });
 
 let identitySyncQueue = Promise.resolve();
 let hasWarnedAboutMissingKey = false;
@@ -12,29 +17,22 @@ async function syncIdentity(appUserId: string | null) {
     return;
   }
 
-  if (!testStoreApiKey) {
+  if (!revenueCatApiKey) {
     if (!hasWarnedAboutMissingKey) {
-      console.warn(
-        "RevenueCat is not configured because EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY is missing.",
-      );
+      console.warn("RevenueCat is not configured for this build.");
       hasWarnedAboutMissingKey = true;
     }
 
     return;
   }
 
-  if (!__DEV__) {
-    console.error(
-      "RevenueCat Test Store initialization was skipped in a release build.",
-    );
-    return;
+  if (__DEV__) {
+    await Purchases.setLogLevel(LOG_LEVEL.DEBUG);
   }
-
-  await Purchases.setLogLevel(LOG_LEVEL.DEBUG);
 
   if (!(await Purchases.isConfigured())) {
     Purchases.configure({
-      apiKey: testStoreApiKey,
+      apiKey: revenueCatApiKey,
       appUserID: appUserId ?? undefined,
     });
     return;
