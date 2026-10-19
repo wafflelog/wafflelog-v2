@@ -29,6 +29,7 @@ type DialogProps = {
   style?: StyleProp<ViewStyle>;
   onConfirm?: () => void;
   confirmText?: string;
+  confirmDisabled?: boolean;
   cancelText?: string;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   confirmVariant?: "primary" | "danger";
@@ -52,6 +53,7 @@ export function Dialog({
   style,
   onConfirm,
   confirmText = "Create",
+  confirmDisabled = false,
   cancelText = "Cancel",
   size = "md",
   confirmVariant = "primary",
@@ -131,9 +133,12 @@ export function Dialog({
                     confirmVariant === "danger"
                       ? styles.dangerButton
                       : styles.createButton,
+                    confirmDisabled && styles.buttonDisabled,
                   ]}
                   onPress={onConfirm}
+                  disabled={confirmDisabled}
                   accessibilityRole="button"
+                  accessibilityState={{ disabled: confirmDisabled }}
                 >
                   <TitleRegular
                     size="sm"
@@ -228,5 +233,8 @@ const styles = StyleSheet.create({
   },
   dangerButton: {
     backgroundColor: getColor(colors.red),
+  },
+  buttonDisabled: {
+    opacity: 0.4,
   },
 });

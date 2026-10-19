@@ -142,6 +142,27 @@ describe("planning API client", () => {
     );
   });
 
+  it("deletes the authenticated user's planning data", async () => {
+    const fetchMock = vi
+      .fn<PlanningFetch>()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    const client = createClient(fetchMock);
+
+    await expect(client.deletePlanningData()).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${BASE_URL}/v1/account/planning-data`,
+      {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${ACCESS_TOKEN}`,
+        },
+        body: undefined,
+        signal: expect.any(AbortSignal),
+      },
+    );
+  });
+
   it("rejects unauthenticated requests without calling fetch", async () => {
     const fetchMock = vi.fn<PlanningFetch>();
     const client = createPlanningApiClient({
@@ -274,6 +295,18 @@ describe("planning API client", () => {
           headers: { "Content-Type": "application/json" },
         }),
       );
+    const client = createClient(fetchMock);
+
+    await expect(client.getPlanningJob("job-1")).rejects.toMatchObject({
+      kind: "invalid-response",
+      status: 200,
+    });
+  });
+
+  it("still rejects empty successful responses from data endpoints", async () => {
+    const fetchMock = vi
+      .fn<PlanningFetch>()
+      .mockResolvedValue(new Response(null, { status: 200 }));
     const client = createClient(fetchMock);
 
     await expect(client.getPlanningJob("job-1")).rejects.toMatchObject({

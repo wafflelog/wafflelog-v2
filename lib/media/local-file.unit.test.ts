@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("expo-file-system/legacy", () => ({
+  documentDirectory: "file:///documents/",
   deleteAsync: mocks.deleteAsync,
 }));
 
@@ -31,5 +32,17 @@ describe("local file removal", () => {
     await removeLocalFile(null);
 
     expect(mocks.deleteAsync).not.toHaveBeenCalled();
+  });
+
+  it("removes all Wafflelog-managed media directories", async () => {
+    const { clearLocalMediaFiles } = await import("./local-file");
+
+    await clearLocalMediaFiles();
+
+    expect(mocks.deleteAsync.mock.calls).toEqual([
+      ["file:///documents/images", { idempotent: true }],
+      ["file:///documents/travel-documents", { idempotent: true }],
+      ["file:///documents/place-images", { idempotent: true }],
+    ]);
   });
 });

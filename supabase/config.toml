@@ -378,6 +378,9 @@ allow_dynamic_registration = false
 [functions.push-notification]
 verify_jwt = false
 
+[functions.delete-account]
+verify_jwt = true
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

@@ -8,11 +8,14 @@ type ConfirmActionDialogProps = {
   visible: boolean;
   title: string;
   message: string;
+  messageColor?: [number, number, number];
+  children?: React.ReactNode;
   onConfirm: () => void;
   onDismiss: () => void;
   confirmText?: string;
   cancelText?: string;
   confirmVariant?: "primary" | "danger";
+  confirmDisabled?: boolean;
   isPending?: boolean;
 };
 
@@ -20,28 +23,34 @@ export const ConfirmActionDialog = ({
   visible,
   title,
   message,
+  messageColor = colors.textDarkGrey,
+  children,
   onConfirm,
   onDismiss,
   confirmText = "Confirm",
   cancelText = "Cancel",
   confirmVariant = "danger",
+  confirmDisabled = false,
   isPending = false,
 }: ConfirmActionDialogProps) => {
   return (
     <Dialog
       visible={visible}
       title={title}
-      onDismiss={onDismiss}
-      onConfirm={onConfirm}
+      onDismiss={isPending ? undefined : onDismiss}
+      onConfirm={isPending ? undefined : onConfirm}
       confirmText={isPending ? "Working..." : confirmText}
+      confirmDisabled={confirmDisabled || isPending}
       cancelText={cancelText}
       confirmVariant={confirmVariant}
+      dismissible={!isPending}
       size="xs"
     >
       <View style={{ gap: gaps.md }}>
-        <TitleRegular size="sm" color={colors.textDarkGrey}>
+        <TitleRegular size="sm" color={messageColor}>
           {message}
         </TitleRegular>
+        {children}
       </View>
     </Dialog>
   );

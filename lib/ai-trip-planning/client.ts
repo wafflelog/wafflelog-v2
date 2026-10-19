@@ -35,6 +35,7 @@ type RequestOptions = {
   method?: "DELETE" | "GET" | "POST";
   body?: unknown;
   idempotencyKey?: string;
+  allowEmptyResponse?: boolean;
 };
 
 export type PlanningApiClient = {
@@ -54,6 +55,7 @@ export type PlanningApiClient = {
   cancelPlanningJob: (
     jobId: string,
   ) => Promise<PlanningApiResponse<PlanningJob>>;
+  deletePlanningData: () => Promise<void>;
 };
 
 async function getSupabaseAccessToken() {
@@ -252,7 +254,7 @@ export function createPlanningApiClient(
       );
     }
 
-    if (responseBody === null) {
+    if (responseBody === null && !requestOptions.allowEmptyResponse) {
       throw new PlanningApiError(
         "Planning service returned an empty response",
         {
@@ -294,6 +296,12 @@ export function createPlanningApiClient(
       request<PlanningJob>(`/v1/planning-jobs/${encodeURIComponent(jobId)}`, {
         method: "DELETE",
       }),
+    deletePlanningData: async () => {
+      await request<null>("/v1/account/planning-data", {
+        method: "DELETE",
+        allowEmptyResponse: true,
+      });
+    },
   };
 }
 

@@ -1,5 +1,6 @@
 import { AppHeader } from "@/components/header/app-header";
 import { HeaderBackButton } from "@/components/header/icon-button";
+import { DeleteAccountDialog } from "@/components/dialog/delete-account";
 import { UIText } from "@/components/ui/text";
 import {
   borderRadiuses,
@@ -13,12 +14,16 @@ import {
   type NotificationPermissionState,
   useNotificationPermission,
 } from "@/hook/use-notification-permission";
+import { useSystemMessage } from "@/hook/use-system-message";
+import { actionDeleteAccount } from "@/lib/account/delete-account";
 import { supabase } from "@/lib/supabase/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
   Bell as BellIcon,
   ChevronRight as ChevronRightIcon,
   LogOut as LogOutIcon,
+  Trash2 as Trash2Icon,
 } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -35,10 +40,29 @@ const notificationStatusLabels: Record<NotificationPermissionState, string> = {
 export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const { session } = useAuthSession();
+  const { showMessage, SystemMessageModal } = useSystemMessage();
   const { permissionState, isManagingPermission, managePermission } =
     useNotificationPermission();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: () =>
+      actionDeleteAccount({
+        clearClientCache: () => queryClient.clear(),
+      }),
+    onError: (error) => {
+      setIsDeleteDialogOpen(false);
+      showMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete your account right now",
+        "error",
+      );
+    },
+  });
 
   const username = session?.user.user_metadata.username || "Traveler";
   const usernameInitial = username.trim().charAt(0).toUpperCase() || "T";
@@ -154,7 +178,34 @@ export default function SettingsScreen() {
             {isSigningOut ? "Signing out…" : "Sign out"}
           </UIText>
         </Pressable>
+
+        <Pressable
+          accessibilityLabel="Delete account"
+          accessibilityRole="button"
+          disabled={deleteAccountMutation.isPending}
+          onPress={() => setIsDeleteDialogOpen(true)}
+          style={({ pressed }) => [
+            styles.deleteAccountButton,
+            pressed && styles.deleteAccountButtonPressed,
+            deleteAccountMutation.isPending && styles.deleteAccountButtonDisabled,
+          ]}
+        >
+          <Trash2Icon size={18} color={getColor(colors.red)} />
+          <UIText style={styles.deleteAccountText} weight="600">
+            Delete account
+          </UIText>
+        </Pressable>
       </ScrollView>
+
+      {isDeleteDialogOpen ? (
+        <DeleteAccountDialog
+          visible
+          onDismiss={() => setIsDeleteDialogOpen(false)}
+          onConfirm={() => deleteAccountMutation.mutate()}
+          isPending={deleteAccountMutation.isPending}
+        />
+      ) : null}
+      <SystemMessageModal />
     </View>
   );
 }
@@ -290,5 +341,26 @@ const styles = StyleSheet.create({
     color: getColor(colors.red),
     fontSize: 14,
     lineHeight: 20,
+  },
+  deleteAccountButton: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: gaps.xs,
+    marginTop: gaps.xs,
+    paddingHorizontal: gaps.md,
+    borderRadius: borderRadiuses.full,
+  },
+  deleteAccountButtonPressed: {
+    backgroundColor: getColor(colors.red, 0.06),
+  },
+  deleteAccountButtonDisabled: {
+    opacity: 0.6,
+  },
+  deleteAccountText: {
+    color: getColor(colors.red),
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
