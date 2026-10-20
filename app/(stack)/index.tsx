@@ -27,8 +27,9 @@ import {
   Plus as PlusIcon,
   Sparkles as SparklesIcon,
 } from "lucide-react-native";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
+  AppState,
   ImageBackground,
   Pressable,
   RefreshControl,
@@ -68,6 +69,7 @@ export default function IndexScreen() {
   const [isDialogNewTripOpen, setIsDialogNewTripOpen] = useState(false);
   const [showAllUpcomingTrips, setShowAllUpcomingTrips] = useState(false);
   const [showAllPastTrips, setShowAllPastTrips] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
 
   const { data: tripData = [] } = useQuery({
     queryKey: ["local-trips", session?.user.id],
@@ -77,10 +79,22 @@ export default function IndexScreen() {
   const localPlanningSessions = useLocalAiPlanningSessions(session?.user.id);
   const notificationsQuery = useAppNotifications(session?.user.id);
   const refetchNotifications = notificationsQuery.refetch;
-  const homeHeaderContent = getHomeHeaderContent();
+  const homeHeaderContent = getHomeHeaderContent(currentTime.getHours());
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        setCurrentTime(new Date());
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
+      setCurrentTime(new Date());
+
       if (!session?.user.id) {
         return;
       }
@@ -118,7 +132,7 @@ export default function IndexScreen() {
   }));
   const mappedTrips = localTrips;
 
-  const today = dayjs().startOf("day");
+  const today = dayjs(currentTime).startOf("day");
 
   const ongoingTrips = mappedTrips
     .filter(
