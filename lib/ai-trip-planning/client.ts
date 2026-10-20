@@ -12,6 +12,7 @@ import type {
   PlanningRefinementAccepted,
   PlanningSession,
   PlanningSessionAccepted,
+  TripPassBalance,
 } from "./types";
 
 const DEFAULT_BASE_URL = "https://api.wafflelog.co.uk";
@@ -55,6 +56,7 @@ export type PlanningApiClient = {
   cancelPlanningJob: (
     jobId: string,
   ) => Promise<PlanningApiResponse<PlanningJob>>;
+  getTripPassBalance: () => Promise<PlanningApiResponse<TripPassBalance>>;
   deletePlanningData: () => Promise<void>;
 };
 
@@ -296,6 +298,8 @@ export function createPlanningApiClient(
       request<PlanningJob>(`/v1/planning-jobs/${encodeURIComponent(jobId)}`, {
         method: "DELETE",
       }),
+    getTripPassBalance: () =>
+      request<TripPassBalance>("/v1/trip-passes/balance"),
     deletePlanningData: async () => {
       await request<null>("/v1/account/planning-data", {
         method: "DELETE",

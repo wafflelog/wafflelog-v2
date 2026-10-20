@@ -142,6 +142,35 @@ describe("planning API client", () => {
     );
   });
 
+  it("reads the authenticated user's combined Trip Pass balance", async () => {
+    const balance = {
+      complimentaryPasses: 1,
+      purchasedPasses: 5,
+      totalPasses: 6,
+    };
+    const fetchMock = vi
+      .fn<PlanningFetch>()
+      .mockResolvedValue(jsonResponse(balance));
+    const client = createClient(fetchMock);
+
+    await expect(client.getTripPassBalance()).resolves.toEqual({
+      data: balance,
+      retryAfterMs: null,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${BASE_URL}/v1/trip-passes/balance`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${ACCESS_TOKEN}`,
+        },
+        body: undefined,
+        signal: expect.any(AbortSignal),
+      },
+    );
+  });
+
   it("deletes the authenticated user's planning data", async () => {
     const fetchMock = vi
       .fn<PlanningFetch>()

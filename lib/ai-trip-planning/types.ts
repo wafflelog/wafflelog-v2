@@ -22,6 +22,8 @@ export type PlanningResult = components["schemas"]["PlanningResult"];
 
 export type PlanningJobStatus = PlanningJob["status"];
 
+export type TripPassBalance = components["schemas"]["TripPassBalance"];
+
 export type PlanningApiResponse<T> = {
   data: T;
   retryAfterMs: number | null;

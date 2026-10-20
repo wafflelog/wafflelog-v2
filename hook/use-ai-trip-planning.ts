@@ -27,6 +27,8 @@ export const aiTripPlanningQueryKeys = {
     [...aiTripPlanningQueryKeys.sessions(), sessionId] as const,
   jobs: () => [...aiTripPlanningQueryKeys.all, "jobs"] as const,
   job: (jobId: string) => [...aiTripPlanningQueryKeys.jobs(), jobId] as const,
+  tripPassBalance: (userId: string) =>
+    [...aiTripPlanningQueryKeys.all, "trip-pass-balance", userId] as const,
   localSessions: (userId: string) =>
     [...aiTripPlanningQueryKeys.all, "local-sessions", userId] as const,
   localSession: (sessionId: string, userId: string) =>
@@ -141,6 +143,18 @@ export function useLocalAiPlanningSessions(
   });
 }
 
+export function useTripPassBalance(
+  userId: string | null | undefined,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: aiTripPlanningQueryKeys.tripPassBalance(userId ?? ""),
+    queryFn: () => planningApiClient.getTripPassBalance(),
+    enabled: Boolean(userId) && enabled,
+    select: (response) => response.data,
+  });
+}
+
 export function useLocalAiPlanningSession(
   sessionId: string | null | undefined,
   userId: string | null | undefined,
@@ -200,6 +214,9 @@ export function useCreatePlanningSession() {
       );
       void queryClient.invalidateQueries({
         queryKey: aiTripPlanningQueryKeys.localSessions(localSession.userId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: aiTripPlanningQueryKeys.tripPassBalance(localSession.userId),
       });
     },
   });

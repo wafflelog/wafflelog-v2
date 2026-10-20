@@ -2,6 +2,7 @@ import { AppHeader } from "@/components/header/app-header";
 import { HeaderBackButton } from "@/components/header/icon-button";
 import { DeleteAccountDialog } from "@/components/dialog/delete-account";
 import { UIText } from "@/components/ui/text";
+import { TripPassBalanceCard } from "@/components/revenuecat/trip-pass-balance-card";
 import {
   borderRadiuses,
   colors,
@@ -106,7 +107,16 @@ export default function SettingsScreen() {
         </View>
 
         <UIText
-          style={[styles.sectionLabel, styles.notificationSectionLabel]}
+          style={[styles.sectionLabel, styles.sectionSpacing]}
+          weight="700"
+        >
+          Trip Assistant
+        </UIText>
+
+        <TripPassBalanceCard userId={session?.user.id} />
+
+        <UIText
+          style={[styles.sectionLabel, styles.sectionSpacing]}
           weight="700"
         >
           Notifications
@@ -227,7 +237,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
-  notificationSectionLabel: {
+  sectionSpacing: {
     marginTop: gaps.lg,
   },
   accountCard: {

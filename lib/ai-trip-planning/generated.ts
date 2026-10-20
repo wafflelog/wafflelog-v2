@@ -20,6 +20,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/trip-passes/balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getTripPassBalance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/planning-sessions": {
         parameters: {
             query?: never;
@@ -110,6 +126,16 @@ export interface components {
             service: string;
             version: string;
         };
+        TripPassBalance: {
+            complimentaryPasses: number;
+            purchasedPasses: number;
+            totalPasses: number;
+        };
+        ErrorResponse: {
+            /** @enum {string} */
+            code?: "TRIPPASS_REQUIRED" | "TRIPPASS_DEBIT_FAILED" | "TRIPPASS_REVERSAL_FAILED";
+            detail: string;
+        };
         PlanningSessionAccepted: {
             /** Format: uuid */
             id: string;
@@ -128,11 +154,6 @@ export interface components {
             createdAt: string;
             statusUrl: string;
             eventsUrl?: null;
-        };
-        ErrorResponse: {
-            /** @enum {string} */
-            code?: "TRIPPASS_REQUIRED" | "TRIPPASS_DEBIT_FAILED" | "TRIPPASS_REVERSAL_FAILED";
-            detail: string;
         };
         PlanningRefinementAccepted: {
             /** Format: uuid */
@@ -330,6 +351,56 @@ export interface operations {
                      *     }
                      */
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    getTripPassBalance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The authenticated user's available Trip Pass balance. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "complimentaryPasses": 1,
+                     *       "purchasedPasses": 5,
+                     *       "totalPasses": 6
+                     *     }
+                     */
+                    "application/json": components["schemas"]["TripPassBalance"];
+                };
+            };
+            /** @description A valid Supabase access token is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": "Authentication required."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description The Trip Pass balance could not be retrieved. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };
