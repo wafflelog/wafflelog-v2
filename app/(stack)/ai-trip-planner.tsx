@@ -9,6 +9,7 @@ import {
   AiPlannerRefinementConversation,
   type AiPlannerRefinementMessage,
 } from "@/components/ai-trip-planner/refinement-conversation";
+import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { AppHeader } from "@/components/header/app-header";
 import { HeaderCloseButton } from "@/components/header/icon-button";
 import { TitleRegular } from "@/components/title/regular";
@@ -116,6 +117,8 @@ export default function AiTripPlannerScreen() {
   const cancelPlanningJob = useCancelPlanningJob(userId ?? "");
   const [requestedView, setRequestedView] = useState<PlannerView>("chat");
   const [recoveryDismissed, setRecoveryDismissed] = useState(false);
+  const [isStartNewDialogVisible, setIsStartNewDialogVisible] =
+    useState(false);
   const [submissionAttempt, setSubmissionAttempt] =
     useState<SubmissionAttempt | null>(null);
   const [basePlanningContext, setPlanningContext] =
@@ -371,6 +374,8 @@ export default function AiTripPlannerScreen() {
       await actionDeleteLocalAiPlanningSession(id, userId);
     },
     onSuccess: (_, variables) => {
+      setIsStartNewDialogVisible(false);
+      setRecoveryDismissed(true);
       queryClient.removeQueries({
         queryKey: aiTripPlanningQueryKeys.localSession(
           variables.id,
@@ -627,7 +632,14 @@ export default function AiTripPlannerScreen() {
       return;
     }
 
-    setRecoveryDismissed(true);
+    setIsStartNewDialogVisible(true);
+  };
+
+  const handleConfirmStartNewFromRecovery = () => {
+    if (!recoverableSession || !userId || discardRecovery.isPending) {
+      return;
+    }
+
     discardRecovery.mutate({ id: recoverableSession.id, userId });
   };
 
@@ -1130,6 +1142,18 @@ export default function AiTripPlannerScreen() {
           ) : null}
         </View>
       </View>
+
+      <ConfirmActionDialog
+        visible={isStartNewDialogVisible}
+        title="Start a new plan?"
+        message="A Trip Assistant Pass has already been used for your current plan. Starting again will discard this plan, and you’ll need another pass when you submit the new one."
+        confirmText="Start new plan"
+        cancelText="Keep current plan"
+        onDismiss={() => setIsStartNewDialogVisible(false)}
+        onConfirm={handleConfirmStartNewFromRecovery}
+        isPending={discardRecovery.isPending}
+        confirmVariant="danger"
+      />
 
       <Dialog
         title="Review your trip"
