@@ -1,14 +1,19 @@
 import { TitleRegular } from "@/components/title/regular";
+import { UIText } from "@/components/ui/text";
 import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { Image } from "expo-image";
 import {
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const TERMS_URL = "https://wafflelog.co.uk/app/terms";
+const PRIVACY_URL = "https://wafflelog.co.uk/app/privacy";
 
 type AuthScreenProps = {
   eyebrow: string;
@@ -98,9 +103,23 @@ export function AuthScreen({
               color={colors.textLightGrey}
               style={styles.legalText}
             >
-              {/* TODO: Link the terms and privacy policy when their URLs exist. */}
-              By continuing, you agree to our Terms of Service and acknowledge
-              our Privacy Policy.
+              By continuing, you agree to our{" "}
+              <UIText
+                accessibilityRole="link"
+                onPress={() => void Linking.openURL(TERMS_URL)}
+                style={styles.legalLink}
+              >
+                Terms of Service
+              </UIText>{" "}
+              and acknowledge our{" "}
+              <UIText
+                accessibilityRole="link"
+                onPress={() => void Linking.openURL(PRIVACY_URL)}
+                style={styles.legalLink}
+              >
+                Privacy Policy
+              </UIText>
+              .
             </TitleRegular>
           </View>
         </ScrollView>
@@ -203,5 +222,9 @@ const styles = StyleSheet.create({
   legalText: {
     textAlign: "center",
     lineHeight: 17,
+  },
+  legalLink: {
+    color: getColor(colors.purple),
+    textDecorationLine: "underline",
   },
 });

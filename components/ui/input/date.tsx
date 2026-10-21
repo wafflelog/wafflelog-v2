@@ -115,15 +115,17 @@ export const UIInputDate = ({
           confirmText="Select"
           cancelText="Cancel"
         >
-          <DateTimePicker
-            value={date}
-            mode="date"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
-            onChange={handleDateChange}
-            minimumDate={minimumDate ?? new Date(1900, 0, 1)}
-            maximumDate={maximumDate ?? new Date(2100, 11, 31)}
-            themeVariant="light"
-          />
+          <View style={styles.pickerContainer}>
+            <DateTimePicker
+              value={date}
+              mode="date"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              onChange={handleDateChange}
+              minimumDate={minimumDate ?? new Date(1900, 0, 1)}
+              maximumDate={maximumDate ?? new Date(2100, 11, 31)}
+              themeVariant="light"
+            />
+          </View>
         </Dialog>
       )}
     </View>
@@ -151,5 +153,9 @@ const styles = StyleSheet.create({
   todayButton: {
     paddingVertical: gaps.xs,
     paddingHorizontal: gaps.sm,
+  },
+  pickerContainer: {
+    width: "100%",
+    alignItems: "center",
   },
 });

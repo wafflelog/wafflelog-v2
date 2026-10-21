@@ -36,6 +36,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -64,6 +65,7 @@ function getHomeHeaderContent(hour = new Date().getHours()) {
 export default function IndexScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
   const { session, isAuthenticated, isLoading } = useAuthSession();
   const { isRefreshing, refreshKnownTrips } = useKnownTripsRefresh();
   const [isDialogNewTripOpen, setIsDialogNewTripOpen] = useState(false);
@@ -205,7 +207,10 @@ export default function IndexScreen() {
         {/* Header Banner with Greeting */}
         <ImageBackground
           source={homeHeaderContent.image}
-          style={styles.headerBanner}
+          style={[
+            styles.headerBanner,
+            { height: Math.min(windowWidth / 2, 280) },
+          ]}
           imageStyle={styles.headerBannerImage}
         >
           <View style={styles.headerBannerOverlay} />
@@ -468,7 +473,6 @@ const styles = StyleSheet.create({
   headerBanner: {
     paddingTop: gaps.md,
     paddingBottom: gaps.xl + gaps.md,
-    minHeight: 200,
   },
   headerBannerImage: {
     resizeMode: "cover",

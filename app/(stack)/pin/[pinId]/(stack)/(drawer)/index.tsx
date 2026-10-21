@@ -26,6 +26,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
@@ -70,6 +71,8 @@ export default function PinIndexScreen() {
   const { pinId } = useLocalSearchParams<{ pinId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const mapHeight = Math.min(windowWidth / 1.5, 320);
   const { session } = useAuthSession();
   const color = getColor(colors.purple);
   const queryClient = useQueryClient();
@@ -116,14 +119,12 @@ export default function PinIndexScreen() {
   });
   const { data: localPinLocation } = useQuery({
     queryKey: ["local-pin-location", String(pinId), session?.user.id],
-    queryFn: () =>
-      actionGetLocalPinLocation(String(pinId), session!.user.id),
+    queryFn: () => actionGetLocalPinLocation(String(pinId), session!.user.id),
     enabled: Boolean(pinId && session?.user.id),
   });
   const { data: localNotes = [] } = useQuery({
     queryKey: ["local-notes", "pin", String(pinId), session?.user.id],
-    queryFn: () =>
-      actionListLocalNotesByPin(String(pinId), session!.user.id),
+    queryFn: () => actionListLocalNotesByPin(String(pinId), session!.user.id),
     enabled: Boolean(pinId && session?.user.id),
   });
 
@@ -324,7 +325,7 @@ export default function PinIndexScreen() {
           >
             <MapView
               pointerEvents="none"
-              style={styles.map}
+              style={[styles.map, { height: mapHeight }]}
               region={mapPreview.region}
               provider={PROVIDER_GOOGLE}
               scrollEnabled={false}
@@ -341,8 +342,14 @@ export default function PinIndexScreen() {
             </MapView>
           </Pressable>
         ) : (
-          <View style={[styles.map, styles.mapPlaceholder]}>
-            <MapPinIcon size={28} color={getColor(colors.textLightGrey)} />
+          <View
+            style={[
+              styles.map,
+              styles.mapPlaceholder,
+              { height: mapHeight },
+            ]}
+          >
+            <MapPinIcon size={36} color={getColor(colors.textLightGrey)} />
             <TitleRegular size="sm" weight="600" color={colors.textDarkGrey}>
               No location selected
             </TitleRegular>
@@ -595,7 +602,6 @@ const styles = StyleSheet.create({
   },
   map: {
     width: "100%",
-    aspectRatio: 1.5,
   },
   mapPlaceholder: {
     alignItems: "center",
