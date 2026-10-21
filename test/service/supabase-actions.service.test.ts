@@ -14,6 +14,7 @@ import {
   actionListRemoteOwnedTripIds,
   actionListTripCompanions,
   actionListTripInvitationsByTrip,
+  actionLeaveTrip,
   actionMarkNotificationsRead,
   actionRejectTripInvitation,
   actionRestoreCompanionAccess,
@@ -502,6 +503,33 @@ describe("Supabase actions", () => {
       owner.client,
     );
     expect(restored.status).toBe("active");
+
+    const left = await actionLeaveTrip(tripId, invitee.client);
+    expect(left).toMatchObject({
+      status: "disabled",
+      disabled_reason: "user_left",
+    });
+    expect(await actionListTripCompanions(tripId, owner.client)).toContainEqual(
+      expect.objectContaining({
+        userId: invitee.id,
+        state: "LEFT",
+      }),
+    );
+
+    const reinvitation = await actionCreateTripInvitation(
+      { tripId, inviteeUserId: invitee.id },
+      owner.client,
+    );
+    expect(await actionListTripCompanions(tripId, owner.client)).toContainEqual(
+      expect.objectContaining({
+        userId: invitee.id,
+        state: "INVITED",
+        tripInvitationId: reinvitation.id,
+      }),
+    );
+    expect(
+      (await actionAcceptTripInvitation(reinvitation.id, invitee.client)).status,
+    ).toBe("accepted");
 
     const rejectedInvitation = await actionCreateTripInvitation(
       { tripId, inviteeUserId: rejectedInvitee.id },

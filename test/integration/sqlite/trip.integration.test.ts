@@ -146,7 +146,7 @@ describe("local trips", () => {
       userId: "user-a",
       role: "companion",
       status: "active",
-      source: "remote",
+      source: "companion",
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-01T00:00:00.000Z",
     });
@@ -168,6 +168,17 @@ describe("local trips", () => {
     ).resolves.toMatchObject({ id: companionTrip.id });
     await expect(actionGetLocalTrip(inactiveTrip.id, "user-a")).resolves.toBeNull();
     await expect(actionGetLocalTrip(ownedTrip.id, "user-c")).resolves.toBeNull();
+
+    await actionUpsertLocalTripMembershipFromRemote({
+      tripId: companionTrip.id,
+      userId: "user-a",
+      role: "companion",
+      status: "disabled",
+      source: "companion",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-02T00:00:00.000Z",
+    });
+    await expect(actionGetLocalTrip(companionTrip.id, "user-a")).resolves.toBeNull();
 
     await actionSoftDeleteLocalTrip(ownedTrip.id, "user-a");
     await expect(actionGetLocalTrip(ownedTrip.id, "user-a")).resolves.toBeNull();

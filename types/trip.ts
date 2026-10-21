@@ -22,7 +22,13 @@ export type TripDay = {
 };
 
 export type Companion = User & {
-  state: "INVITED" | "ACCEPTED" | "REJECTED" | "WITHDRAWN" | "DISABLED";
+  state:
+    | "INVITED"
+    | "ACCEPTED"
+    | "REJECTED"
+    | "WITHDRAWN"
+    | "DISABLED"
+    | "LEFT";
 };
 
 export type Trip = {

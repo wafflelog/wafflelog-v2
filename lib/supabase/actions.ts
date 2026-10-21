@@ -150,7 +150,7 @@ export type TripCompanionListItem = {
   id: string;
   userId: string;
   fullname: string;
-  state: "INVITED" | "ACCEPTED" | "DISABLED";
+  state: "INVITED" | "ACCEPTED" | "DISABLED" | "LEFT";
   tripInvitationId: string | null;
   tripMemberId: string | null;
 };
@@ -443,6 +443,16 @@ const mapTripInvitationStatus = (status: string) => {
     default:
       return "INVITED" as const;
   }
+};
+
+const mapTripMemberState = (status: string, disabledReason: string | null) => {
+  if (status === "active") {
+    return "ACCEPTED" as const;
+  }
+
+  return disabledReason === "user_left"
+    ? ("LEFT" as const)
+    : ("DISABLED" as const);
 };
 
 export async function actionCreateTrip(
@@ -1535,7 +1545,7 @@ export async function actionListTripCompanions(
 
   const { data: members, error: membersError } = await client
     .from("trip_member")
-    .select("id, trip_id, user_id, status, created_at")
+    .select("id, trip_id, user_id, status, disabled_reason, created_at")
     .eq("trip_id", tripId)
     .in("status", ["active", "disabled"])
     .order("created_at", { ascending: false });
@@ -1577,9 +1587,23 @@ export async function actionListTripCompanions(
 
   const userById = new Map(users.map((companionUser) => [companionUser.id, companionUser]));
 
-  const memberUserIds = new Set(members.map((member) => member.user_id));
+  const activeMemberUserIds = new Set(
+    members
+      .filter((member) => member.status === "active")
+      .map((member) => member.user_id),
+  );
+  const pendingInviteeUserIds = new Set(
+    invitations.map((invitation) => invitation.invitee_user_id),
+  );
 
   const mappedMembers: TripCompanionListItem[] = members.flatMap((member) => {
+    if (
+      member.status === "disabled" &&
+      pendingInviteeUserIds.has(member.user_id)
+    ) {
+      return [];
+    }
+
     const companionUser = userById.get(member.user_id);
 
     if (!companionUser) {
@@ -1591,7 +1615,7 @@ export async function actionListTripCompanions(
         id: member.id,
         userId: member.user_id,
         fullname: companionUser.username,
-        state: member.status === "disabled" ? "DISABLED" : "ACCEPTED",
+        state: mapTripMemberState(member.status, member.disabled_reason),
         tripInvitationId: null,
         tripMemberId: member.id,
       },
@@ -1600,7 +1624,7 @@ export async function actionListTripCompanions(
 
   const mappedInvitations: TripCompanionListItem[] = invitations.flatMap(
     (invitation) => {
-      if (memberUserIds.has(invitation.invitee_user_id)) {
+      if (activeMemberUserIds.has(invitation.invitee_user_id)) {
         return [];
       }
 
@@ -1764,6 +1788,59 @@ export async function actionDisableCompanionAccess(
   }
 
   return data;
+}
+
+export async function actionLeaveTrip(
+  tripId: string,
+  client: SupabaseClient<Database> = supabase,
+) {
+  const {
+    data: { user },
+    error: authError,
+  } = await client.auth.getUser();
+
+  if (authError) {
+    throw authError;
+  }
+
+  if (!user) {
+    throw new Error("You must be signed in to leave a trip");
+  }
+
+  const { data: membership, error: membershipError } = await client
+    .from("trip_member")
+    .select()
+    .eq("trip_id", tripId)
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .single();
+
+  if (membershipError) {
+    throw membershipError;
+  }
+
+  const updatedAt = new Date().toISOString();
+  const { error } = await client
+    .from("trip_member")
+    .update({
+      status: "disabled",
+      disabled_reason: "user_left",
+      updated_at: updatedAt,
+    })
+    .eq("trip_id", tripId)
+    .eq("user_id", user.id)
+    .eq("status", "active");
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    ...membership,
+    status: "disabled",
+    disabled_reason: "user_left",
+    updated_at: updatedAt,
+  };
 }
 
 export async function actionRestoreCompanionAccess(

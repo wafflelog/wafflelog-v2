@@ -10,16 +10,20 @@ import {
   semanticColors,
 } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { useSystemMessage } from "@/hook/use-system-message";
 import { formatDateRange } from "@/lib/helper/utils";
 import {
   actionGetLocalTrip,
   actionSoftDeleteLocalTrip,
+  actionUpsertLocalTripMembershipFromRemote,
 } from "@/lib/sqlite/model/trip";
 import { actionGetLocalUserProfile } from "@/lib/sqlite/model/user-profile";
+import { actionLeaveTrip } from "@/lib/supabase/actions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Info as InfoIcon,
+  LogOut as LogOutIcon,
   SquarePen as SquarePenIcon,
   Trash2 as Trash2Icon,
 } from "lucide-react-native";
@@ -31,8 +35,10 @@ export default function TripSettingsScreen() {
   const router = useRouter();
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
+  const { showMessage, SystemMessageModal } = useSystemMessage();
   const [isEditDialogVisible, setIsEditDialogVisible] = useState(false);
   const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
+  const [isLeaveDialogVisible, setIsLeaveDialogVisible] = useState(false);
   const tripId = String(routeTripId);
 
   const { data: localTrip } = useQuery({
@@ -66,6 +72,41 @@ export default function TripSettingsScreen() {
       ]);
 
       router.replace("/");
+    },
+  });
+
+  const leaveTripMutation = useMutation({
+    mutationFn: async () => {
+      const membership = await actionLeaveTrip(tripId);
+
+      await actionUpsertLocalTripMembershipFromRemote({
+        tripId: membership.trip_id,
+        userId: membership.user_id,
+        role: membership.role,
+        status: membership.status,
+        source: "companion",
+        createdAt: membership.created_at,
+        updatedAt: membership.updated_at,
+      });
+    },
+    onSuccess: async () => {
+      setIsLeaveDialogVisible(false);
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["local-trip", tripId, session?.user.id],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["local-trips", session?.user.id],
+        }),
+      ]);
+
+      router.replace("/");
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Unable to leave this trip";
+      showMessage(message, "error");
     },
   });
 
@@ -135,16 +176,28 @@ export default function TripSettingsScreen() {
           </TouchableOpacity>
         </>
       ) : (
-        <View style={styles.ownerNotice}>
-          <InfoIcon size={18} color={getColor(colors.purple)} />
-          <TitleRegular
-            size="sm"
-            color={colors.textLightGrey}
-            style={styles.ownerNoticeText}
+        <>
+          <View style={styles.ownerNotice}>
+            <InfoIcon size={18} color={getColor(colors.purple)} />
+            <TitleRegular
+              size="sm"
+              color={colors.textLightGrey}
+              style={styles.ownerNoticeText}
+            >
+              Only the trip owner can edit trip details or delete this trip.
+            </TitleRegular>
+          </View>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => setIsLeaveDialogVisible(true)}
+            activeOpacity={0.8}
           >
-            Only the trip owner can edit trip details or delete this trip.
-          </TitleRegular>
-        </View>
+            <LogOutIcon size={18} color={getColor(colors.red)} />
+            <TitleRegular size="sm" weight="600" color={colors.red}>
+              Leave Trip
+            </TitleRegular>
+          </TouchableOpacity>
+        </>
       )}
 
       <DialogNewTrip
@@ -174,6 +227,17 @@ export default function TripSettingsScreen() {
         isPending={softDeleteTripMutation.isPending}
         confirmVariant="danger"
       />
+      <ConfirmActionDialog
+        visible={isLeaveDialogVisible}
+        title="Leave Trip"
+        message="You will lose access to this trip. Pins, notes, expenses and other content you added will remain available to the trip owner and companions. The owner can invite you again later."
+        confirmText="Leave Trip"
+        onDismiss={() => setIsLeaveDialogVisible(false)}
+        onConfirm={() => leaveTripMutation.mutate()}
+        isPending={leaveTripMutation.isPending}
+        confirmVariant="danger"
+      />
+      <SystemMessageModal />
     </View>
   );
 }

@@ -3,6 +3,7 @@ import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
 import { Companion } from "@/types/trip";
 import {
   Check as CheckIcon,
+  LogOut as LogOutIcon,
   Mail as MailIcon,
   MinusCircle as MinusCircleIcon,
   Power as PowerIcon,
@@ -20,6 +21,7 @@ const stateColors = {
   REJECTED: colors.red,
   WITHDRAWN: colors.paleGrey,
   DISABLED: colors.textLightGrey,
+  LEFT: colors.textLightGrey,
 };
 
 const stateTexts = {
@@ -28,6 +30,7 @@ const stateTexts = {
   REJECTED: "Declined",
   WITHDRAWN: "Withdrawn",
   DISABLED: "Access disabled",
+  LEFT: "Left trip",
 };
 
 const stateIcons = {
@@ -36,6 +39,7 @@ const stateIcons = {
   REJECTED: <XIcon size={14} color={getColor(colors.white)} />,
   WITHDRAWN: <MinusCircleIcon size={14} color={getColor(colors.white)} />,
   DISABLED: <PowerIcon size={14} color={getColor(colors.white)} />,
+  LEFT: <LogOutIcon size={14} color={getColor(colors.white)} />,
 };
 
 export function CardCompanionStateRegular({

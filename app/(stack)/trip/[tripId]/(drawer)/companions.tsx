@@ -109,9 +109,7 @@ export default function TripCompanionsScreen() {
 
   const inTripUserIds = useMemo(() => {
     return companions
-      .filter((companion) =>
-        ["ACCEPTED", "DISABLED"].includes(companion.state),
-      )
+      .filter((companion) => companion.state === "ACCEPTED")
       .map((companion) => companion.userId)
       .join(",");
   }, [companions]);
