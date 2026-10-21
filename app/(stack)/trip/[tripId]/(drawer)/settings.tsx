@@ -16,14 +16,11 @@ import {
   actionGetLocalTrip,
   actionSoftDeleteLocalTrip,
 } from "@/lib/sqlite/model/trip";
-import { actionPurgeLocalCompanionTrip } from "@/lib/sqlite/model/companion-access";
 import { actionGetLocalUserProfile } from "@/lib/sqlite/model/user-profile";
-import { actionLeaveTrip } from "@/lib/supabase/actions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Info as InfoIcon,
-  LogOut as LogOutIcon,
   SquarePen as SquarePenIcon,
   Trash2 as Trash2Icon,
 } from "lucide-react-native";
@@ -35,10 +32,9 @@ export default function TripSettingsScreen() {
   const router = useRouter();
   const { session } = useAuthSession();
   const queryClient = useQueryClient();
-  const { showMessage, SystemMessageModal } = useSystemMessage();
+  const { SystemMessageModal } = useSystemMessage();
   const [isEditDialogVisible, setIsEditDialogVisible] = useState(false);
   const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
-  const [isLeaveDialogVisible, setIsLeaveDialogVisible] = useState(false);
   const tripId = String(routeTripId);
 
   const { data: localTrip } = useQuery({
@@ -72,32 +68,6 @@ export default function TripSettingsScreen() {
       ]);
 
       router.replace("/");
-    },
-  });
-
-  const leaveTripMutation = useMutation({
-    mutationFn: async () => {
-      await actionLeaveTrip(tripId);
-      await actionPurgeLocalCompanionTrip(tripId, session!.user.id);
-    },
-    onSuccess: async () => {
-      setIsLeaveDialogVisible(false);
-
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["local-trip", tripId, session?.user.id],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["local-trips", session?.user.id],
-        }),
-      ]);
-
-      router.replace("/");
-    },
-    onError: (error) => {
-      const message =
-        error instanceof Error ? error.message : "Unable to leave this trip";
-      showMessage(message, "error");
     },
   });
 
@@ -178,16 +148,6 @@ export default function TripSettingsScreen() {
               Only the trip owner can edit trip details or delete this trip.
             </TitleRegular>
           </View>
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => setIsLeaveDialogVisible(true)}
-            activeOpacity={0.8}
-          >
-            <LogOutIcon size={18} color={getColor(colors.red)} />
-            <TitleRegular size="sm" weight="600" color={colors.red}>
-              Leave Trip
-            </TitleRegular>
-          </TouchableOpacity>
         </>
       )}
 
@@ -216,16 +176,6 @@ export default function TripSettingsScreen() {
           softDeleteTripMutation.mutate();
         }}
         isPending={softDeleteTripMutation.isPending}
-        confirmVariant="danger"
-      />
-      <ConfirmActionDialog
-        visible={isLeaveDialogVisible}
-        title="Leave Trip"
-        message="You will lose access to this trip. Pins, notes, expenses and other content you added will remain available to the trip owner and companions. The owner can invite you again later."
-        confirmText="Leave Trip"
-        onDismiss={() => setIsLeaveDialogVisible(false)}
-        onConfirm={() => leaveTripMutation.mutate()}
-        isPending={leaveTripMutation.isPending}
         confirmVariant="danger"
       />
       <SystemMessageModal />

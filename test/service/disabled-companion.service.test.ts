@@ -96,5 +96,40 @@ describe("disabled companion access", () => {
     expect(disabledChecklistItem.data).toEqual([]);
     expect(disabledPin.error).toBeNull();
     expect(disabledPin.data).toEqual([]);
+
+    const { data: restoredMembership, error: restoreError } = await owner.client
+      .from("trip_member")
+      .update({
+        status: "active",
+        disabled_reason: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("trip_id", tripId)
+      .eq("user_id", companion.id)
+      .eq("status", "disabled")
+      .eq("disabled_reason", "owner_disabled")
+      .select("status, disabled_reason")
+      .single();
+    expect(restoreError).toBeNull();
+    expect(restoredMembership).toEqual({
+      status: "active",
+      disabled_reason: null,
+    });
+
+    const [restoredTrip, restoredChecklistItem, restoredPin] =
+      await Promise.all([
+        companion.client.from("trip").select("id").eq("id", tripId),
+        companion.client
+          .from("checklist_item")
+          .select("id")
+          .eq("id", checklistItemId),
+        companion.client.from("pin").select("id").eq("id", pinId),
+      ]);
+    expect(restoredTrip.error).toBeNull();
+    expect(restoredTrip.data).toEqual([{ id: tripId }]);
+    expect(restoredChecklistItem.error).toBeNull();
+    expect(restoredChecklistItem.data).toEqual([{ id: checklistItemId }]);
+    expect(restoredPin.error).toBeNull();
+    expect(restoredPin.data).toEqual([{ id: pinId }]);
   });
 });

@@ -1835,6 +1835,7 @@ export async function actionDisableCompanionAccess(
     .update({
       status: "disabled",
       disabled_reason: "owner_disabled",
+      updated_at: new Date().toISOString(),
     })
     .eq("id", tripMemberId)
     .eq("status", "active")
@@ -1923,8 +1924,10 @@ export async function actionRestoreCompanionAccess(
     .update({
       status: "active",
       disabled_reason: null,
+      updated_at: new Date().toISOString(),
     })
     .eq("status", "disabled")
+    .eq("disabled_reason", "owner_disabled")
     .eq("id", tripMemberId)
     .select()
     .single();

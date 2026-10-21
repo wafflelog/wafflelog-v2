@@ -1,5 +1,6 @@
 import { ButtonFab } from "@/components/button/fab";
 import { CardCompanionRegular } from "@/components/card/companion/regular";
+import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { UIText } from "@/components/ui/text";
 import {
   borderRadiuses,
@@ -11,23 +12,31 @@ import {
 } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
+import { actionPurgeLocalCompanionTrip } from "@/lib/sqlite/model/companion-access";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
+import { actionGetLocalUserProfile } from "@/lib/sqlite/model/user-profile";
 import {
   actionDisableCompanionAccess,
+  actionLeaveTrip,
   actionListTripCompanions,
+  actionRestoreCompanionAccess,
   actionWithdrawTripInvitation,
   type TripCompanionListItem,
 } from "@/lib/supabase/actions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Plus as PlusIcon } from "lucide-react-native";
-import { useMemo } from "react";
+import {
+  LogOut as LogOutIcon,
+  Plus as PlusIcon,
+} from "lucide-react-native";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -41,12 +50,22 @@ export default function TripCompanionsScreen() {
   const queryClient = useQueryClient();
   const { session } = useAuthSession();
   const { showMessage, SystemMessageModal } = useSystemMessage();
+  const [isLeaveDialogVisible, setIsLeaveDialogVisible] = useState(false);
+  const [companionPendingDisable, setCompanionPendingDisable] =
+    useState<TripCompanionListItem | null>(null);
   const tripId = String(routeTripId ?? "");
 
   const { data: localTrip } = useQuery({
     queryKey: ["local-trip", tripId, session?.user.id],
     queryFn: () => actionGetLocalTrip(tripId, session!.user.id),
     enabled: Boolean(routeTripId && session?.user.id),
+  });
+  const isTripOwner = localTrip?.userId === session?.user.id;
+
+  const { data: ownerProfile } = useQuery({
+    queryKey: ["local-user-profile", localTrip?.userId],
+    queryFn: () => actionGetLocalUserProfile(localTrip!.userId),
+    enabled: Boolean(localTrip?.userId),
   });
 
   const companionsQuery = useQuery({
@@ -75,6 +94,7 @@ export default function TripCompanionsScreen() {
     mutationFn: (tripMemberId: string) =>
       actionDisableCompanionAccess(tripMemberId),
     onSuccess: () => {
+      setCompanionPendingDisable(null);
       void queryClient.invalidateQueries({
         queryKey: ["trip-companions", tripId, session?.user.id],
       });
@@ -87,12 +107,60 @@ export default function TripCompanionsScreen() {
     },
   });
 
+  const restoreCompanionMutation = useMutation({
+    mutationFn: (tripMemberId: string) =>
+      actionRestoreCompanionAccess(tripMemberId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["trip-companions", tripId, session?.user.id],
+      });
+      showMessage("Companion access restored", "info");
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Unable to restore access";
+      showMessage(message, "error");
+    },
+  });
+
+  const leaveTripMutation = useMutation({
+    mutationFn: async () => {
+      await actionLeaveTrip(tripId);
+      await actionPurgeLocalCompanionTrip(tripId, session!.user.id);
+    },
+    onSuccess: async () => {
+      setIsLeaveDialogVisible(false);
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["local-trip", tripId, session?.user.id],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["local-trips", session?.user.id],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["trip-companions", tripId, session?.user.id],
+        }),
+      ]);
+
+      router.replace("/");
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Unable to leave this trip";
+      showMessage(message, "error");
+    },
+  });
+
   const trip = {
     id: tripId,
     title: localTrip?.title ?? "Barcelona Getaway",
   };
 
-  const companions = useMemo(() => companionsQuery.data ?? [], [companionsQuery.data]);
+  const companions = useMemo(
+    () => companionsQuery.data ?? [],
+    [companionsQuery.data],
+  );
 
   const activeCompanionCount = useMemo(() => {
     return companions.filter((companion) =>
@@ -115,32 +183,53 @@ export default function TripCompanionsScreen() {
   }, [companions]);
 
   const handleCompanionAction = (companion: TripCompanionListItem) => {
-    if (companion.state === "INVITED") {
-      if (!companion.tripInvitationId) {
-        showMessage("Invite not found", "error");
-        return;
-      }
-
-      withdrawInvitationMutation.mutate(companion.tripInvitationId);
+    if (!isTripOwner) {
       return;
     }
 
-    if (companion.state === "ACCEPTED") {
-      if (!companion.tripMemberId) {
-        showMessage("Companion not found", "error");
-        return;
-      }
+    switch (companion.state) {
+      case "INVITED":
+        if (!companion.tripInvitationId) {
+          showMessage("Invite not found", "error");
+          return;
+        }
 
-      disableCompanionMutation.mutate(companion.tripMemberId);
+        withdrawInvitationMutation.mutate(companion.tripInvitationId);
+        return;
+      case "ACCEPTED":
+        if (!companion.tripMemberId) {
+          showMessage("Companion not found", "error");
+          return;
+        }
+
+        setCompanionPendingDisable(companion);
+        return;
+      default:
+        return;
+    }
+  };
+
+  const handleRestoreAccess = (companion: TripCompanionListItem) => {
+    if (!isTripOwner || companion.state !== "DISABLED") {
       return;
     }
 
-    showMessage(`${companion.fullname} has disabled access`, "info");
+    if (!companion.tripMemberId) {
+      showMessage("Companion not found", "error");
+      return;
+    }
+
+    restoreCompanionMutation.mutate(companion.tripMemberId);
   };
 
   if (!trip.id) {
     return <UIText>Trip not found</UIText>;
   }
+
+  const ownerUsername =
+    ownerProfile?.username ??
+    (isTripOwner ? session?.user.user_metadata.username : null) ??
+    "Trip owner";
 
   return (
     <View style={styles.container}>
@@ -174,8 +263,10 @@ export default function TripCompanionsScreen() {
                   <Text style={styles.statLabel}>max</Text>
                 </View>
                 <View style={styles.stat}>
-                  <Text style={styles.statValue}>owner</Text>
-                  <Text style={styles.statLabel}>admin</Text>
+                  <Text style={styles.statValue} numberOfLines={1}>
+                    {ownerUsername}
+                  </Text>
+                  <Text style={styles.statLabel}>owner</Text>
                 </View>
               </View>
             </View>
@@ -219,33 +310,85 @@ export default function TripCompanionsScreen() {
             <CardCompanionRegular
               companion={item}
               showStateBadge={item.state !== "ACCEPTED"}
-              showRemoveButton={item.state === "INVITED" || item.state === "ACCEPTED"}
+              showRemoveButton={
+                isTripOwner &&
+                (item.state === "INVITED" || item.state === "ACCEPTED")
+              }
+              showRestoreButton={isTripOwner && item.state === "DISABLED"}
               onRemove={() => {
                 handleCompanionAction(item);
+              }}
+              onRestore={() => {
+                handleRestoreAccess(item);
               }}
             />
           </View>
         )}
+        ListFooterComponent={
+          !isTripOwner ? (
+            <View style={styles.leaveSection}>
+              <TouchableOpacity
+                style={styles.leaveButton}
+                onPress={() => setIsLeaveDialogVisible(true)}
+                activeOpacity={0.8}
+              >
+                <LogOutIcon size={18} color={getColor(colors.red)} />
+                <Text style={styles.leaveButtonText}>Leave trip</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null
+        }
       />
-      <ButtonFab
-        onPress={() => {
-          if (activeCompanionCount >= MAX_COMPANIONS) {
-            showMessage(`You can invite up to ${MAX_COMPANIONS} companions`, "error");
-            return;
-          }
+      {isTripOwner ? (
+        <ButtonFab
+          onPress={() => {
+            if (activeCompanionCount >= MAX_COMPANIONS) {
+              showMessage(
+                `You can invite up to ${MAX_COMPANIONS} companions`,
+                "error",
+              );
+              return;
+            }
 
-          router.push({
-            pathname: "/user-search",
-            params: {
-              tripId: trip.id,
-              invitedUserIds,
-              inTripUserIds,
-              tripTitle: trip.title,
-            },
-          });
+            router.push({
+              pathname: "/user-search",
+              params: {
+                tripId: trip.id,
+                invitedUserIds,
+                inTripUserIds,
+                tripTitle: trip.title,
+              },
+            });
+          }}
+          text="Invite companion"
+          icon={(color) => <PlusIcon size={20} color={color} />}
+        />
+      ) : null}
+      <ConfirmActionDialog
+        visible={Boolean(companionPendingDisable)}
+        title="Disable access?"
+        message={`${companionPendingDisable?.fullname ?? "This companion"} will lose access to this trip. Their existing contributions will remain, and you can restore their access later.`}
+        confirmText="Disable access"
+        onDismiss={() => setCompanionPendingDisable(null)}
+        onConfirm={() => {
+          if (companionPendingDisable?.tripMemberId) {
+            disableCompanionMutation.mutate(
+              companionPendingDisable.tripMemberId,
+            );
+          }
         }}
-        text="Invite companion"
-        icon={(color) => <PlusIcon size={20} color={color} />}
+        isPending={disableCompanionMutation.isPending}
+        confirmVariant="danger"
+      />
+      <ConfirmActionDialog
+        visible={isLeaveDialogVisible}
+        title="Leave Trip"
+        message="You will lose access to this trip. Pins, notes, expenses and other content you added will remain available to the trip owner and companions."
+        confirmText="Leave Trip"
+        onDismiss={() => setIsLeaveDialogVisible(false)}
+        onConfirm={() => leaveTripMutation.mutate()}
+        isPending={leaveTripMutation.isPending}
+        confirmVariant="danger"
       />
       <SystemMessageModal />
     </View>
@@ -338,6 +481,25 @@ const styles = StyleSheet.create({
   companion: {
     ...getCardBasicStyle("sm"),
     gap: gaps.xs,
+  },
+  leaveSection: {
+    paddingTop: gaps.md,
+  },
+  leaveButton: {
+    minHeight: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: getColor(colors.red, 0.25),
+    backgroundColor: getColor(colors.red, 0.08),
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: gaps.xs,
+  },
+  leaveButtonText: {
+    color: getColor(colors.red),
+    fontSize: 14,
+    fontWeight: "600",
   },
   loadingState: {
     alignItems: "center",
