@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const sync = vi.hoisted(() => ({
   checklistItems: vi.fn(),
+  companionAccess: vi.fn(),
   documents: vi.fn(),
   expenses: vi.fn(),
   images: vi.fn(),
@@ -14,6 +15,9 @@ const sync = vi.hoisted(() => ({
 
 vi.mock("@/lib/sqlite/model/checklist-item", () => ({
   actionSyncPendingLocalChecklistItems: sync.checklistItems,
+}));
+vi.mock("@/lib/sqlite/model/companion-access", () => ({
+  actionReconcileLocalCompanionAccess: sync.companionAccess,
 }));
 vi.mock("@/lib/sqlite/model/document", () => ({
   actionSyncPendingLocalDocuments: sync.documents,
@@ -46,6 +50,7 @@ describe("pending upload orchestration", () => {
       upload.mockReset();
       upload.mockResolvedValue({ hasMore: false });
     });
+    sync.companionAccess.mockResolvedValue([]);
   });
 
   it("attempts image uploads after document uploads fail", async () => {

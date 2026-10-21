@@ -55,6 +55,7 @@ export default function TripDocumentsScreen() {
       actionListLocalDocumentsByTrip(String(tripId), session!.user.id),
     enabled: Boolean(tripId && session?.user.id),
   });
+  const isTripOwner = localTrip?.userId === session?.user.id;
 
   const softDeleteDocumentMutation = useMutation({
     mutationFn: (documentId: string) =>
@@ -154,7 +155,7 @@ export default function TripDocumentsScreen() {
                 }
                 onError={(message) => showMessage(message, "error")}
                 onDeletePress={
-                  item.creator.isCurrentUser
+                  item.creator.isCurrentUser || isTripOwner
                     ? () => {
                         setSelectedDocumentId(item.id);
                         setIsDeleteDialogOpen(true);

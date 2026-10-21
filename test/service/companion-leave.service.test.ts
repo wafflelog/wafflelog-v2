@@ -8,6 +8,7 @@ describe("companion leave and re-invitation", () => {
     const companion = await createTestUser("companion");
     const tripId = crypto.randomUUID();
     const noteId = crypto.randomUUID();
+    const pinId = crypto.randomUUID();
 
     const { error: tripError } = await owner.client.from("trip").insert({
       id: tripId,
@@ -53,6 +54,16 @@ describe("companion leave and re-invitation", () => {
       text: "Keep this note after I leave",
     });
     expect(noteError).toBeNull();
+
+    const { error: pinError } = await companion.client.from("pin").insert({
+      id: pinId,
+      trip_id: tripId,
+      user_id: companion.id,
+      name: "Companion place",
+      start_date: "2026-05-02",
+      category_id: "place",
+    });
+    expect(pinError).toBeNull();
 
     const { error: leaveError } = await companion.client
       .from("trip_member")
@@ -136,6 +147,19 @@ describe("companion leave and re-invitation", () => {
     expect(retainedNote.data).toEqual([
       { id: noteId, text: "Keep this note after I leave" },
     ]);
+
+    const { data: ownerEditedPin, error: ownerEditPinError } =
+      await owner.client
+        .from("pin")
+        .update({ name: "Owner updated place" })
+        .eq("id", pinId)
+        .select("name, user_id")
+        .single();
+    expect(ownerEditPinError).toBeNull();
+    expect(ownerEditedPin).toEqual({
+      name: "Owner updated place",
+      user_id: companion.id,
+    });
 
     const { data: secondInvitation, error: secondInvitationError } =
       await owner.client

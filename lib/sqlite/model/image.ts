@@ -387,11 +387,18 @@ export async function actionListPendingLocalImages(
         sync_error,
         deleted_at
       from image
-      where user_id = ? and sync_status != 'synced'
+      where sync_status != 'synced'
+        and (
+          image.user_id = ?
+          or exists (
+            select 1 from trip
+            where trip.id = image.trip_id and trip.user_id = ?
+          )
+        )
       order by created_at asc
       limit ?
     `,
-    [userId, limit],
+    [userId, userId, limit],
   );
 
   return rows.map((row) => mapLocalImageRow(row, userId));
@@ -408,9 +415,16 @@ export async function actionSoftDeleteLocalImage(id: string, userId: string) {
         sync_status = ?,
         sync_error = ?,
         updated_at = ?
-      where id = ? and user_id = ?
+      where id = ?
+        and (
+          user_id = ?
+          or exists (
+            select 1 from trip
+            where trip.id = image.trip_id and trip.user_id = ?
+          )
+        )
     `,
-    [now, "pending", null, now, id, userId],
+    [now, "pending", null, now, id, userId, userId],
   );
 }
 

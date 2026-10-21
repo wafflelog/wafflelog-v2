@@ -165,6 +165,10 @@ export type ActiveCompanionMembership = {
   updatedAt: string;
 };
 
+export type CompanionMembership = ActiveCompanionMembership & {
+  disabledReason: string | null;
+};
+
 export type RemoteTripSyncBundle = {
   trip: {
     id: string;
@@ -606,6 +610,34 @@ export async function actionUpsertRemotePinFromLocal(
   return mapPinRow(data);
 }
 
+export async function actionUpdateRemotePinFromLocal(
+  input: CreatePinInput & { id: string },
+  client: SupabaseClient<Database> = supabase,
+) {
+  const { data, error } = await client
+    .from("pin")
+    .update({
+      name: input.name?.trim() || null,
+      start_date: input.startDate,
+      end_date: input.endDate,
+      time: input.time?.trim() || null,
+      end_time: input.endTime?.trim() || null,
+      category_id: input.categoryId,
+      metadata_json: input.metadataJson,
+    })
+    .eq("id", input.id)
+    .select(
+      "id, trip_id, user_id, name, start_date, end_date, time, end_time, category_id, metadata_json, created_at, updated_at, deleted_at",
+    )
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapPinRow(data);
+}
+
 export async function actionUpsertRemotePinLocationFromLocal(
   input: UpsertPinLocationInput,
   client: SupabaseClient<Database> = supabase,
@@ -650,6 +682,33 @@ export async function actionUpsertRemotePinLocationFromLocal(
   return mapPinLocationRow(data);
 }
 
+export async function actionUpdateRemotePinLocationFromLocal(
+  input: UpsertPinLocationInput,
+  client: SupabaseClient<Database> = supabase,
+) {
+  const { data, error } = await client
+    .from("pin_location")
+    .update({
+      place_id: input.placeId.trim(),
+      display_name: input.displayName.trim(),
+      formatted_address: input.formattedAddress.trim(),
+      latitude: input.latitude,
+      longitude: input.longitude,
+      updated_at: input.updatedAt,
+    })
+    .eq("pin_id", input.pinId)
+    .select(
+      "pin_id, user_id, place_id, display_name, formatted_address, latitude, longitude, created_at, updated_at",
+    )
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return mapPinLocationRow(data);
+}
+
 export async function actionSoftDeleteRemotePin(
   pinId: string,
   client: SupabaseClient<Database> = supabase,
@@ -672,8 +731,7 @@ export async function actionSoftDeleteRemotePin(
   const { error } = await client
     .from("pin")
     .update({ deleted_at: deletedAt, updated_at: deletedAt })
-    .eq("id", pinId)
-    .eq("user_id", user.id);
+    .eq("id", pinId);
 
   if (error) {
     throw error;
@@ -1880,9 +1938,15 @@ export async function actionRestoreCompanionAccess(
 
 export async function actionListActiveCompanionMemberships(
   client: SupabaseClient<Database> = supabase,
-): Promise<
-  ActiveCompanionMembership[]
-> {
+): Promise<ActiveCompanionMembership[]> {
+  const memberships = await actionListCompanionMemberships(client);
+
+  return memberships.filter((membership) => membership.status === "active");
+}
+
+export async function actionListCompanionMemberships(
+  client: SupabaseClient<Database> = supabase,
+): Promise<CompanionMembership[]> {
   const {
     data: { user },
     error: authError,
@@ -1898,9 +1962,10 @@ export async function actionListActiveCompanionMemberships(
 
   const { data, error } = await client
     .from("trip_member")
-    .select("id, trip_id, user_id, role, status, created_at, updated_at")
+    .select(
+      "id, trip_id, user_id, role, status, disabled_reason, created_at, updated_at",
+    )
     .eq("user_id", user.id)
-    .eq("status", "active")
     .order("updated_at", { ascending: false });
 
   if (error) {
@@ -1913,6 +1978,7 @@ export async function actionListActiveCompanionMemberships(
     userId: membership.user_id,
     role: membership.role,
     status: membership.status,
+    disabledReason: membership.disabled_reason,
     createdAt: membership.created_at,
     updatedAt: membership.updated_at,
   }));

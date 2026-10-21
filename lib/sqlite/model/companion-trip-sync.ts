@@ -4,6 +4,7 @@ import {
   actionGetRemoteTripSyncBundle,
   actionListActiveCompanionMemberships,
   actionListRemoteOwnedTripIds,
+  type ActiveCompanionMembership,
   type RemoteTripSyncBundle,
 } from "@/lib/supabase/actions";
 import { actionUpsertLocalPinFromRemote } from "./pin";
@@ -503,8 +504,10 @@ export async function actionPullOwnedTrips(
 export async function actionPullActiveCompanionTrips(
   limit = DEFAULT_SYNC_BATCH_SIZE,
   offset = 0,
+  knownMemberships?: ActiveCompanionMembership[],
 ) {
-  const memberships = await actionListActiveCompanionMemberships();
+  const memberships =
+    knownMemberships ?? (await actionListActiveCompanionMemberships());
   const limitedMemberships = memberships.slice(offset, offset + limit);
 
   for (const membership of limitedMemberships) {

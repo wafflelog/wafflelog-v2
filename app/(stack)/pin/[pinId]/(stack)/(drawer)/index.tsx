@@ -133,6 +133,7 @@ export default function PinIndexScreen() {
       ? {
           currentUserId: session?.user.id,
           entityUserId: localPin.userId,
+          isTripOwner: localTrip?.userId === session?.user.id,
         }
       : {
           currentUserId: session?.user.id,
@@ -140,6 +141,7 @@ export default function PinIndexScreen() {
         },
   );
   const noteCount = localNotes.length;
+  const isTripOwner = localTrip?.userId === session?.user.id;
   const noteBadgeText = noteCount > 99 ? "99+" : String(noteCount);
 
   const mapPreview = localPinLocation
@@ -418,12 +420,14 @@ export default function PinIndexScreen() {
             pinId={pin.id}
             tripId={localPin.tripId}
             userId={session.user.id}
+            isTripOwner={isTripOwner}
             onAddExpense={() => setActiveNewObjectDialog("expense")}
           />
 
           <PinImages
             pinId={pin.id}
             userId={session.user.id}
+            isTripOwner={isTripOwner}
             onOpenImage={handleOpenImage}
             onAddImage={() => setActiveNewObjectDialog("image")}
           />
@@ -431,6 +435,7 @@ export default function PinIndexScreen() {
           <PinDocuments
             pinId={pin.id}
             userId={session.user.id}
+            isTripOwner={isTripOwner}
             onOpenDocument={handleOpenDocument}
             onAddDocument={() => setActiveNewObjectDialog("document")}
             onDownloadError={(message) => showMessage(message, "error")}
@@ -439,6 +444,7 @@ export default function PinIndexScreen() {
           <PinLinks
             pinId={pin.id}
             userId={session.user.id}
+            isTripOwner={isTripOwner}
             onAddReferenceLink={() =>
               setActiveNewObjectDialog("reference-link")
             }

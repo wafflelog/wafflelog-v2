@@ -15,12 +15,14 @@ import { PinSectionTemplate, pinSectionStyles } from "./section-template";
 type PinLinksProps = {
   pinId: string;
   userId: string;
+  isTripOwner: boolean;
   onAddReferenceLink: () => void;
 };
 
 export const PinLinks = ({
   pinId,
   userId,
+  isTripOwner,
   onAddReferenceLink,
 }: PinLinksProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -66,10 +68,14 @@ export const PinLinks = ({
                 caption: referenceLink.caption ?? undefined,
                 creator: referenceLink.creator,
               }}
-              onDeletePress={() => {
-                setSelectedReferenceLinkId(referenceLink.id);
-                setIsDeleteDialogOpen(true);
-              }}
+              onDeletePress={
+                referenceLink.creator.isCurrentUser || isTripOwner
+                  ? () => {
+                      setSelectedReferenceLinkId(referenceLink.id);
+                      setIsDeleteDialogOpen(true);
+                    }
+                  : undefined
+              }
             />
             {index < localReferenceLinks.length - 1 && (
               <View style={pinSectionStyles.divider} />

@@ -72,6 +72,18 @@ describe("pin permissions", () => {
     expect(canDeletePin(input)).toBe(false);
     expect(canEditPinLocation(input)).toBe(false);
   });
+
+  it("allows the trip owner to manage a companion's pin", () => {
+    const input = {
+      currentUserId: "owner-1",
+      entityUserId: "companion-1",
+      isTripOwner: true,
+    };
+
+    expect(canEditPin(input)).toBe(true);
+    expect(canDeletePin(input)).toBe(true);
+    expect(canEditPinLocation(input)).toBe(true);
+  });
 });
 
 describe("trip access permissions", () => {

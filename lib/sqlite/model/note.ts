@@ -250,11 +250,18 @@ export async function actionListPendingLocalNotes(
         sync_error,
         deleted_at
       from note
-      where user_id = ? and sync_status != 'synced'
+      where sync_status != 'synced'
+        and (
+          note.user_id = ?
+          or exists (
+            select 1 from trip
+            where trip.id = note.trip_id and trip.user_id = ?
+          )
+        )
       order by created_at asc
       limit ?
     `,
-    [userId, limit],
+    [userId, userId, limit],
   );
 
   return rows.map(mapLocalNoteRow);
@@ -271,9 +278,16 @@ export async function actionSoftDeleteLocalNote(id: string, userId: string) {
         sync_status = ?,
         sync_error = ?,
         updated_at = ?
-      where id = ? and user_id = ?
+      where id = ?
+        and (
+          user_id = ?
+          or exists (
+            select 1 from trip
+            where trip.id = note.trip_id and trip.user_id = ?
+          )
+        )
     `,
-    [now, "pending", null, now, id, userId],
+    [now, "pending", null, now, id, userId, userId],
   );
 }
 

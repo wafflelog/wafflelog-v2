@@ -7,6 +7,7 @@ import { actionSyncPendingLocalPins } from "@/lib/sqlite/model/pin";
 import { actionSyncPendingLocalPinLocations } from "@/lib/sqlite/model/pin-location";
 import { actionSyncPendingLocalReferenceLinks } from "@/lib/sqlite/model/reference-link";
 import { actionSyncPendingLocalTrips } from "@/lib/sqlite/model/trip";
+import { actionReconcileLocalCompanionAccess } from "@/lib/sqlite/model/companion-access";
 
 const SYNC_BATCH_SIZE = 25;
 
@@ -47,6 +48,7 @@ async function uploadPendingMediaChanges(userId: string) {
 }
 
 export async function uploadPendingChanges(userId: string) {
+  await actionReconcileLocalCompanionAccess(userId);
   await uploadPendingBatch(actionSyncPendingLocalTrips, userId);
   await uploadPendingBatch(actionSyncPendingLocalChecklistItems, userId);
   await uploadPendingBatch(actionSyncPendingLocalPins, userId);

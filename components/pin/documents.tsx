@@ -15,6 +15,7 @@ import { PinSectionTemplate, pinSectionStyles } from "./section-template";
 type PinDocumentsProps = {
   pinId: string;
   userId: string;
+  isTripOwner: boolean;
   onOpenDocument: (document: {
     fileName: string;
     localUri: string;
@@ -27,6 +28,7 @@ type PinDocumentsProps = {
 export const PinDocuments = ({
   pinId,
   userId,
+  isTripOwner,
   onOpenDocument,
   onAddDocument,
   onDownloadError,
@@ -77,7 +79,7 @@ export const PinDocuments = ({
               }
               onError={onDownloadError}
               onDeletePress={
-                document.creator.isCurrentUser
+                document.creator.isCurrentUser || isTripOwner
                   ? () => {
                       setSelectedDocumentId(document.id);
                       setIsDeleteDialogOpen(true);

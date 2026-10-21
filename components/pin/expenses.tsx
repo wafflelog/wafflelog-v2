@@ -19,6 +19,7 @@ type PinExpensesProps = {
   pinId: string;
   tripId: string;
   userId: string;
+  isTripOwner: boolean;
   onAddExpense: () => void;
 };
 
@@ -26,6 +27,7 @@ export const PinExpenses = ({
   pinId,
   tripId,
   userId,
+  isTripOwner,
   onAddExpense,
 }: PinExpensesProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -88,7 +90,7 @@ export const PinExpenses = ({
             <CardExpenseRegular
               expense={expense}
               onDeletePress={
-                expense.creator?.isCurrentUser
+                expense.creator?.isCurrentUser || isTripOwner
                   ? () => {
                       setSelectedExpenseId(expense.id);
                       setIsDeleteDialogOpen(true);

@@ -51,6 +51,7 @@ export default function TripImagesScreen() {
       actionListLocalImagesByTrip(String(tripId), session!.user.id),
     enabled: Boolean(tripId && session?.user.id),
   });
+  const isTripOwner = localTrip?.userId === session?.user.id;
 
   const softDeleteImageMutation = useMutation({
     mutationFn: (imageId: string) =>
@@ -142,7 +143,7 @@ export default function TripImagesScreen() {
                 });
               }}
               onDeletePress={
-                item.creator.isCurrentUser
+                item.creator.isCurrentUser || isTripOwner
                   ? () => setSelectedImageId(item.id)
                   : undefined
               }

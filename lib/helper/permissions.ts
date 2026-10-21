@@ -1,6 +1,7 @@
 type UserOwnershipInput = {
   currentUserId: string | null | undefined;
   entityUserId: string | null | undefined;
+  isTripOwner?: boolean;
 };
 
 type TripAccessInput = {
@@ -24,11 +25,11 @@ export function canDeleteOwnEntity(input: UserOwnershipInput) {
 }
 
 export function canEditPin(input: UserOwnershipInput) {
-  return canEditOwnEntity(input);
+  return Boolean(input.isTripOwner || canEditOwnEntity(input));
 }
 
 export function canDeletePin(input: UserOwnershipInput) {
-  return canDeleteOwnEntity(input);
+  return Boolean(input.isTripOwner || canDeleteOwnEntity(input));
 }
 
 export function canEditPinLocation(input: UserOwnershipInput) {

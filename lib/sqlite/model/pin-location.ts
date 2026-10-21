@@ -1,5 +1,8 @@
 import { sqlite } from "@/lib/sqlite/client";
-import { actionUpsertRemotePinLocationFromLocal } from "@/lib/supabase/actions";
+import {
+  actionUpdateRemotePinLocationFromLocal,
+  actionUpsertRemotePinLocationFromLocal,
+} from "@/lib/supabase/actions";
 
 export type LocalPinLocation = {
   pinId: string;
@@ -131,7 +134,7 @@ export async function actionUpsertLocalPinLocation(
 
   const localPinLocation = {
     pin_id: input.pinId,
-    user_id: input.userId,
+    user_id: existing?.userId ?? input.userId,
     place_id: input.placeId,
     display_name: input.displayName.trim(),
     formatted_address: input.formattedAddress.trim(),
@@ -169,7 +172,6 @@ export async function actionUpsertLocalPinLocation(
         sync_error
       ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       on conflict(pin_id) do update set
-        user_id = excluded.user_id,
         place_id = excluded.place_id,
         display_name = excluded.display_name,
         formatted_address = excluded.formatted_address,
@@ -182,6 +184,13 @@ export async function actionUpsertLocalPinLocation(
         updated_at = excluded.updated_at,
         sync_status = excluded.sync_status,
         sync_error = excluded.sync_error
+      where pin_location.user_id = ?
+        or exists (
+          select 1
+          from pin
+          inner join trip on trip.id = pin.trip_id
+          where pin.id = pin_location.pin_id and trip.user_id = ?
+        )
     `,
     [
       localPinLocation.pin_id,
@@ -200,6 +209,8 @@ export async function actionUpsertLocalPinLocation(
       localPinLocation.sync_status,
       localPinLocation.last_synced_at,
       localPinLocation.sync_error,
+      input.userId,
+      input.userId,
     ],
   );
 
@@ -325,11 +336,20 @@ export async function actionListPendingLocalPinLocations(
     `
       select ${selectLocalPinLocationColumns}
       from pin_location
-      where user_id = ? and sync_status != 'synced'
+      where sync_status != 'synced'
+        and (
+          pin_location.user_id = ?
+          or exists (
+            select 1
+            from pin
+            inner join trip on trip.id = pin.trip_id
+            where pin.id = pin_location.pin_id and trip.user_id = ?
+          )
+        )
       order by created_at asc
       limit ?
     `,
-    [userId, limit],
+    [userId, userId, limit],
   );
 
   return rows.map(mapLocalPinLocationRow);
@@ -387,7 +407,11 @@ export async function actionSyncLocalPinLocation(
   );
 
   try {
-    await actionUpsertRemotePinLocationFromLocal({
+    const syncRemotePinLocation = localPinLocation.lastSyncedAt
+      ? actionUpdateRemotePinLocationFromLocal
+      : actionUpsertRemotePinLocationFromLocal;
+
+    await syncRemotePinLocation({
       pinId: localPinLocation.pinId,
       placeId: localPinLocation.placeId,
       displayName: localPinLocation.displayName,

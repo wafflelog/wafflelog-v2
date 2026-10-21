@@ -176,12 +176,13 @@ describe("Storage access RLS", () => {
     expect(disabledDocumentUpload.error).not.toBeNull();
   });
 
-  it("only lets the uploader delete an active trip Storage object", async () => {
+  it("lets uploaders and trip owners delete active trip Storage objects", async () => {
     const owner = await createTestUser("del_owner");
     const companion = await createTestUser("del_member");
     const tripId = crypto.randomUUID();
     const imagePath = `trip/${tripId}/images/${crypto.randomUUID()}.jpg`;
     const documentPath = `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
+    const companionDocumentPath = `trip/${tripId}/documents/${crypto.randomUUID()}.pdf`;
 
     const { error: tripError } = await owner.client.from("trip").insert({
       id: tripId,
@@ -226,6 +227,15 @@ describe("Storage access RLS", () => {
     expect(imageUpload.error).toBeNull();
     expect(documentUpload.error).toBeNull();
 
+    const companionDocumentUpload = await companion.client.storage
+      .from("travel-documents")
+      .upload(
+        companionDocumentPath,
+        new Blob(["companion document"], { type: "application/pdf" }),
+        { contentType: "application/pdf" },
+      );
+    expect(companionDocumentUpload.error).toBeNull();
+
     const [companionImageDelete, companionDocumentDelete] = await Promise.all([
       companion.client.storage.from("images").remove([imagePath]),
       companion.client.storage.from("travel-documents").remove([documentPath]),
@@ -245,14 +255,20 @@ describe("Storage access RLS", () => {
     expect(imageAfterCompanionDelete.error).toBeNull();
     expect(documentAfterCompanionDelete.error).toBeNull();
 
-    const [ownerImageDelete, ownerDocumentDelete] = await Promise.all([
-      owner.client.storage.from("images").remove([imagePath]),
-      owner.client.storage.from("travel-documents").remove([documentPath]),
-    ]);
+    const [ownerImageDelete, ownerDocumentDelete, ownerCompanionFileDelete] =
+      await Promise.all([
+        owner.client.storage.from("images").remove([imagePath]),
+        owner.client.storage.from("travel-documents").remove([documentPath]),
+        owner.client.storage
+          .from("travel-documents")
+          .remove([companionDocumentPath]),
+      ]);
     expect(ownerImageDelete.error).toBeNull();
     expect(ownerImageDelete.data).toHaveLength(1);
     expect(ownerDocumentDelete.error).toBeNull();
     expect(ownerDocumentDelete.data).toHaveLength(1);
+    expect(ownerCompanionFileDelete.error).toBeNull();
+    expect(ownerCompanionFileDelete.data).toHaveLength(1);
 
     const [imageAfterOwnerDelete, documentAfterOwnerDelete] =
       await Promise.all([

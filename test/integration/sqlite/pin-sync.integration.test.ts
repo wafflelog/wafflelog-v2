@@ -7,6 +7,7 @@ import {
 
 const remote = vi.hoisted(() => ({
   softDelete: vi.fn(),
+  update: vi.fn(),
   upsert: vi.fn(),
 }));
 
@@ -20,6 +21,7 @@ vi.mock("@/lib/sqlite/client", () => ({
 
 vi.mock("@/lib/supabase/actions", () => ({
   actionSoftDeleteRemotePin: remote.softDelete,
+  actionUpdateRemotePinFromLocal: remote.update,
   actionUpsertRemotePinFromLocal: remote.upsert,
 }));
 
@@ -39,6 +41,7 @@ describe("pin sync", () => {
   beforeEach(async () => {
     testDb = createTestSqliteDatabase();
     remote.softDelete.mockReset();
+    remote.update.mockReset();
     remote.upsert.mockReset();
 
     const { initializeDatabase } = await import("@/lib/sqlite/init");
@@ -51,6 +54,7 @@ describe("pin sync", () => {
 
   it("upserts a new or edited pin and marks it synced", async () => {
     remote.upsert.mockResolvedValue(undefined);
+    remote.update.mockResolvedValue(undefined);
     const {
       actionCreateLocalPin,
       actionListPendingLocalPins,
@@ -81,7 +85,7 @@ describe("pin sync", () => {
     const [editedPin] = await actionListPendingLocalPins("user-a");
     await actionSyncLocalPin(editedPin);
 
-    expect(remote.upsert).toHaveBeenLastCalledWith(
+    expect(remote.update).toHaveBeenCalledWith(
       expect.objectContaining({
         id: pin.id,
         name: "Updated museum",

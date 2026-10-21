@@ -10,6 +10,7 @@ import { useSystemMessage } from "@/hook/use-system-message";
 import { canEditPinLocation } from "@/lib/helper/permissions";
 import { actionGetLocalPin } from "@/lib/sqlite/model/pin";
 import { actionUpsertLocalPinLocation } from "@/lib/sqlite/model/pin-location";
+import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -127,14 +128,21 @@ export default function PlaceSearchScreen() {
     try {
       setSavingPlaceId(place.id);
       const localPin = await actionGetLocalPin(pinId, session.user.id);
+      const localTrip = localPin
+        ? await actionGetLocalTrip(localPin.tripId, session.user.id)
+        : null;
 
       if (
         !canEditPinLocation({
           currentUserId: session.user.id,
           entityUserId: localPin?.userId,
+          isTripOwner: localTrip?.userId === session.user.id,
         })
       ) {
-        showMessage("Only the pin creator can change its location", "error");
+        showMessage(
+          "Only the pin creator or trip owner can change its location",
+          "error",
+        );
         return;
       }
 

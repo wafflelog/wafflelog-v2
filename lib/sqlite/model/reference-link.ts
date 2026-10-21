@@ -327,11 +327,18 @@ export async function actionListPendingLocalReferenceLinks(
         sync_error,
         deleted_at
       from reference_link
-      where user_id = ? and sync_status != 'synced'
+      where sync_status != 'synced'
+        and (
+          reference_link.user_id = ?
+          or exists (
+            select 1 from trip
+            where trip.id = reference_link.trip_id and trip.user_id = ?
+          )
+        )
       order by created_at asc
       limit ?
     `,
-    [userId, limit],
+    [userId, userId, limit],
   );
 
   return rows.map((row) => mapLocalReferenceLinkRow(row, userId));
@@ -351,9 +358,16 @@ export async function actionSoftDeleteLocalReferenceLink(
         sync_status = ?,
         sync_error = ?,
         updated_at = ?
-      where id = ? and user_id = ?
+      where id = ?
+        and (
+          user_id = ?
+          or exists (
+            select 1 from trip
+            where trip.id = reference_link.trip_id and trip.user_id = ?
+          )
+        )
     `,
-    [now, "pending", null, now, id, userId],
+    [now, "pending", null, now, id, userId, userId],
   );
 }
 

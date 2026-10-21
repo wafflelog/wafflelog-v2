@@ -15,8 +15,8 @@ import { formatDateRange } from "@/lib/helper/utils";
 import {
   actionGetLocalTrip,
   actionSoftDeleteLocalTrip,
-  actionUpsertLocalTripMembershipFromRemote,
 } from "@/lib/sqlite/model/trip";
+import { actionPurgeLocalCompanionTrip } from "@/lib/sqlite/model/companion-access";
 import { actionGetLocalUserProfile } from "@/lib/sqlite/model/user-profile";
 import { actionLeaveTrip } from "@/lib/supabase/actions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -77,17 +77,8 @@ export default function TripSettingsScreen() {
 
   const leaveTripMutation = useMutation({
     mutationFn: async () => {
-      const membership = await actionLeaveTrip(tripId);
-
-      await actionUpsertLocalTripMembershipFromRemote({
-        tripId: membership.trip_id,
-        userId: membership.user_id,
-        role: membership.role,
-        status: membership.status,
-        source: "companion",
-        createdAt: membership.created_at,
-        updatedAt: membership.updated_at,
-      });
+      await actionLeaveTrip(tripId);
+      await actionPurgeLocalCompanionTrip(tripId, session!.user.id);
     },
     onSuccess: async () => {
       setIsLeaveDialogVisible(false);

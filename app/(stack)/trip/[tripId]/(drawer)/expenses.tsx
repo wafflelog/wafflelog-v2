@@ -1,6 +1,7 @@
 import { ButtonFab } from "@/components/button/fab";
 import { CardExpenseRegular } from "@/components/card/expense/regular";
 import { DialogNewExpense } from "@/components/dialog/new-expense";
+import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { TripExpenseSummary } from "@/components/trip/expense-summary";
 import { MemberExpenseGroup } from "@/components/trip/member-expense-group";
 import { UITab } from "@/components/ui/tab";
@@ -21,10 +22,13 @@ import {
 } from "@/lib/helper/expense";
 import { getPinTitle } from "@/lib/helper/pin";
 import { getUserDisplayName } from "@/lib/helper/user-display";
-import { actionListLocalExpensesByTrip } from "@/lib/sqlite/model/expense";
+import {
+  actionListLocalExpensesByTrip,
+  actionSoftDeleteLocalExpense,
+} from "@/lib/sqlite/model/expense";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { type Currency } from "@/types/pin";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { Plus as PlusIcon } from "lucide-react-native";
 import { useMemo, useState } from "react";
@@ -42,6 +46,7 @@ export default function TripExpensesScreen() {
   const currentUserId = session?.user.id;
   const { isRefreshing, refreshKnownTrips } = useKnownTripsRefresh();
   const { showMessage, SystemMessageModal } = useSystemMessage();
+  const queryClient = useQueryClient();
 
   const [activeCurrency, setActiveCurrency] = useState<Currency | null>(null);
   const [activeView, setActiveView] = useState<"balances" | "expenses">(
@@ -49,6 +54,9 @@ export default function TripExpensesScreen() {
   );
   const [isDialogNewExpenseVisible, setIsDialogNewExpenseVisible] =
     useState(false);
+  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(
+    null,
+  );
 
   const { data: localTrip } = useQuery({
     queryKey: ["local-trip", String(tripId), session?.user.id],
@@ -61,6 +69,23 @@ export default function TripExpensesScreen() {
     queryFn: () =>
       actionListLocalExpensesByTrip(String(tripId), session!.user.id),
     enabled: Boolean(tripId && session?.user.id),
+  });
+  const isTripOwner = localTrip?.userId === currentUserId;
+
+  const softDeleteExpenseMutation = useMutation({
+    mutationFn: (expenseId: string) =>
+      actionSoftDeleteLocalExpense(expenseId, currentUserId!),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["local-trip-expenses", String(tripId), currentUserId],
+      });
+      setSelectedExpenseId(null);
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete expense";
+      showMessage(message, "error");
+    },
   });
 
   const trip = localTrip
@@ -277,6 +302,11 @@ export default function TripExpensesScreen() {
                     })),
                     creator: item.creator,
                   }}
+                  onDeletePress={
+                    item.creator.isCurrentUser || isTripOwner
+                      ? () => setSelectedExpenseId(item.id)
+                      : undefined
+                  }
                 />
               </View>
             )}
@@ -295,6 +325,20 @@ export default function TripExpensesScreen() {
         visible={isDialogNewExpenseVisible}
         onDismiss={() => setIsDialogNewExpenseVisible(false)}
         onShowMessage={showMessage}
+      />
+      <ConfirmActionDialog
+        visible={Boolean(selectedExpenseId)}
+        title="Delete Expense"
+        message="Are you sure you want to delete this expense?"
+        confirmText="Delete"
+        onDismiss={() => setSelectedExpenseId(null)}
+        onConfirm={() => {
+          if (selectedExpenseId) {
+            softDeleteExpenseMutation.mutate(selectedExpenseId);
+          }
+        }}
+        isPending={softDeleteExpenseMutation.isPending}
+        confirmVariant="danger"
       />
       <SystemMessageModal />
     </View>

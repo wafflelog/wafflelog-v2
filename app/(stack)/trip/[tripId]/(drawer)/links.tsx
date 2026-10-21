@@ -1,6 +1,7 @@
 import { ButtonFab } from "@/components/button/fab";
 import { CardPinReferenceLinkRegular } from "@/components/card/reference-link/regular";
 import { DialogNewReferenceLink } from "@/components/dialog/new-reference-link";
+import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { EmptyState } from "@/components/ui/empty-state";
 import { UIText } from "@/components/ui/text";
 import {
@@ -14,9 +15,12 @@ import { useAuthSession } from "@/hook/use-auth-session";
 import { useKnownTripsRefresh } from "@/hook/use-known-trips-refresh";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { getPinTitle } from "@/lib/helper/pin";
-import { actionListLocalReferenceLinksByTrip } from "@/lib/sqlite/model/reference-link";
+import {
+  actionListLocalReferenceLinksByTrip,
+  actionSoftDeleteLocalReferenceLink,
+} from "@/lib/sqlite/model/reference-link";
 import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import {
   Link2 as Link2Icon,
@@ -28,10 +32,14 @@ import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 export default function TripLinksScreen() {
   const [isDialogNewReferenceLinkVisible, setIsDialogNewReferenceLinkVisible] =
     useState(false);
+  const [selectedReferenceLinkId, setSelectedReferenceLinkId] = useState<
+    string | null
+  >(null);
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const { session } = useAuthSession();
   const { isRefreshing, refreshKnownTrips } = useKnownTripsRefresh();
   const { showMessage, SystemMessageModal } = useSystemMessage();
+  const queryClient = useQueryClient();
 
   const { data: localTrip } = useQuery({
     queryKey: ["local-trip", String(tripId), session?.user.id],
@@ -48,6 +56,27 @@ export default function TripLinksScreen() {
     queryFn: () =>
       actionListLocalReferenceLinksByTrip(String(tripId), session!.user.id),
     enabled: Boolean(tripId && session?.user.id),
+  });
+  const isTripOwner = localTrip?.userId === session?.user.id;
+
+  const softDeleteReferenceLinkMutation = useMutation({
+    mutationFn: (referenceLinkId: string) =>
+      actionSoftDeleteLocalReferenceLink(referenceLinkId, session!.user.id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: [
+          "local-trip-reference-links",
+          String(tripId),
+          session?.user.id,
+        ],
+      });
+      setSelectedReferenceLinkId(null);
+    },
+    onError: (error) => {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete link";
+      showMessage(message, "error");
+    },
   });
 
   const trip = localTrip
@@ -111,7 +140,14 @@ export default function TripLinksScreen() {
         }
         renderItem={({ item }) => (
           <View key={item.id} style={styles.link}>
-            <CardPinReferenceLinkRegular referenceLink={item} />
+            <CardPinReferenceLinkRegular
+              referenceLink={item}
+              onDeletePress={
+                item.creator.isCurrentUser || isTripOwner
+                  ? () => setSelectedReferenceLinkId(item.id)
+                  : undefined
+              }
+            />
           </View>
         )}
       />
@@ -127,6 +163,20 @@ export default function TripLinksScreen() {
         visible={isDialogNewReferenceLinkVisible}
         onDismiss={() => setIsDialogNewReferenceLinkVisible(false)}
         onShowMessage={showMessage}
+      />
+      <ConfirmActionDialog
+        visible={Boolean(selectedReferenceLinkId)}
+        title="Delete Link"
+        message="Are you sure you want to delete this reference link?"
+        confirmText="Delete"
+        onDismiss={() => setSelectedReferenceLinkId(null)}
+        onConfirm={() => {
+          if (selectedReferenceLinkId) {
+            softDeleteReferenceLinkMutation.mutate(selectedReferenceLinkId);
+          }
+        }}
+        isPending={softDeleteReferenceLinkMutation.isPending}
+        confirmVariant="danger"
       />
       <SystemMessageModal />
     </View>

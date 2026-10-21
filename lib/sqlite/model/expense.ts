@@ -506,11 +506,18 @@ export async function actionListPendingLocalExpenses(
         sync_error,
         deleted_at
       from expense
-      where user_id = ? and sync_status != 'synced'
+      where sync_status != 'synced'
+        and (
+          expense.user_id = ?
+          or exists (
+            select 1 from trip
+            where trip.id = expense.trip_id and trip.user_id = ?
+          )
+        )
       order by created_at asc
       limit ?
     `,
-    [userId, limit],
+    [userId, userId, limit],
   );
 
   return hydrateExpenseRows(rows, userId);
@@ -527,9 +534,16 @@ export async function actionSoftDeleteLocalExpense(id: string, userId: string) {
         sync_status = ?,
         sync_error = ?,
         updated_at = ?
-      where id = ? and user_id = ?
+      where id = ?
+        and (
+          user_id = ?
+          or exists (
+            select 1 from trip
+            where trip.id = expense.trip_id and trip.user_id = ?
+          )
+        )
     `,
-    [now, "pending", null, now, id, userId],
+    [now, "pending", null, now, id, userId, userId],
   );
 }
 

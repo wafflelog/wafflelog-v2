@@ -188,9 +188,22 @@ export async function actionSoftDeleteLocalChecklistItem(
         sync_status = ?,
         sync_error = ?,
         updated_at = ?
-      where id = ? and user_id = ?
+      where id = ?
+        and (
+          user_id = ?
+          or exists (
+            select 1 from trip
+            where trip.id = checklist_item.trip_id and trip.user_id = ?
+          )
+          or exists (
+            select 1 from trip_membership
+            where trip_membership.trip_id = checklist_item.trip_id
+              and trip_membership.user_id = ?
+              and trip_membership.status = 'active'
+          )
+        )
     `,
-    [now, "pending", null, now, id, userId],
+    [now, "pending", null, now, id, userId, userId, userId],
   );
 }
 
@@ -243,6 +256,12 @@ export async function actionListPendingLocalChecklistItems(
           user_id = ?
           or exists (
             select 1
+            from trip
+            where trip.id = checklist_item.trip_id
+              and trip.user_id = ?
+          )
+          or exists (
+            select 1
             from trip_membership
             where trip_membership.trip_id = checklist_item.trip_id
               and trip_membership.user_id = ?
@@ -252,7 +271,7 @@ export async function actionListPendingLocalChecklistItems(
       order by created_at asc
       limit ?
     `,
-    [userId, userId, limit],
+    [userId, userId, userId, limit],
   );
 
   return rows.map((row) => mapLocalChecklistItemRow(row, userId));

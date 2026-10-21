@@ -24,6 +24,7 @@ vi.mock("@/lib/supabase/actions", () => ({
   actionUpdateRemoteChecklistItemFromLocal: vi.fn(),
   actionUpsertRemoteChecklistItemFromLocal: vi.fn(),
   actionUpsertRemoteNoteFromLocal: vi.fn(),
+  actionUpdateRemotePinFromLocal: vi.fn(),
   actionUpsertRemotePinFromLocal: vi.fn(),
   actionUpsertRemoteReferenceLinkFromLocal: vi.fn(),
   actionUpsertRemoteTripFromLocal: vi.fn(),

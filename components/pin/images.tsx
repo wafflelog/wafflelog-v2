@@ -16,6 +16,7 @@ import { PinSectionTemplate } from "./section-template";
 type PinImagesProps = {
   pinId: string;
   userId: string;
+  isTripOwner: boolean;
   onOpenImage: (selectedImageId: string, images: Pin["images"]) => void;
   onAddImage: () => void;
 };
@@ -23,6 +24,7 @@ type PinImagesProps = {
 export const PinImages = ({
   pinId,
   userId,
+  isTripOwner,
   onOpenImage,
   onAddImage,
 }: PinImagesProps) => {
@@ -92,7 +94,7 @@ export const PinImages = ({
                   onOpenImage(image.id, resolvedImages);
                 }}
                 onDeletePress={
-                  image.creator.isCurrentUser
+                  image.creator.isCurrentUser || isTripOwner
                     ? () => {
                         setSelectedImageId(image.id);
                         setIsDeleteDialogOpen(true);

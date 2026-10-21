@@ -360,13 +360,20 @@ export async function actionListPendingLocalDocuments(
         sync_error,
         deleted_at
       from document
-      where user_id = ? and sync_status != 'synced'
+      where sync_status != 'synced'
+        and (
+          document.user_id = ?
+          or exists (
+            select 1 from trip
+            where trip.id = document.trip_id and trip.user_id = ?
+          )
+        )
       order by
         case when sync_status = 'failed' then 1 else 0 end,
         created_at asc
       limit ?
     `,
-    [userId, limit],
+    [userId, userId, limit],
   );
 
   return rows.map((row) => mapLocalDocumentRow(row, userId));
@@ -386,9 +393,16 @@ export async function actionSoftDeleteLocalDocument(
         sync_status = ?,
         sync_error = ?,
         updated_at = ?
-      where id = ? and user_id = ?
+      where id = ?
+        and (
+          user_id = ?
+          or exists (
+            select 1 from trip
+            where trip.id = document.trip_id and trip.user_id = ?
+          )
+        )
     `,
-    [now, "pending", null, now, id, userId],
+    [now, "pending", null, now, id, userId, userId],
   );
 
   if (result.changes === 0) {

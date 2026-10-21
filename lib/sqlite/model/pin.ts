@@ -3,6 +3,7 @@ import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
 import {
   actionSoftDeleteRemotePin,
+  actionUpdateRemotePinFromLocal,
   actionUpsertRemotePinFromLocal,
 } from "@/lib/supabase/actions";
 import { type PinMetadata } from "@/types/pin";
@@ -327,7 +328,16 @@ export async function actionUpdateLocalPin(input: UpdateLocalPinInput) {
         updated_at = ?,
         sync_status = ?,
         sync_error = ?
-      where id = ? and user_id = ? and deleted_at is null
+      where id = ?
+        and deleted_at is null
+        and (
+          user_id = ?
+          or exists (
+            select 1
+            from trip
+            where trip.id = pin.trip_id and trip.user_id = ?
+          )
+        )
     `,
     [
       normalizeName(input.name),
@@ -341,6 +351,7 @@ export async function actionUpdateLocalPin(input: UpdateLocalPinInput) {
       "pending",
       null,
       input.id,
+      input.userId,
       input.userId,
     ],
   );
@@ -442,11 +453,18 @@ export async function actionListPendingLocalPins(
       left join pin_location
         on pin_location.pin_id = pin.id
         and pin_location.user_id = pin.user_id
-      where pin.user_id = ? and pin.sync_status != 'synced'
+      where pin.sync_status != 'synced'
+        and (
+          pin.user_id = ?
+          or exists (
+            select 1 from trip
+            where trip.id = pin.trip_id and trip.user_id = ?
+          )
+        )
       order by pin.created_at asc
       limit ?
     `,
-    [userId, limit],
+    [userId, userId, limit],
   );
 
   return rows.map((row) => mapLocalPinRow(row, userId));
@@ -473,9 +491,19 @@ export async function actionSoftDeleteLocalPin(id: string, userId: string) {
             sync_status = ?,
             sync_error = ?,
             updated_at = ?
-          where pin_id = ? and user_id = ? and deleted_at is null
+          where pin_id = ?
+            and deleted_at is null
+            and (
+              user_id = ?
+              or exists (
+                select 1
+                from trip
+                inner join pin on pin.trip_id = trip.id
+                where pin.id = ? and trip.user_id = ?
+              )
+            )
         `,
-        [now, "pending", null, now, id, userId],
+        [now, "pending", null, now, id, userId, id, userId],
       );
     }
 
@@ -495,9 +523,17 @@ export async function actionSoftDeleteLocalPin(id: string, userId: string) {
           sync_status = ?,
           sync_error = ?,
           updated_at = ?
-        where id = ? and user_id = ?
+        where id = ?
+          and (
+            user_id = ?
+            or exists (
+              select 1
+              from trip
+              where trip.id = pin.trip_id and trip.user_id = ?
+            )
+          )
       `,
-      [now, "pending", null, now, id, userId],
+      [now, "pending", null, now, id, userId, userId],
     );
   });
 }
@@ -585,7 +621,11 @@ export async function actionSyncLocalPin(localPin: LocalPin) {
   await actionMarkLocalPinSyncing(localPin.id, localPin.userId);
 
   try {
-    await actionUpsertRemotePinFromLocal({
+    const syncRemotePin = localPin.lastSyncedAt
+      ? actionUpdateRemotePinFromLocal
+      : actionUpsertRemotePinFromLocal;
+
+    await syncRemotePin({
       id: localPin.id,
       tripId: localPin.tripId,
       name: localPin.name,

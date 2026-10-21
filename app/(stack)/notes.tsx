@@ -18,6 +18,7 @@ import {
   actionListLocalNotesByTrip,
   actionSoftDeleteLocalNote,
 } from "@/lib/sqlite/model/note";
+import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
 import { sendTrackingEvent } from "@/lib/tracking";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -89,6 +90,13 @@ export default function NotesScreen() {
     },
     enabled: Boolean(tripId && session?.user.id),
   });
+
+  const { data: localTrip } = useQuery({
+    queryKey: ["local-trip", tripId, session?.user.id],
+    queryFn: () => actionGetLocalTrip(String(tripId), session!.user.id),
+    enabled: Boolean(tripId && session?.user.id),
+  });
+  const isTripOwner = localTrip?.userId === session?.user.id;
 
   const createNoteMutation = useMutation({
     mutationFn: actionCreateLocalNote,
@@ -175,7 +183,7 @@ export default function NotesScreen() {
             currentUserId={session!.user.id}
             containerStyle={styles.note}
             onDeletePress={
-              item.createdBy.id === session?.user.id
+              item.createdBy.id === session?.user.id || isTripOwner
                 ? () => {
                     setSelectedNoteId(item.id);
                     setIsDeleteDialogOpen(true);

@@ -15,6 +15,7 @@ vi.mock("@/lib/sqlite/client", () => ({
 
 vi.mock("@/lib/supabase/actions", () => ({
   actionSoftDeleteRemotePin: vi.fn(),
+  actionUpdateRemotePinFromLocal: vi.fn(),
   actionUpsertRemotePinFromLocal: vi.fn(),
 }));
 
