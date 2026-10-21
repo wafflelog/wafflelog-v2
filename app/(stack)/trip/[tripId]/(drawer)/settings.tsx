@@ -15,9 +15,11 @@ import {
   actionGetLocalTrip,
   actionSoftDeleteLocalTrip,
 } from "@/lib/sqlite/model/trip";
+import { actionGetLocalUserProfile } from "@/lib/sqlite/model/user-profile";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+  Info as InfoIcon,
   SquarePen as SquarePenIcon,
   Trash2 as Trash2Icon,
 } from "lucide-react-native";
@@ -37,6 +39,16 @@ export default function TripSettingsScreen() {
     queryKey: ["local-trip", tripId, session?.user.id],
     queryFn: () => actionGetLocalTrip(tripId, session!.user.id),
     enabled: Boolean(tripId && session?.user.id),
+  });
+
+  const isOwner = Boolean(
+    localTrip && session?.user.id && localTrip.userId === session.user.id,
+  );
+
+  const { data: ownerProfile } = useQuery({
+    queryKey: ["local-user-profile", localTrip?.userId],
+    queryFn: () => actionGetLocalUserProfile(localTrip!.userId),
+    enabled: Boolean(localTrip?.userId && !isOwner),
   });
 
   const softDeleteTripMutation = useMutation({
@@ -61,6 +73,12 @@ export default function TripSettingsScreen() {
     return <UIText>Trip not found</UIText>;
   }
 
+  const ownerLabel = isOwner
+    ? "You"
+    : ownerProfile?.username
+      ? `@${ownerProfile.username}`
+      : "Trip owner";
+
   return (
     <View style={styles.container}>
       <View style={styles.card}>
@@ -81,29 +99,53 @@ export default function TripSettingsScreen() {
             {formatDateRange(localTrip.startDate, localTrip.endDate)}
           </TitleRegular>
         </View>
+        <View style={styles.divider} />
+        <View style={styles.row}>
+          <TitleRegular size="xs" color={colors.textLightGrey}>
+            Owner
+          </TitleRegular>
+          <TitleRegular size="md" weight="600" color={colors.textDarkGrey}>
+            {ownerLabel}
+          </TitleRegular>
+        </View>
       </View>
 
-      <TouchableOpacity
-        style={styles.editButton}
-        onPress={() => setIsEditDialogVisible(true)}
-        activeOpacity={0.8}
-      >
-        <SquarePenIcon size={18} color={getColor(colors.purple)} />
-        <TitleRegular size="sm" weight="600" color={colors.purple}>
-          Edit Trip
-        </TitleRegular>
-      </TouchableOpacity>
+      {isOwner ? (
+        <>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => setIsEditDialogVisible(true)}
+            activeOpacity={0.8}
+          >
+            <SquarePenIcon size={18} color={getColor(colors.purple)} />
+            <TitleRegular size="sm" weight="600" color={colors.purple}>
+              Edit Trip
+            </TitleRegular>
+          </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => setIsDeleteDialogVisible(true)}
-        activeOpacity={0.8}
-      >
-        <Trash2Icon size={18} color={getColor(colors.red)} />
-        <TitleRegular size="sm" weight="600" color={colors.red}>
-          Delete Trip
-        </TitleRegular>
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => setIsDeleteDialogVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Trash2Icon size={18} color={getColor(colors.red)} />
+            <TitleRegular size="sm" weight="600" color={colors.red}>
+              Delete Trip
+            </TitleRegular>
+          </TouchableOpacity>
+        </>
+      ) : (
+        <View style={styles.ownerNotice}>
+          <InfoIcon size={18} color={getColor(colors.purple)} />
+          <TitleRegular
+            size="sm"
+            color={colors.textLightGrey}
+            style={styles.ownerNoticeText}
+          >
+            Only the trip owner can edit trip details or delete this trip.
+          </TitleRegular>
+        </View>
+      )}
 
       <DialogNewTrip
         visible={isEditDialogVisible}
@@ -177,5 +219,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: gaps.xs,
+  },
+  ownerNotice: {
+    ...getCardBasicStyle("sm"),
+    flexDirection: "row",
+    alignItems: "center",
+    gap: gaps.sm,
+    backgroundColor: getColor(colors.purple, 0.06),
+  },
+  ownerNoticeText: {
+    flex: 1,
   },
 });

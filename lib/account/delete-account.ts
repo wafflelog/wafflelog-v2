@@ -4,6 +4,7 @@ import { actionClearLocalData } from "@/lib/sqlite/clear-local-data";
 import { supabase } from "@/lib/supabase/client";
 
 type DeleteAccountOptions = {
+  clearAnalyticsConsent?: () => void | Promise<void>;
   clearClientCache?: () => void | Promise<void>;
 };
 
@@ -54,6 +55,9 @@ export async function actionDeleteAccount(
   const cleanupResults = await Promise.allSettled([
     dependencies.clearLocalData(),
     dependencies.clearLocalMediaFiles(),
+    ...(options.clearAnalyticsConsent
+      ? [options.clearAnalyticsConsent()]
+      : []),
   ]);
 
   for (const cleanupResult of cleanupResults) {

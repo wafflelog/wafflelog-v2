@@ -11,23 +11,26 @@ import {
   semanticColors,
 } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
+import { useAnalyticsConsent } from "@/hook/use-analytics-consent";
 import {
   type NotificationPermissionState,
   useNotificationPermission,
 } from "@/hook/use-notification-permission";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionDeleteAccount } from "@/lib/account/delete-account";
+import { clearAnalyticsConsent } from "@/lib/analytics-consent";
 import { supabase } from "@/lib/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
   Bell as BellIcon,
+  ChartNoAxesColumnIncreasing as AnalyticsIcon,
   ChevronRight as ChevronRightIcon,
   LogOut as LogOutIcon,
   Trash2 as Trash2Icon,
 } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const notificationStatusLabels: Record<NotificationPermissionState, string> = {
@@ -43,6 +46,12 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { session } = useAuthSession();
+  const {
+    isEnabled: isAnalyticsEnabled,
+    isUpdating: isUpdatingAnalytics,
+    setEnabled: setAnalyticsEnabled,
+    status: analyticsStatus,
+  } = useAnalyticsConsent();
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const { permissionState, isManagingPermission, managePermission } =
     useNotificationPermission();
@@ -52,6 +61,10 @@ export default function SettingsScreen() {
   const deleteAccountMutation = useMutation({
     mutationFn: () =>
       actionDeleteAccount({
+        clearAnalyticsConsent: () =>
+          session?.user.id
+            ? clearAnalyticsConsent(session.user.id)
+            : Promise.resolve(),
         clearClientCache: () => queryClient.clear(),
       }),
     onError: (error) => {
@@ -74,6 +87,19 @@ export default function SettingsScreen() {
       await supabase.auth.signOut({ scope: "local" });
     } finally {
       setIsSigningOut(false);
+    }
+  };
+
+  const handleAnalyticsChange = async (enabled: boolean) => {
+    try {
+      await setAnalyticsEnabled(enabled);
+    } catch (error) {
+      showMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to update usage analytics",
+        "error",
+      );
     }
   };
 
@@ -171,6 +197,44 @@ export default function SettingsScreen() {
             )}
           </View>
         </Pressable>
+
+        <UIText
+          style={[styles.sectionLabel, styles.sectionSpacing]}
+          weight="700"
+        >
+          Privacy
+        </UIText>
+
+        <View style={styles.analyticsCard}>
+          <View style={styles.analyticsIcon}>
+            <AnalyticsIcon size={20} color={getColor(colors.purple)} />
+          </View>
+          <View style={styles.analyticsDetails}>
+            <UIText style={styles.analyticsTitle} weight="700">
+              Usage analytics
+            </UIText>
+            <UIText style={styles.analyticsDescription}>
+              Share how you use Wafflelog to help improve the app. Never used
+              for advertising.
+            </UIText>
+          </View>
+          <Switch
+            accessibilityLabel="Usage analytics"
+            accessibilityHint="Controls whether Wafflelog collects usage analytics"
+            disabled={analyticsStatus === "loading" || isUpdatingAnalytics}
+            onValueChange={(enabled) => void handleAnalyticsChange(enabled)}
+            value={isAnalyticsEnabled}
+            trackColor={{
+              false: getColor(colors.whiteGrey),
+              true: getColor(colors.purple, 0.45),
+            }}
+            thumbColor={
+              isAnalyticsEnabled
+                ? getColor(colors.purple)
+                : getColor(colors.white)
+            }
+          />
+        </View>
 
         <Pressable
           accessibilityLabel="Sign out"
@@ -327,6 +391,40 @@ const styles = StyleSheet.create({
   },
   notificationStatusEnabled: {
     color: getColor(colors.purple),
+  },
+  analyticsCard: {
+    minHeight: 84,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: gaps.sm,
+    padding: gaps.md,
+    borderWidth: 1,
+    borderColor: semanticColors.neutralDivider,
+    borderRadius: borderRadiuses.md,
+    backgroundColor: semanticColors.surface,
+  },
+  analyticsIcon: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: borderRadiuses.full,
+    backgroundColor: getColor(colors.purple, 0.1),
+  },
+  analyticsDetails: {
+    flex: 1,
+    minWidth: 0,
+  },
+  analyticsTitle: {
+    color: semanticColors.textPrimary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  analyticsDescription: {
+    marginTop: 2,
+    color: semanticColors.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
   },
   signOutButton: {
     minHeight: 48,

@@ -13,7 +13,39 @@ export type RemoteUserProfile = {
   updatedAt?: string | null;
 };
 
+export type LocalUserProfile = {
+  id: string;
+  username: string;
+  updatedAt: string;
+};
+
 export { getCreatorDisplayName };
+
+export async function actionGetLocalUserProfile(
+  userId: string,
+): Promise<LocalUserProfile | null> {
+  const profile = await sqlite.getFirstAsync<{
+    id: string;
+    username: string;
+    updated_at: string;
+  }>(
+    `
+      select id, username, updated_at
+      from user_profile
+      where id = ?
+      limit 1
+    `,
+    [userId],
+  );
+
+  return profile
+    ? {
+        id: profile.id,
+        username: profile.username,
+        updatedAt: profile.updated_at,
+      }
+    : null;
+}
 
 export async function actionUpsertLocalUserProfilesFromRemote(
   profiles: RemoteUserProfile[],

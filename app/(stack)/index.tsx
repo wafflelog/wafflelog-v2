@@ -1,4 +1,5 @@
 import { ButtonFab } from "@/components/button/fab";
+import { AnalyticsConsentCard } from "@/components/analytics/analytics-consent-card";
 import { CardTrip } from "@/components/card/trip";
 import { DialogNewTrip } from "@/components/dialog/new-trip";
 import { AppHeader } from "@/components/header/app-header";
@@ -294,6 +295,8 @@ export default function IndexScreen() {
             <ChevronRightIcon size={18} color={getColor(colors.purple)} />
           </View>
         </Pressable>
+
+        <AnalyticsConsentCard />
 
         {/* Ongoing Trip */}
         {ongoingTrips.length > 0 && (
