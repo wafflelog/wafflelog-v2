@@ -9,13 +9,23 @@ import { type Trip } from "@/types/trip";
 
 import { ChevronRight as ChevronRightIcon } from "lucide-react-native";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  SharedTripIndicator,
+  TRIP_SHARING_ACCESSIBILITY_LABELS,
+  type TripSharing,
+} from "./shared-trip-indicator";
 
 type CardTripHeroProps = {
   trip: Trip;
+  sharing: TripSharing;
   onPress: () => void;
 };
 
-export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
+export const CardTripHero = ({
+  trip,
+  sharing,
+  onPress,
+}: CardTripHeroProps) => {
   const progress = getTripProgress(trip.startDate, trip.endDate);
 
   return (
@@ -24,7 +34,7 @@ export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
       onPress={onPress}
       activeOpacity={0.82}
       accessibilityRole="button"
-      accessibilityLabel={`Open ongoing trip ${trip.title}`}
+      accessibilityLabel={`Open ongoing trip ${trip.title}. ${TRIP_SHARING_ACCESSIBILITY_LABELS[sharing]}`}
     >
       <View style={styles.content}>
         <UIInProgressBadge containerStyle={styles.inProgress} />
@@ -47,9 +57,14 @@ export const CardTripHero = ({ trip, onPress }: CardTripHeroProps) => {
             </TitleRegular>
           </View>
         ) : null}
+        {sharing !== "single-user" ? (
+          <View style={styles.sharingMetadata}>
+            <SharedTripIndicator sharing={sharing} />
+          </View>
+        ) : null}
         <ListUsersHorizontalIcons users={trip.companions} max={3} />
       </View>
-      <View style={styles.chevronContainer}>
+      <View style={styles.trailingContainer}>
         <ChevronRightIcon size={24} color={getColor(colors.waffle)} />
       </View>
     </TouchableOpacity>
@@ -72,13 +87,17 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginBottom: gaps.xs,
   },
+  sharingMetadata: {
+    marginBottom: gaps.xxs,
+  },
   progressContainer: {
     flexDirection: "column",
     gap: 4,
     marginBottom: gaps.xs,
   },
-  chevronContainer: {
-    flexDirection: "column",
+  trailingContainer: {
+    alignSelf: "stretch",
+    width: 28,
     alignItems: "center",
     justifyContent: "center",
   },

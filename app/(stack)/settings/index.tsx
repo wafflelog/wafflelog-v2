@@ -1,8 +1,8 @@
+import { DeleteAccountDialog } from "@/components/dialog/delete-account";
 import { AppHeader } from "@/components/header/app-header";
 import { HeaderBackButton } from "@/components/header/icon-button";
-import { DeleteAccountDialog } from "@/components/dialog/delete-account";
-import { UIText } from "@/components/ui/text";
 import { TripPassBalanceCard } from "@/components/revenuecat/trip-pass-balance-card";
+import { UIText } from "@/components/ui/text";
 import {
   borderRadiuses,
   colors,
@@ -10,8 +10,8 @@ import {
   getColor,
   semanticColors,
 } from "@/constants/theme";
-import { useAuthSession } from "@/hook/use-auth-session";
 import { useAnalyticsConsent } from "@/hook/use-analytics-consent";
+import { useAuthSession } from "@/hook/use-auth-session";
 import {
   type NotificationPermissionState,
   useNotificationPermission,
@@ -23,8 +23,8 @@ import { supabase } from "@/lib/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
-  Bell as BellIcon,
   ChartNoAxesColumnIncreasing as AnalyticsIcon,
+  Bell as BellIcon,
   ChevronRight as ChevronRightIcon,
   LogOut as LogOutIcon,
   Trash2 as Trash2Icon,
@@ -261,7 +261,8 @@ export default function SettingsScreen() {
           style={({ pressed }) => [
             styles.deleteAccountButton,
             pressed && styles.deleteAccountButtonPressed,
-            deleteAccountMutation.isPending && styles.deleteAccountButtonDisabled,
+            deleteAccountMutation.isPending &&
+              styles.deleteAccountButtonDisabled,
           ]}
         >
           <Trash2Icon size={18} color={getColor(colors.red)} />

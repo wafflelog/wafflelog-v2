@@ -92,6 +92,21 @@ describe("local trips", () => {
         (trip_id, user_id, role, status, source, created_at, updated_at, last_synced_at)
        values (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
+        ownedLater.id,
+        "user-b",
+        "companion",
+        "active",
+        "remote",
+        "2026-01-01T00:00:00.000Z",
+        "2026-01-01T00:00:00.000Z",
+        null,
+      ],
+    );
+    await testDb.runAsync(
+      `insert into trip_membership
+        (trip_id, user_id, role, status, source, created_at, updated_at, last_synced_at)
+       values (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
         inactiveTrip.id,
         "user-a",
         "companion",
@@ -109,9 +124,21 @@ describe("local trips", () => {
 
     expect(ownedLater.title).toBe("Edinburgh");
     await expect(actionListLocalTrips("user-a")).resolves.toEqual([
-      expect.objectContaining({ id: ownedEarlier.id, title: "Lisbon" }),
-      expect.objectContaining({ id: companionTrip.id, title: "Berlin" }),
-      expect.objectContaining({ id: ownedLater.id, title: "Edinburgh" }),
+      expect.objectContaining({
+        id: ownedEarlier.id,
+        title: "Lisbon",
+        isShared: false,
+      }),
+      expect.objectContaining({
+        id: companionTrip.id,
+        title: "Berlin",
+        isShared: true,
+      }),
+      expect.objectContaining({
+        id: ownedLater.id,
+        title: "Edinburgh",
+        isShared: true,
+      }),
     ]);
   });
 

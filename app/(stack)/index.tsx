@@ -1,6 +1,7 @@
 import { ButtonFab } from "@/components/button/fab";
 import { AnalyticsConsentCard } from "@/components/analytics/analytics-consent-card";
 import { CardTrip } from "@/components/card/trip";
+import { type TripSharing } from "@/components/card/trip/shared-trip-indicator";
 import { DialogNewTrip } from "@/components/dialog/new-trip";
 import { AppHeader } from "@/components/header/app-header";
 import { HeaderSettingsButton } from "@/components/header/icon-button";
@@ -47,6 +48,10 @@ const HOME_BANNERS = {
   evening: require("../../assets/images/home-banner-cartoon-evening.png"),
   night: require("../../assets/images/home-banner-cartoon-night.png"),
 } as const;
+
+type HomeTrip = Trip & {
+  sharing: TripSharing;
+};
 
 function getHomeHeaderContent(hour = new Date().getHours()) {
   switch (true) {
@@ -120,19 +125,29 @@ export default function IndexScreen() {
     return <Redirect href="/register" />;
   }
 
-  const localTrips: Trip[] = tripData.map((trip) => ({
-    id: trip.id,
-    title: trip.title,
-    startDate: trip.startDate,
-    endDate: trip.endDate,
-    companions: [],
-    pins: [],
-    checklistItems: [],
-    referenceLinks: [],
-    documents: [],
-    images: [],
-    expenses: [],
-  }));
+  const localTrips: HomeTrip[] = tripData.map((trip) => {
+    const isOwner = trip.userId === session?.user.id;
+    const sharing: TripSharing = !trip.isShared
+      ? "single-user"
+      : isOwner
+        ? "shared-owner"
+        : "shared-participant";
+
+    return {
+      id: trip.id,
+      title: trip.title,
+      startDate: trip.startDate,
+      endDate: trip.endDate,
+      sharing,
+      companions: [],
+      pins: [],
+      checklistItems: [],
+      referenceLinks: [],
+      documents: [],
+      images: [],
+      expenses: [],
+    };
+  });
   const mappedTrips = localTrips;
 
   const today = dayjs(currentTime).startOf("day");
@@ -314,7 +329,11 @@ export default function IndexScreen() {
               </TitleRegular>
             </View>
             <View style={styles.sectionContent}>
-              <CardTrip trip={ongoingTrips[0]} variant="hero" />
+              <CardTrip
+                trip={ongoingTrips[0]}
+                sharing={ongoingTrips[0].sharing}
+                variant="hero"
+              />
             </View>
           </View>
         )}
@@ -350,6 +369,7 @@ export default function IndexScreen() {
                 <CardTrip
                   key={trip.id}
                   trip={trip}
+                  sharing={trip.sharing}
                   variant="regular"
                   color="turquoise"
                 />
@@ -389,6 +409,7 @@ export default function IndexScreen() {
                 <CardTrip
                   key={trip.id}
                   trip={trip}
+                  sharing={trip.sharing}
                   variant="regular"
                   color="purple"
                 />

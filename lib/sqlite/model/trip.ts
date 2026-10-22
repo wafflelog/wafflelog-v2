@@ -23,6 +23,7 @@ export type UpdateLocalTripInput = {
 export type LocalTrip = {
   id: string;
   userId: string;
+  isShared: boolean;
   title: string;
   startDate: string;
   endDate: string;
@@ -49,6 +50,7 @@ const DEFAULT_SYNC_BATCH_SIZE = 25;
 function mapLocalTripRow(row: {
   id: string;
   user_id: string;
+  is_shared?: number;
   title: string;
   start_date: string;
   end_date: string;
@@ -62,6 +64,7 @@ function mapLocalTripRow(row: {
   return {
     id: row.id,
     userId: row.user_id,
+    isShared: Boolean(row.is_shared),
     title: row.title,
     startDate: row.start_date,
     endDate: row.end_date,
@@ -128,6 +131,7 @@ export async function actionListLocalTrips(userId: string) {
   const rows = await sqlite.getAllAsync<{
     id: string;
     user_id: string;
+    is_shared: number;
     title: string;
     start_date: string;
     end_date: string;
@@ -142,6 +146,12 @@ export async function actionListLocalTrips(userId: string) {
       select
         id,
         user_id,
+        exists (
+          select 1
+          from trip_membership
+          where trip_membership.trip_id = trip.id
+            and trip_membership.status = 'active'
+        ) as is_shared,
         title,
         start_date,
         end_date,
@@ -175,6 +185,7 @@ export async function actionGetLocalTrip(id: string, userId: string) {
   const row = await sqlite.getFirstAsync<{
     id: string;
     user_id: string;
+    is_shared: number;
     title: string;
     start_date: string;
     end_date: string;
@@ -189,6 +200,12 @@ export async function actionGetLocalTrip(id: string, userId: string) {
       select
         id,
         user_id,
+        exists (
+          select 1
+          from trip_membership
+          where trip_membership.trip_id = trip.id
+            and trip_membership.status = 'active'
+        ) as is_shared,
         title,
         start_date,
         end_date,

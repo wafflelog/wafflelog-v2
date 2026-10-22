@@ -5,16 +5,19 @@ import { colors } from "@/constants/theme";
 import { router } from "expo-router";
 import { CardTripHero } from "./hero";
 import { CardTripRegular } from "./regular";
+import { type TripSharing } from "./shared-trip-indicator";
 
 type CardTripProps = {
   trip: Trip;
   variant: "hero" | "regular";
+  sharing: TripSharing;
   color?: keyof typeof colors;
 };
 
 export const CardTrip = ({
   trip,
   variant,
+  sharing,
   color = "waffle",
 }: CardTripProps) => {
   const onPress = () => {
@@ -22,9 +25,20 @@ export const CardTrip = ({
   };
 
   return match(variant)
-    .with("hero", () => <CardTripHero trip={trip} onPress={onPress} />)
+    .with("hero", () => (
+      <CardTripHero
+        trip={trip}
+        sharing={sharing}
+        onPress={onPress}
+      />
+    ))
     .with("regular", () => (
-      <CardTripRegular trip={trip} onPress={onPress} color={color} />
+      <CardTripRegular
+        trip={trip}
+        sharing={sharing}
+        onPress={onPress}
+        color={color}
+      />
     ))
     .exhaustive();
 };
