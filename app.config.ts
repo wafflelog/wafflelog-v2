@@ -97,6 +97,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     scheme: getScheme(variant),
     ios: {
       ...baseConfig.ios,
+      icon: "./assets/icons/AppIcon.icon",
       bundleIdentifier: uniqueIdentifier,
       ...(firebaseFiles
         ? { googleServicesFile: firebaseFiles.ios }
@@ -105,6 +106,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       ...baseConfig.android,
       package: uniqueIdentifier,
+      adaptiveIcon: {
+        foregroundImage: "./assets/icons/android-adaptive-foreground.png",
+        backgroundColor: "#FFB300",
+        monochromeImage: "./assets/icons/android-adaptive-monochrome.png",
+      },
       ...(firebaseFiles
         ? { googleServicesFile: firebaseFiles.android }
         : undefined),
