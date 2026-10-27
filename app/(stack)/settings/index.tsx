@@ -27,6 +27,7 @@ import {
   Bell as BellIcon,
   ChevronRight as ChevronRightIcon,
   LogOut as LogOutIcon,
+  MessageCircle as MessageCircleIcon,
   Trash2 as Trash2Icon,
 } from "lucide-react-native";
 import { useState } from "react";
@@ -236,6 +237,37 @@ export default function SettingsScreen() {
           />
         </View>
 
+        <UIText
+          style={[styles.sectionLabel, styles.sectionSpacing]}
+          weight="700"
+        >
+          Help
+        </UIText>
+
+        <Pressable
+          accessibilityHint="Opens the feedback form"
+          accessibilityLabel="Contact us"
+          accessibilityRole="button"
+          onPress={() => router.push("/settings/feedback")}
+          style={({ pressed }) => [
+            styles.supportCard,
+            pressed && styles.supportCardPressed,
+          ]}
+        >
+          <View style={styles.supportIcon}>
+            <MessageCircleIcon size={20} color={getColor(colors.turquoise)} />
+          </View>
+          <View style={styles.supportDetails}>
+            <UIText style={styles.supportTitle} weight="700">
+              Contact us
+            </UIText>
+            <UIText style={styles.supportDescription}>
+              Share feedback, report a problem or ask for help.
+            </UIText>
+          </View>
+          <ChevronRightIcon size={18} color={semanticColors.textSecondary} />
+        </Pressable>
+
         <Pressable
           accessibilityLabel="Sign out"
           accessibilityRole="button"
@@ -422,6 +454,43 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   analyticsDescription: {
+    marginTop: 2,
+    color: semanticColors.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  supportCard: {
+    minHeight: 76,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: gaps.sm,
+    padding: gaps.md,
+    borderWidth: 1,
+    borderColor: semanticColors.neutralDivider,
+    borderRadius: borderRadiuses.md,
+    backgroundColor: semanticColors.surface,
+  },
+  supportCardPressed: {
+    backgroundColor: getColor(colors.turquoise, 0.05),
+  },
+  supportIcon: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: borderRadiuses.full,
+    backgroundColor: getColor(colors.turquoise, 0.1),
+  },
+  supportDetails: {
+    flex: 1,
+    minWidth: 0,
+  },
+  supportTitle: {
+    color: semanticColors.textPrimary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  supportDescription: {
     marginTop: 2,
     color: semanticColors.textSecondary,
     fontSize: 12,

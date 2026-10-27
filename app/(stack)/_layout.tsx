@@ -41,6 +41,10 @@ export default function Layout() {
         />
         <Stack.Screen name="settings/index" options={{ headerShown: false }} />
         <Stack.Screen
+          name="settings/feedback"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
           name="ai-trip-planner"
           options={{
             headerShown: false,
