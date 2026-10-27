@@ -1,12 +1,11 @@
 import { UIText } from "@/components/ui/text";
+import { externalLinks } from "@/constants/external-links";
 import { colors, getColor } from "@/constants/theme";
 import { useAnalyticsConsent } from "@/hook/use-analytics-consent";
 import { ChartNoAxesColumnIncreasing as AnalyticsIcon } from "lucide-react-native";
 import { Linking, Pressable, View } from "react-native";
 
 import { styles } from "./analytics-consent-card.styles";
-
-const PRIVACY_URL = "https://wafflelog.co.uk/app/privacy";
 
 export function AnalyticsConsentCard() {
   const { hasChoice, isUpdating, setEnabled, status } = useAnalyticsConsent();
@@ -34,7 +33,7 @@ export function AnalyticsConsentCard() {
 
       <Pressable
         accessibilityRole="link"
-        onPress={() => void Linking.openURL(PRIVACY_URL)}
+        onPress={() => void Linking.openURL(externalLinks.privacy)}
         style={styles.privacyLink}
       >
         <UIText style={styles.privacyLinkText} weight="600">

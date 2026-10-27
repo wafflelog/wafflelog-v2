@@ -4,6 +4,7 @@ import {
   actionSoftDeleteRemoteTrip,
   actionUpsertRemoteTripFromLocal,
 } from "@/lib/supabase/actions";
+import { type SQLiteDatabase } from "expo-sqlite";
 
 export type CreateLocalTripInput = {
   userId: string;
@@ -369,12 +370,13 @@ export async function actionUpsertLocalTripFromRemote(remoteTrip: {
   );
 }
 
-export async function actionUpsertLocalTripMembershipFromRemote(
+async function upsertLocalTripMembershipFromRemote(
+  database: Pick<SQLiteDatabase, "runAsync">,
   input: UpsertLocalTripMembershipInput,
 ) {
   const now = new Date().toISOString();
 
-  await sqlite.runAsync(
+  await database.runAsync(
     `
       insert into trip_membership (
         trip_id,
@@ -407,6 +409,12 @@ export async function actionUpsertLocalTripMembershipFromRemote(
   );
 }
 
+export async function actionUpsertLocalTripMembershipFromRemote(
+  input: UpsertLocalTripMembershipInput,
+) {
+  await upsertLocalTripMembershipFromRemote(sqlite, input);
+}
+
 export async function actionReplaceLocalTripMembershipsFromRemote(
   tripId: string,
   memberships: Omit<
@@ -414,18 +422,21 @@ export async function actionReplaceLocalTripMembershipsFromRemote(
     "tripId" | "source"
   >[],
 ) {
-  await sqlite.withTransactionAsync(async () => {
-    await sqlite.runAsync(
+  await sqlite.withExclusiveTransactionAsync(async (transaction) => {
+    await transaction.runAsync(
       "delete from trip_membership where trip_id = ?",
       [tripId],
     );
 
     for (const membership of memberships) {
-      await actionUpsertLocalTripMembershipFromRemote({
-        ...membership,
-        tripId,
-        source: "remote",
-      });
+      await upsertLocalTripMembershipFromRemote(
+        transaction,
+        {
+          ...membership,
+          tripId,
+          source: "remote",
+        },
+      );
     }
   });
 }

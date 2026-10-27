@@ -2,23 +2,40 @@ import Database from "better-sqlite3";
 
 type SqliteParams = unknown[] | undefined;
 
-export type TestSqliteDatabase = ReturnType<typeof createTestSqliteDatabase>;
+type TestSqliteTransaction = {
+  execAsync: (sql: string) => Promise<void>;
+  getAllAsync: <Result>(sql: string, params?: SqliteParams) => Promise<Result[]>;
+  getFirstAsync: <Result>(
+    sql: string,
+    params?: SqliteParams,
+  ) => Promise<Result | null>;
+  runAsync: (
+    sql: string,
+    params?: SqliteParams,
+  ) => Promise<{ changes: number; lastInsertRowId: number }>;
+};
 
-export function createTestSqliteDatabase() {
+export type TestSqliteDatabase = TestSqliteTransaction & {
+  close: () => void;
+  withTransactionAsync: <Result>(
+    callback: () => Promise<Result>,
+  ) => Promise<Result>;
+  withExclusiveTransactionAsync: <Result>(
+    callback: (transaction: TestSqliteTransaction) => Promise<Result>,
+  ) => Promise<Result>;
+};
+
+export function createTestSqliteDatabase(): TestSqliteDatabase {
   const db = new Database(":memory:");
-
-  return {
-    close() {
-      db.close();
-    },
+  const transaction: TestSqliteTransaction = {
     async execAsync(sql: string) {
       db.exec(sql);
     },
-    async getAllAsync<T>(sql: string, params?: SqliteParams) {
-      return db.prepare(sql).all(...(params ?? [])) as T[];
+    async getAllAsync<Result>(sql: string, params?: SqliteParams) {
+      return db.prepare(sql).all(...(params ?? [])) as Result[];
     },
-    async getFirstAsync<T>(sql: string, params?: SqliteParams) {
-      return (db.prepare(sql).get(...(params ?? [])) ?? null) as T | null;
+    async getFirstAsync<Result>(sql: string, params?: SqliteParams) {
+      return (db.prepare(sql).get(...(params ?? [])) ?? null) as Result | null;
     },
     async runAsync(sql: string, params?: SqliteParams) {
       const result = db.prepare(sql).run(...(params ?? []));
@@ -28,11 +45,32 @@ export function createTestSqliteDatabase() {
         lastInsertRowId: Number(result.lastInsertRowid),
       };
     },
-    async withTransactionAsync<T>(callback: () => Promise<T>) {
+  };
+
+  return {
+    ...transaction,
+    close() {
+      db.close();
+    },
+    async withTransactionAsync<Result>(callback: () => Promise<Result>) {
       await db.exec("begin");
 
       try {
         const result = await callback();
+        await db.exec("commit");
+        return result;
+      } catch (error) {
+        await db.exec("rollback");
+        throw error;
+      }
+    },
+    async withExclusiveTransactionAsync<Result>(
+      callback: (exclusiveTransaction: TestSqliteTransaction) => Promise<Result>,
+    ) {
+      await db.exec("begin exclusive");
+
+      try {
+        const result = await callback(transaction);
         await db.exec("commit");
         return result;
       } catch (error) {

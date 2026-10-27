@@ -1303,6 +1303,12 @@ export async function actionListPublicUsers(
   searchQuery: string,
   client: SupabaseClient<Database> = supabase,
 ) {
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return [];
+  }
+
   const {
     data: { user },
     error: authError,
@@ -1316,16 +1322,12 @@ export async function actionListPublicUsers(
     throw new Error("You must be signed in to search users");
   }
 
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-  let query = client
+  const query = client
     .from("user")
     .select("id, username, created_at, updated_at")
     .order("username", { ascending: true })
-    .limit(20);
-
-  if (normalizedQuery) {
-    query = query.ilike("username", `%${normalizedQuery}%`);
-  }
+    .limit(20)
+    .ilike("username", `%${normalizedQuery}%`);
 
   const { data, error } = await query;
 

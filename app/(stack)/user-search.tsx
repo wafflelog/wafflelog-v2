@@ -45,6 +45,8 @@ export default function UserSearchScreen() {
   const { showMessage, SystemMessageModal } = useSystemMessage();
   const [searchQuery, setSearchQuery] = useState("");
   const [locallyInvitedUserIds, setLocallyInvitedUserIds] = useState<string[]>([]);
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const hasSearchQuery = normalizedSearchQuery.length > 0;
 
   const invitedUserIds = useMemo(() => {
     const fromParams = params.invitedUserIds?.split(",").filter(Boolean) ?? [];
@@ -56,9 +58,9 @@ export default function UserSearchScreen() {
   }, [params.inTripUserIds]);
 
   const usersQuery = useQuery({
-    queryKey: ["public-users", session?.user.id, searchQuery.trim().toLowerCase()],
-    queryFn: () => actionListPublicUsers(searchQuery),
-    enabled: Boolean(session?.user.id),
+    queryKey: ["public-users", session?.user.id, normalizedSearchQuery],
+    queryFn: () => actionListPublicUsers(normalizedSearchQuery),
+    enabled: Boolean(session?.user.id && hasSearchQuery),
   });
 
   const inviteMutation = useMutation({
@@ -91,14 +93,7 @@ export default function UserSearchScreen() {
         "info",
       );
 
-      router.replace({
-        pathname: "/(stack)/trip/[tripId]/(drawer)/companions",
-        params: {
-          tripId: params.tripId ?? "",
-          invitedUserId: variables.inviteeUserId,
-          invitedUserName: invitedUser?.username ?? "",
-        },
-      });
+      router.back();
     },
     onError: (error) => {
       const message =
@@ -107,9 +102,9 @@ export default function UserSearchScreen() {
     },
   });
 
-  const availableUsers = (usersQuery.data ?? []).filter(
-    (user) => user.id !== session?.user.id,
-  );
+  const availableUsers = hasSearchQuery
+    ? (usersQuery.data ?? []).filter((user) => user.id !== session?.user.id)
+    : [];
 
   const handleInviteUser = async (user: { id: string; username: string }) => {
     if (invitedUserIds.length + inTripUserIds.length >= MAX_COMPANIONS) {
@@ -207,11 +202,27 @@ export default function UserSearchScreen() {
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <UIText>
-                {usersQuery.isPending
-                  ? "Loading users..."
-                  : "No matching usernames"}
-              </UIText>
+              {!hasSearchQuery ? (
+                <>
+                  <Ionicons
+                    name="person-add-outline"
+                    size={56}
+                    color={getColor(colors.paleGrey)}
+                  />
+                  <UIText style={styles.emptyStateTitle} weight="600">
+                    Find your companion
+                  </UIText>
+                  <UIText style={styles.emptyStateDescription}>
+                    Search by username to invite someone to this trip.
+                  </UIText>
+                </>
+              ) : (
+                <UIText>
+                  {usersQuery.isPending
+                    ? "Loading users..."
+                    : "No matching usernames"}
+                </UIText>
+              )}
             </View>
           }
           renderItem={({ item }) => (
@@ -269,6 +280,7 @@ const styles = StyleSheet.create({
     color: getColor(colors.textDarkGrey),
   },
   results: {
+    flexGrow: 1,
     gap: gaps.md,
     padding: gaps.md,
     paddingBottom: 96,
@@ -277,7 +289,23 @@ const styles = StyleSheet.create({
     ...getCardBasicStyle("sm"),
   },
   emptyState: {
+    flex: 1,
     alignItems: "center",
-    paddingVertical: gaps.xl,
+    justifyContent: "center",
+    paddingHorizontal: gaps.xl,
+    paddingBottom: 96,
+  },
+  emptyStateTitle: {
+    marginTop: gaps.md,
+    marginBottom: gaps.xs,
+    color: semanticColors.textSecondary,
+    fontSize: 18,
+    lineHeight: 26,
+  },
+  emptyStateDescription: {
+    color: getColor(colors.paleGrey),
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
   },
 });

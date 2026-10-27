@@ -175,8 +175,8 @@ async function upsertExpenseFromRemote(
 ) {
   const now = new Date().toISOString();
 
-  await sqlite.withTransactionAsync(async () => {
-    const existingExpense = await sqlite.getFirstAsync<{
+  await sqlite.withExclusiveTransactionAsync(async (transaction) => {
+    const existingExpense = await transaction.getFirstAsync<{
       sync_status: string;
     }>("select sync_status from expense where id = ?", [expense.id]);
 
@@ -184,7 +184,7 @@ async function upsertExpenseFromRemote(
       return;
     }
 
-    await sqlite.runAsync(
+    await transaction.runAsync(
       `
         insert into expense (
           id,
@@ -239,13 +239,13 @@ async function upsertExpenseFromRemote(
       ],
     );
 
-    await sqlite.runAsync(
+    await transaction.runAsync(
       "delete from expense_participant where expense_id = ?",
       [expense.id],
     );
 
     for (const participant of participants) {
-      await sqlite.runAsync(
+      await transaction.runAsync(
         `
           insert into expense_participant (
             expense_id,

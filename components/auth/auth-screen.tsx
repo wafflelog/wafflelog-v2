@@ -1,5 +1,6 @@
 import { TitleRegular } from "@/components/title/regular";
 import { UIText } from "@/components/ui/text";
+import { externalLinks } from "@/constants/external-links";
 import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { Image } from "expo-image";
 import {
@@ -11,9 +12,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-const TERMS_URL = "https://wafflelog.co.uk/app/terms";
-const PRIVACY_URL = "https://wafflelog.co.uk/app/privacy";
 
 type AuthScreenProps = {
   eyebrow: string;
@@ -106,7 +104,7 @@ export function AuthScreen({
               By continuing, you agree to our{" "}
               <UIText
                 accessibilityRole="link"
-                onPress={() => void Linking.openURL(TERMS_URL)}
+                onPress={() => void Linking.openURL(externalLinks.terms)}
                 style={styles.legalLink}
               >
                 Terms of Service
@@ -114,7 +112,7 @@ export function AuthScreen({
               and acknowledge our{" "}
               <UIText
                 accessibilityRole="link"
-                onPress={() => void Linking.openURL(PRIVACY_URL)}
+                onPress={() => void Linking.openURL(externalLinks.privacy)}
                 style={styles.legalLink}
               >
                 Privacy Policy

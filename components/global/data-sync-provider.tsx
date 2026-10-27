@@ -2,6 +2,7 @@ import { useAuthSession } from "@/hook/use-auth-session";
 import { runInitialDataSync } from "@/lib/data-sync/bootstrap";
 import { DataSyncContext } from "@/lib/data-sync/context";
 import { downloadKnownTrips as downloadKnownTripsFromRemote } from "@/lib/data-sync/download";
+import { createAsyncOperationQueue } from "@/lib/data-sync/operation-queue";
 import {
   CHECKING_DATA_BOOTSTRAP_STATE,
   IDLE_DATA_SYNC_OPERATION_STATE,
@@ -82,6 +83,7 @@ export function DataSyncProvider({ children }: PropsWithChildren) {
     userId: string;
     promise: Promise<void>;
   } | null>(null);
+  const syncOperationQueueRef = useRef(createAsyncOperationQueue());
   const [scopedBootstrapState, setScopedBootstrapState] =
     useState<ScopedBootstrapState>({
       userId: null,
@@ -152,7 +154,8 @@ export function DataSyncProvider({ children }: PropsWithChildren) {
       },
     }));
 
-    const uploadPromise = uploadPendingChanges(userId)
+    const uploadPromise = syncOperationQueueRef.current
+      .run(() => uploadPendingChanges(userId))
       .then(async () => {
         await invalidateLocalSyncQueries();
         setScopedUploadState((state) => {
@@ -215,7 +218,8 @@ export function DataSyncProvider({ children }: PropsWithChildren) {
       },
     }));
 
-    const downloadPromise = downloadKnownTripsFromRemote(userId)
+    const downloadPromise = syncOperationQueueRef.current
+      .run(() => downloadKnownTripsFromRemote(userId))
       .then(async () => {
         await invalidateLocalSyncQueries();
         setScopedDownloadState((state) => {
