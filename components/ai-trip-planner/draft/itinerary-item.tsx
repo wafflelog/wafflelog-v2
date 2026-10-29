@@ -8,13 +8,10 @@ import {
   getColor,
 } from "@/constants/theme";
 import { type AiPlannerItemViewModel } from "@/types/ai-trip-planner";
-import {
-  Check,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
-} from "lucide-react-native";
+import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react-native";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
+
+import { DraftSelectionCheckbox } from "./draft-selection-checkbox";
 
 type ItineraryItemProps = {
   item: AiPlannerItemViewModel;
@@ -97,20 +94,7 @@ export function ItineraryItem({
           </TitleRegular>
         </View>
         {isCustomizing ? (
-          <View
-            style={[
-              styles.checkbox,
-              isIncluded && styles.checkboxSelected,
-            ]}
-          >
-            {isIncluded ? (
-              <Check
-                size={15}
-                strokeWidth={3}
-                color={getColor(colors.white)}
-              />
-            ) : null}
-          </View>
+          <DraftSelectionCheckbox isSelected={isIncluded} />
         ) : null}
       </TouchableOpacity>
 
@@ -173,21 +157,6 @@ const styles = StyleSheet.create({
   itemMain: { flexDirection: "row", gap: gaps.xs },
   itemContent: { flex: 1, gap: gaps.xxs },
   excludedContent: { opacity: 0.48 },
-  checkbox: {
-    width: 22,
-    height: 22,
-    marginTop: 2,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 5,
-    borderWidth: 1.5,
-    borderColor: getColor(colors.paleGrey),
-    backgroundColor: getColor(colors.white),
-  },
-  checkboxSelected: {
-    borderColor: getColor(colors.purple),
-    backgroundColor: getColor(colors.purple),
-  },
   itemMeta: { flexDirection: "row", alignItems: "center", gap: gaps.xs },
   categoryPill: {
     flexDirection: "row",
