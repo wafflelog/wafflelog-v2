@@ -19,7 +19,7 @@ import {
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionDeleteAccount } from "@/lib/account/delete-account";
 import { clearAnalyticsConsent } from "@/lib/analytics-consent";
-import { supabase } from "@/lib/supabase/client";
+import { actionSignOutCurrentDevice } from "@/lib/auth/sign-out";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
@@ -85,7 +85,7 @@ export default function SettingsScreen() {
   const handleSignOut = async () => {
     try {
       setIsSigningOut(true);
-      await supabase.auth.signOut({ scope: "local" });
+      await actionSignOutCurrentDevice();
     } finally {
       setIsSigningOut(false);
     }

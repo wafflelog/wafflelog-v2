@@ -803,6 +803,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_push_device: {
+        Args: { p_expo_push_token: string; p_platform: string }
+        Returns: string
+      }
       upsert_expense_with_participants: {
         Args: {
           p_amount: number

@@ -1,13 +1,10 @@
 import { useAuthSession } from "@/hook/use-auth-session";
 import { getAppNotificationsQueryKey } from "@/hook/use-app-notifications";
-import { actionUpsertPushDevice } from "@/lib/supabase/actions";
+import { registerCurrentPushDevice } from "@/lib/notifications/push-device";
 import { useQueryClient } from "@tanstack/react-query";
-import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
-
-const DEFAULT_NOTIFICATION_CHANNEL_ID = "default";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -17,45 +14,6 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
-
-async function registerForPushNotifications() {
-  if (Platform.OS !== "ios" && Platform.OS !== "android") {
-    return null;
-  }
-
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync(
-      DEFAULT_NOTIFICATION_CHANNEL_ID,
-      {
-        name: "Default",
-        importance: Notifications.AndroidImportance.HIGH,
-      },
-    );
-  }
-
-  const existingPermissions = await Notifications.getPermissionsAsync();
-  const permissions = existingPermissions.granted
-    ? existingPermissions
-    : await Notifications.requestPermissionsAsync();
-
-  if (!permissions.granted) {
-    return null;
-  }
-
-  const projectId =
-    Constants.expoConfig?.extra?.eas?.projectId ??
-    Constants.easConfig?.projectId;
-
-  if (!projectId) {
-    throw new Error("Expo project ID is not configured");
-  }
-
-  const { data: expoPushToken } = await Notifications.getExpoPushTokenAsync({
-    projectId,
-  });
-
-  return expoPushToken;
-}
 
 export function GlobalAppNotifications() {
   const { session } = useAuthSession();
@@ -70,17 +28,9 @@ export function GlobalAppNotifications() {
       return;
     }
 
-    void registerForPushNotifications()
-      .then((expoPushToken) => {
-        if (!expoPushToken) {
-          return;
-        }
-
-        return actionUpsertPushDevice({ expoPushToken, platform });
-      })
-      .catch((error) => {
-        console.warn("Unable to register for push notifications", error);
-      });
+    void registerCurrentPushDevice().catch((error) => {
+      console.warn("Unable to register for push notifications", error);
+    });
   }, [userId]);
 
   useEffect(() => {

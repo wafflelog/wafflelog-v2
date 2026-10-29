@@ -140,7 +140,6 @@ export type PublicUserRow = Tables<"user">;
 export type AppNotificationRow = Tables<"app_notification">;
 export type TripInvitationRow = Tables<"trip_invitation">;
 export type TripMemberRow = Tables<"trip_member">;
-export type PushDeviceRow = Tables<"user_push_device">;
 
 export type AppNotification = AppNotificationRow & {
   invitationStatus: string | null;
@@ -1376,7 +1375,7 @@ export async function actionCreateTripInvitation(
 export async function actionUpsertPushDevice(
   input: UpsertPushDeviceInput,
   client: SupabaseClient<Database> = supabase,
-): Promise<PushDeviceRow> {
+): Promise<string> {
   const {
     data: { user },
     error: authError,
@@ -1390,25 +1389,34 @@ export async function actionUpsertPushDevice(
     throw new Error("You must be signed in to register a push device");
   }
 
-  const { data, error } = await client
-    .from("user_push_device")
-    .upsert(
-      {
-        user_id: user.id,
-        expo_push_token: input.expoPushToken,
-        platform: input.platform,
-        last_seen_at: new Date().toISOString(),
-      },
-      { onConflict: "expo_push_token" },
-    )
-    .select()
-    .single();
+  const { data, error } = await client.rpc("claim_push_device", {
+    p_expo_push_token: input.expoPushToken,
+    p_platform: input.platform,
+  });
 
   if (error) {
     throw error;
   }
 
+  if (!data) {
+    throw new Error("Push device registration was not confirmed");
+  }
+
   return data;
+}
+
+export async function actionRemovePushDevice(
+  expoPushToken: string,
+  client: SupabaseClient<Database> = supabase,
+) {
+  const { error } = await client
+    .from("user_push_device")
+    .delete()
+    .eq("expo_push_token", expoPushToken);
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function actionListAppNotifications(

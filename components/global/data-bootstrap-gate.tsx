@@ -3,7 +3,7 @@ import { TitleRegular } from "@/components/title/regular";
 import { UIText } from "@/components/ui/text";
 import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { useDataSync } from "@/hook/use-data-sync";
-import { supabase } from "@/lib/supabase/client";
+import { actionSignOutCurrentDevice } from "@/lib/auth/sign-out";
 import { Image } from "expo-image";
 import { LogOut as LogOutIcon } from "lucide-react-native";
 import { type PropsWithChildren, useState } from "react";
@@ -21,11 +21,7 @@ export function DataBootstrapGate({ children }: PropsWithChildren) {
     setSignOutError(null);
 
     try {
-      const { error } = await supabase.auth.signOut({ scope: "local" });
-
-      if (error) {
-        throw error;
-      }
+      await actionSignOutCurrentDevice();
     } catch {
       setSignOutError(
         "We couldn’t sign you out. Check your connection and try again.",

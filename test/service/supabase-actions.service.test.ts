@@ -8,15 +8,16 @@ import {
   actionGetRemotePinById,
   actionGetRemoteTripById,
   actionGetRemoteTripSyncBundle,
+  actionLeaveTrip,
   actionListActiveCompanionMemberships,
   actionListAppNotifications,
   actionListPublicUsers,
   actionListRemoteOwnedTripIds,
   actionListTripCompanions,
   actionListTripInvitationsByTrip,
-  actionLeaveTrip,
   actionMarkNotificationsRead,
   actionRejectTripInvitation,
+  actionRemovePushDevice,
   actionRestoreCompanionAccess,
   actionSignInWithEmail,
   actionSignUpWithEmail,
@@ -56,7 +57,7 @@ vi.mock("expo-secure-store", () => ({
 
 describe("Supabase actions", () => {
   it("upserts one push-device row for the same Expo token", async () => {
-    const user = await createTestUser("push_device");
+    const user = await createTestUser("push");
     const expoPushToken = `ExpoPushToken[${crypto.randomUUID()}]`;
 
     const firstRegistration = await actionUpsertPushDevice(
@@ -68,7 +69,7 @@ describe("Supabase actions", () => {
       user.client,
     );
 
-    expect(secondRegistration.id).toBe(firstRegistration.id);
+    expect(secondRegistration).toBe(firstRegistration);
 
     const { data: storedDevices, error } = await user.client
       .from("user_push_device")
@@ -83,6 +84,113 @@ describe("Supabase actions", () => {
         platform: "ios",
       },
     ]);
+  });
+
+  it("transfers one Expo token to the currently authenticated user", async () => {
+    const firstUser = await createTestUser("push_a");
+    const secondUser = await createTestUser("push_b");
+    const expoPushToken = `ExpoPushToken[${crypto.randomUUID()}]`;
+
+    const firstDeviceId = await actionUpsertPushDevice(
+      { expoPushToken, platform: "ios" },
+      firstUser.client,
+    );
+    const claimedDeviceId = await actionUpsertPushDevice(
+      { expoPushToken, platform: "ios" },
+      secondUser.client,
+    );
+
+    expect(claimedDeviceId).toBe(firstDeviceId);
+
+    const { data: storedDevices, error } = await adminClient
+      .from("user_push_device")
+      .select("user_id, expo_push_token")
+      .eq("expo_push_token", expoPushToken);
+
+    expect(error).toBeNull();
+    expect(storedDevices).toEqual([
+      {
+        user_id: secondUser.id,
+        expo_push_token: expoPushToken,
+      },
+    ]);
+  });
+
+  it("keeps separate device tokens for the same user", async () => {
+    const user = await createTestUser("push_multi");
+    const firstToken = `ExpoPushToken[${crypto.randomUUID()}]`;
+    const secondToken = `ExpoPushToken[${crypto.randomUUID()}]`;
+
+    await actionUpsertPushDevice(
+      { expoPushToken: firstToken, platform: "ios" },
+      user.client,
+    );
+    await actionUpsertPushDevice(
+      { expoPushToken: secondToken, platform: "android" },
+      user.client,
+    );
+
+    const { data: storedDevices, error } = await user.client
+      .from("user_push_device")
+      .select("expo_push_token, platform")
+      .in("expo_push_token", [firstToken, secondToken])
+      .order("platform");
+
+    expect(error).toBeNull();
+    expect(storedDevices).toEqual([
+      { expo_push_token: secondToken, platform: "android" },
+      { expo_push_token: firstToken, platform: "ios" },
+    ]);
+  });
+
+  it("rejects push-device claims from anonymous callers", async () => {
+    const publicClient = createPublicClient();
+    const { data, error } = await publicClient.rpc("claim_push_device", {
+      p_expo_push_token: `ExpoPushToken[${crypto.randomUUID()}]`,
+      p_platform: "ios",
+    });
+
+    expect(data).toBeNull();
+    expect(error).not.toBeNull();
+  });
+
+  it("does not let another user remove a claimed push device", async () => {
+    const owner = await createTestUser("push_owner");
+    const otherUser = await createTestUser("push_other");
+    const expoPushToken = `ExpoPushToken[${crypto.randomUUID()}]`;
+
+    await actionUpsertPushDevice(
+      { expoPushToken, platform: "ios" },
+      owner.client,
+    );
+    await actionRemovePushDevice(expoPushToken, otherUser.client);
+
+    const { data: storedDevices, error } = await adminClient
+      .from("user_push_device")
+      .select("user_id")
+      .eq("expo_push_token", expoPushToken);
+
+    expect(error).toBeNull();
+    expect(storedDevices).toEqual([{ user_id: owner.id }]);
+  });
+
+  it("removes only the signed-in user's matching push device", async () => {
+    const user = await createTestUser("push_remove");
+    const expoPushToken = `ExpoPushToken[${crypto.randomUUID()}]`;
+
+    await actionUpsertPushDevice(
+      { expoPushToken, platform: "ios" },
+      user.client,
+    );
+    await actionRemovePushDevice(expoPushToken, user.client);
+
+    const { data: storedDevices, error } = await adminClient
+      .from("user_push_device")
+      .select("id")
+      .eq("expo_push_token", expoPushToken);
+
+    expect(error).toBeNull();
+    expect(storedDevices).toEqual([]);
   });
 
   it("syncs expense allocations atomically", async () => {
@@ -147,7 +255,9 @@ describe("Supabase actions", () => {
         },
         owner.client,
       ),
-    ).rejects.toThrow("Participant split amounts must equal the expense amount");
+    ).rejects.toThrow(
+      "Participant split amounts must equal the expense amount",
+    );
 
     await expect(
       owner.client.from("expense").select("id").eq("id", invalidExpenseId),
@@ -528,7 +638,8 @@ describe("Supabase actions", () => {
       }),
     );
     expect(
-      (await actionAcceptTripInvitation(reinvitation.id, invitee.client)).status,
+      (await actionAcceptTripInvitation(reinvitation.id, invitee.client))
+        .status,
     ).toBe("accepted");
 
     const rejectedInvitation = await actionCreateTripInvitation(
@@ -726,7 +837,11 @@ describe("Supabase actions", () => {
     expect(bundle.referenceLinks).toHaveLength(1);
     expect(bundle.expenses).toHaveLength(1);
     expect(bundle.expenseParticipants).toEqual([
-      expect.objectContaining({ expenseId: bundle.expenses[0].id, userId: owner.id, splitAmount: 42 }),
+      expect.objectContaining({
+        expenseId: bundle.expenses[0].id,
+        userId: owner.id,
+        splitAmount: 42,
+      }),
     ]);
     expect(bundle.documents).toHaveLength(1);
     expect(bundle.images).toHaveLength(1);
