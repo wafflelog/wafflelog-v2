@@ -313,7 +313,7 @@ export default function IndexScreen() {
 
         <AnalyticsConsentCard />
 
-        {/* Ongoing Trip */}
+        {/* Ongoing Trips */}
         {ongoingTrips.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -325,15 +325,18 @@ export default function IndexScreen() {
                   { borderColor: getColor(colors.waffle) },
                 ]}
               >
-                Ongoing Trip
+                Ongoing Trips
               </TitleRegular>
             </View>
             <View style={styles.sectionContent}>
-              <CardTrip
-                trip={ongoingTrips[0]}
-                sharing={ongoingTrips[0].sharing}
-                variant="hero"
-              />
+              {ongoingTrips.map((trip) => (
+                <CardTrip
+                  key={trip.id}
+                  trip={trip}
+                  sharing={trip.sharing}
+                  variant="hero"
+                />
+              ))}
             </View>
           </View>
         )}
