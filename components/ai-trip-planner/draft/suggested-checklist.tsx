@@ -8,12 +8,14 @@ import {
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { DraftSelectionCheckbox } from "./draft-selection-checkbox";
+import { DraftSelectionToggle } from "./draft-selection-toggle";
 
 type SuggestedChecklistProps = {
   items: string[];
   isCustomizing: boolean;
   includedItems: Set<string>;
   onToggleItem: (item: string) => void;
+  onToggleAll: () => void;
 };
 
 export function SuggestedChecklist({
@@ -21,12 +23,25 @@ export function SuggestedChecklist({
   isCustomizing,
   includedItems,
   onToggleItem,
+  onToggleAll,
 }: SuggestedChecklistProps) {
+  const isAllSelected =
+    items.length > 0 && items.every((item) => includedItems.has(item));
+
   return (
     <View style={styles.checklistCard}>
-      <TitleRegular size="sm" weight="600" color={colors.textDarkGrey}>
-        Suggested checklist
-      </TitleRegular>
+      <View style={styles.checklistHeader}>
+        <TitleRegular size="sm" weight="600" color={colors.textDarkGrey}>
+          Suggested checklist
+        </TitleRegular>
+        {isCustomizing && items.length > 0 ? (
+          <DraftSelectionToggle
+            isAllSelected={isAllSelected}
+            color="turquoise"
+            onPress={onToggleAll}
+          />
+        ) : null}
+      </View>
       <View>
         {items.map((item, index) => (
           <TouchableOpacity
@@ -75,6 +90,12 @@ const styles = StyleSheet.create({
     borderRadius: borderRadiuses.md,
     padding: gaps.md,
     backgroundColor: getColor(colors.turquoise, 0.08),
+    gap: gaps.sm,
+  },
+  checklistHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: gaps.sm,
   },
   checklistRow: {

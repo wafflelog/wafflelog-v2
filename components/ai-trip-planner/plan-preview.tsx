@@ -42,6 +42,12 @@ export function AiPlannerPlanPreview({
     () => new Set(),
   );
   const [isCustomizing, setIsCustomizing] = useState(false);
+  const isAllItinerarySelected =
+    allItemIds.length > 0 &&
+    allItemIds.every((itemId) => includedItemIds.has(itemId));
+  const isAllChecklistSelected =
+    plan.checklist.length > 0 &&
+    plan.checklist.every((item) => includedChecklistItems.has(item));
 
   const toggleSetValue = (
     setter: React.Dispatch<React.SetStateAction<Set<string>>>,
@@ -72,6 +78,18 @@ export function AiPlannerPlanPreview({
     setIsCustomizing(false);
   };
 
+  const handleToggleAllItinerary = () => {
+    setIncludedItemIds(
+      isAllItinerarySelected ? new Set() : new Set(allItemIds),
+    );
+  };
+
+  const handleToggleAllChecklist = () => {
+    setIncludedChecklistItems(
+      isAllChecklistSelected ? new Set() : new Set(plan.checklist),
+    );
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -83,7 +101,12 @@ export function AiPlannerPlanPreview({
 
         <WorthChecking warnings={plan.warnings} />
 
-        {isCustomizing ? <CustomizationNotice /> : null}
+        {isCustomizing ? (
+          <CustomizationNotice
+            isAllItinerarySelected={isAllItinerarySelected}
+            onToggleAllItinerary={handleToggleAllItinerary}
+          />
+        ) : null}
 
         <View style={styles.sectionHeading}>
           <View>
@@ -136,6 +159,7 @@ export function AiPlannerPlanPreview({
           onToggleItem={(item) =>
             toggleSetValue(setIncludedChecklistItems, item)
           }
+          onToggleAll={handleToggleAllChecklist}
         />
       </ScrollView>
 
