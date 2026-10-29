@@ -65,7 +65,6 @@ export function AiPlannerIntakeComposer({
           onSubmit={onSubmit}
           error={Boolean(error)}
           multiline={inputConfig.multiline}
-          maxLength={inputLimit}
           keyboardType={inputConfig.keyboardType}
           inputMode={inputConfig.inputMode}
           suffix={inputConfig.suffix}
@@ -106,7 +105,13 @@ export function AiPlannerIntakeComposer({
         {inputLimit ? (
           <TitleRegular
             size="xxs"
-            color={input.length >= inputLimit ? colors.orange : colors.paleGrey}
+            color={
+              input.length > inputLimit
+                ? colors.red
+                : input.length === inputLimit
+                  ? colors.orange
+                  : colors.paleGrey
+            }
           >
             {input.length.toLocaleString("en-GB")} /{" "}
             {inputLimit.toLocaleString("en-GB")}

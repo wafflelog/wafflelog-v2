@@ -25,7 +25,6 @@ type AiPlannerTextComposerProps = {
   onSubmit: () => void;
   error?: boolean;
   multiline?: boolean;
-  maxLength?: number;
   keyboardType?: KeyboardTypeOptions;
   inputMode?: InputModeOptions;
   suffix?: string;
@@ -40,7 +39,6 @@ export function AiPlannerTextComposer({
   onSubmit,
   error = false,
   multiline = false,
-  maxLength,
   keyboardType = "default",
   inputMode = "text",
   suffix,
@@ -60,7 +58,6 @@ export function AiPlannerTextComposer({
         keyboardType={keyboardType}
         inputMode={inputMode}
         multiline={multiline}
-        maxLength={maxLength}
         autoFocus
         style={[
           styles.input,
