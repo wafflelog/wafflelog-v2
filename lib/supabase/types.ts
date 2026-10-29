@@ -807,6 +807,10 @@ export type Database = {
         Args: { p_expo_push_token: string; p_platform: string }
         Returns: string
       }
+      is_username_available: {
+        Args: { p_username: string }
+        Returns: boolean
+      }
       upsert_expense_with_participants: {
         Args: {
           p_amount: number

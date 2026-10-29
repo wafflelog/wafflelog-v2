@@ -25,6 +25,8 @@ type ItineraryItemProps = {
   onToggleResearch: () => void;
 };
 
+const FALLBACK_CATEGORY = CATEGORIES.find(({ id }) => id === "other")!;
+
 export function ItineraryItem({
   item,
   isCustomizing,
@@ -33,10 +35,9 @@ export function ItineraryItem({
   onToggleIncluded,
   onToggleResearch,
 }: ItineraryItemProps) {
-  const category = CATEGORIES.find(({ id }) => id === item.category);
-  const categoryColor = category
-    ? colors[category.color]
-    : colors.textLightGrey;
+  const category =
+    CATEGORIES.find(({ id }) => id === item.category) ?? FALLBACK_CATEGORY;
+  const categoryColor = colors[category.color];
 
   return (
     <View
@@ -73,16 +74,14 @@ export function ItineraryItem({
                 { backgroundColor: getColor(categoryColor, 0.08) },
               ]}
             >
-              {category ? (
-                <IconPinCategory category={category} size={14} />
-              ) : null}
+              <IconPinCategory category={category} size={14} />
               <TitleRegular
                 size="xxs"
                 weight="600"
                 color={colors.textDarkGrey}
                 style={styles.categoryLabel}
               >
-                {category?.name ?? item.category}
+                {category.name}
               </TitleRegular>
             </View>
           </View>

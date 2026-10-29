@@ -32,7 +32,10 @@ import {
 import { type AiPlannerDraftSelection } from "@/types/ai-trip-planner";
 import dayjs from "dayjs";
 
-import { getPlanningItemCategory } from "./plan-adapter";
+import {
+  getPlanningItemCategory,
+  getPlanningItemTime,
+} from "./plan-adapter";
 import { type PlanningResult } from "./types";
 
 export type ImportAiPlanningResultInput = {
@@ -222,7 +225,7 @@ export async function actionImportAiPlanningResult(
           name: item.title,
           startDate: pinDate,
           endDate: null,
-          time: item.suggestedStartTime?.trim() || null,
+          time: getPlanningItemTime(item.suggestedStartTime),
           endTime: null,
           categoryId: getPlanningItemCategory(item.type, item.category),
           metadataJson: EMPTY_PIN_METADATA,

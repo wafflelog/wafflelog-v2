@@ -1,5 +1,6 @@
 import { type PinMetadata } from "@/types/pin";
 import { type SupabaseClient } from "@supabase/supabase-js";
+import { RegistrationError } from "@/lib/auth/registration-error";
 import { supabase } from "./client";
 import { type Database, type Json, type Tables, type TablesInsert } from "./types";
 
@@ -1208,18 +1209,46 @@ export async function actionSignUpWithEmail(
   input: SignUpInput,
   client: SupabaseClient<Database> = supabase,
 ) {
+  const normalizedUsername = input.username.trim().toLowerCase();
   const { data, error } = await client.auth.signUp({
     email: input.email.trim(),
     password: input.password,
     options: {
       emailRedirectTo: input.emailRedirectTo,
       data: {
-        username: input.username.trim().toLowerCase(),
+        username: normalizedUsername,
       },
     },
   });
 
   if (error) {
+    const isExistingEmail =
+      error.code === "email_exists" ||
+      error.code === "user_already_exists" ||
+      error.message.toLowerCase() === "user already registered";
+
+    if (isExistingEmail) {
+      return { user: null, session: null };
+    }
+
+    const isUserCreationDatabaseError = error.message
+      .toLowerCase()
+      .includes("database error saving new user");
+
+    if (isUserCreationDatabaseError) {
+      const { data: isUsernameAvailable, error: usernameCheckError } =
+        await client.rpc("is_username_available", {
+          p_username: normalizedUsername,
+        });
+
+      if (!usernameCheckError && !isUsernameAvailable) {
+        throw new RegistrationError(
+          "username_taken",
+          "That username is already taken. Try another.",
+        );
+      }
+    }
+
     throw error;
   }
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { parseAuthCallbackUrl } from "@/lib/auth/auth-callback";
+import { type RegistrationError } from "@/lib/auth/registration-error";
 import {
   actionRequestPasswordReset,
   actionSetSessionFromAuthCallback,
@@ -83,6 +84,74 @@ function getAuthActionUrl(html: string) {
 }
 
 describe("email confirmation", () => {
+  it("keeps existing emails private and reports a duplicate username clearly", async () => {
+    const suffix = crypto.randomUUID().replaceAll("-", "").slice(0, 8);
+    const email = `reg_${suffix}@service-test.local`;
+    const username = `reg_${suffix}`;
+    const client = createPublicClient();
+
+    const firstSignUp = await actionSignUpWithEmail(
+      {
+        email,
+        password: "service-test-password",
+        username,
+        emailRedirectTo: EMAIL_REDIRECT_URL,
+      },
+      client,
+    );
+
+    expect(firstSignUp.user?.email).toBe(email);
+    expect(firstSignUp.session).toBeNull();
+
+    await new Promise((resolve) => setTimeout(resolve, 1_100));
+
+    const unconfirmedSignUp = await actionSignUpWithEmail(
+      {
+        email,
+        password: "service-test-password",
+        username,
+        emailRedirectTo: EMAIL_REDIRECT_URL,
+      },
+      createPublicClient(),
+    );
+
+    expect(unconfirmedSignUp.session).toBeNull();
+
+    const { error: confirmError } =
+      await adminClient.auth.admin.updateUserById(firstSignUp.user!.id, {
+        email_confirm: true,
+      });
+    expect(confirmError).toBeNull();
+
+    const confirmedSignUp = await actionSignUpWithEmail(
+      {
+        email,
+        password: "another-service-test-password",
+        username: `other_${suffix}`,
+        emailRedirectTo: EMAIL_REDIRECT_URL,
+      },
+      createPublicClient(),
+    );
+
+    expect(confirmedSignUp.session).toBeNull();
+
+    await expect(
+      actionSignUpWithEmail(
+        {
+          email: `other_${suffix}@service-test.local`,
+          password: "service-test-password",
+          username,
+          emailRedirectTo: EMAIL_REDIRECT_URL,
+        },
+        createPublicClient(),
+      ),
+    ).rejects.toMatchObject({
+      name: "RegistrationError",
+      code: "username_taken",
+      message: "That username is already taken. Try another.",
+    } satisfies Partial<RegistrationError>);
+  });
+
   it("confirms a signup through Mailpit and creates an app session", async () => {
     const suffix = crypto.randomUUID().replaceAll("-", "").slice(0, 12);
     const email = `email_confirm_${suffix}@service-test.local`;

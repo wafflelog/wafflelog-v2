@@ -35,9 +35,10 @@ const CATEGORY_ALIASES: Record<string, PlanPreviewCategory> = {
 
 export function getPlanningItemCategory(
   type: PlanningResult["days"][number]["items"][number]["type"],
-  category: string | null,
+  category: unknown,
 ): PlanPreviewCategory {
-  const normalizedCategory = category?.trim().toLowerCase();
+  const normalizedCategory =
+    typeof category === "string" ? category.trim().toLowerCase() : null;
 
   if (normalizedCategory && CATEGORY_ALIASES[normalizedCategory]) {
     return CATEGORY_ALIASES[normalizedCategory];
@@ -56,6 +57,26 @@ export function getPlanningItemCategory(
   }
 
   return "other";
+}
+
+export function getPlanningItemTime(value: unknown) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const match = /^(\d{1,2}):([0-5]\d)$/.exec(value.trim());
+
+  if (!match) {
+    return null;
+  }
+
+  const hour = Number(match[1]);
+
+  if (hour > 23) {
+    return null;
+  }
+
+  return `${String(hour).padStart(2, "0")}:${match[2]}`;
 }
 
 function getValidStartDate(startDate?: string | null) {
@@ -128,7 +149,7 @@ export function adaptPlanningResultToPlanPreview({
       summary: day.description,
       items: day.items.map((item) => ({
         id: item.draftId,
-        time: item.suggestedStartTime?.trim() || null,
+        time: getPlanningItemTime(item.suggestedStartTime),
         title: item.title,
         description: item.description,
         category: getPlanningItemCategory(item.type, item.category),

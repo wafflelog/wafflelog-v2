@@ -168,6 +168,7 @@ describe("planning result preview adapter", () => {
             { ...baseItem, draftId: "cafe", type: "activity", category: "Cafe" },
             { ...baseItem, draftId: "place", type: "place", category: null },
             { ...baseItem, draftId: "unknown", type: "note", category: "quiet" },
+            { ...baseItem, draftId: "null", type: "activity", category: "null" },
           ],
         },
       ],
@@ -184,6 +185,40 @@ describe("planning result preview adapter", () => {
       "food",
       "attraction",
       "other",
+      "other",
+    ]);
+  });
+
+  it("normalizes valid times and hides null-like or malformed values", () => {
+    const baseItem = planningResult().days[0].items[0];
+    const result = planningResult({
+      days: [
+        {
+          dayNumber: 1,
+          title: "Time examples",
+          description: "Time normalization examples.",
+          items: [
+            { ...baseItem, draftId: "null-time", suggestedStartTime: "null" },
+            { ...baseItem, draftId: "bad-time", suggestedStartTime: "morning" },
+            { ...baseItem, draftId: "short-hour", suggestedStartTime: "9:05" },
+            { ...baseItem, draftId: "late-time", suggestedStartTime: "23:45" },
+            { ...baseItem, draftId: "invalid-hour", suggestedStartTime: "24:00" },
+          ],
+        },
+      ],
+    });
+
+    const preview = adaptPlanningResultToPlanPreview({
+      result,
+      revisionNumber: 1,
+    });
+
+    expect(preview.days[0].items.map((item) => item.time)).toEqual([
+      null,
+      null,
+      "09:05",
+      "23:45",
+      null,
     ]);
   });
 

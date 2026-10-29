@@ -27,7 +27,10 @@ export default function VerifyEmailScreen() {
       actionResendSignUpConfirmation(input),
     onSuccess: () => {
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
-      showMessage("A new confirmation email has been sent", "info");
+      showMessage(
+        "If this address still needs confirmation, check your inbox for a new link",
+        "info",
+      );
     },
     onError: (error) => {
       const message =
@@ -79,7 +82,7 @@ export default function VerifyEmailScreen() {
       <AuthScreen
         eyebrow="ONE MORE STEP"
         title="Check your email"
-        subtitle="Confirm your email address to finish creating your Wafflelog account."
+        subtitle="If this address still needs confirming, check your inbox for a verification link."
       >
         <View style={styles.content}>
           <View style={styles.iconContainer}>
@@ -88,7 +91,7 @@ export default function VerifyEmailScreen() {
 
           <View style={styles.message}>
             <TitleRegular size="sm" color={colors.textLightGrey}>
-              We sent a confirmation link to
+              Check this email for a confirmation link
             </TitleRegular>
             <TitleRegular
               size="md"
@@ -99,8 +102,7 @@ export default function VerifyEmailScreen() {
               {normalizedEmail || "your email address"}
             </TitleRegular>
             <TitleRegular size="sm" color={colors.textLightGrey}>
-              Open the link in the email to verify your address. You can then
-              continue in the app.
+              Already confirmed your address? Return to log in.
             </TitleRegular>
           </View>
 
