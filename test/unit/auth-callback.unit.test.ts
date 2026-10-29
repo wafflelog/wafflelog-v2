@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { parseAuthCallbackUrl } from "@/lib/auth/auth-callback";
+import {
+  completePasswordRecoveryCallback,
+  parseAuthCallbackUrl,
+  processAuthCallbackSessionOnce,
+  type AuthCallbackSession,
+} from "@/lib/auth/auth-callback";
 
 describe("parseAuthCallbackUrl", () => {
   it("reads a Supabase session from the URL fragment", () => {
@@ -62,5 +67,66 @@ describe("parseAuthCallbackUrl", () => {
       type: "error",
       message: "Unable to use this email link. It may be invalid or expired.",
     });
+  });
+});
+
+describe("auth callback session lifecycle", () => {
+  it("establishes one recovery session across repeated callback mounts", async () => {
+    const callback: AuthCallbackSession = {
+      type: "session",
+      accessToken: "repeated-recovery-access-token",
+      refreshToken: "repeated-recovery-refresh-token",
+      flow: "recovery",
+    };
+    const establishSession = vi.fn(async () => undefined);
+
+    const destinations = await Promise.all([
+      processAuthCallbackSessionOnce(callback, establishSession),
+      processAuthCallbackSessionOnce(callback, establishSession),
+    ]);
+
+    expect(establishSession).toHaveBeenCalledOnce();
+    expect(destinations).toEqual(["/reset-password", "/reset-password"]);
+  });
+
+  it("does not reuse a completed password-recovery callback", async () => {
+    const callback: AuthCallbackSession = {
+      type: "session",
+      accessToken: "completed-recovery-access-token",
+      refreshToken: "completed-recovery-refresh-token",
+      flow: "recovery",
+    };
+    const establishSession = vi.fn(async () => undefined);
+
+    await processAuthCallbackSessionOnce(callback, establishSession);
+    completePasswordRecoveryCallback();
+
+    const repeatedSession = vi.fn(async () => undefined);
+    await expect(
+      processAuthCallbackSessionOnce(callback, repeatedSession),
+    ).resolves.toBe("/");
+    expect(repeatedSession).not.toHaveBeenCalled();
+  });
+
+  it("allows a callback to be retried after session creation fails", async () => {
+    const callback: AuthCallbackSession = {
+      type: "session",
+      accessToken: "retry-recovery-access-token",
+      refreshToken: "retry-recovery-refresh-token",
+      flow: "recovery",
+    };
+
+    await expect(
+      processAuthCallbackSessionOnce(callback, async () => {
+        throw new Error("Temporary session error");
+      }),
+    ).rejects.toThrow("Temporary session error");
+
+    const retrySession = vi.fn(async () => undefined);
+    await expect(
+      processAuthCallbackSessionOnce(callback, retrySession),
+    ).resolves.toBe("/reset-password");
+    expect(retrySession).toHaveBeenCalledOnce();
+    completePasswordRecoveryCallback();
   });
 });

@@ -5,6 +5,7 @@ import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
+import { completePasswordRecoveryCallback } from "@/lib/auth/auth-callback";
 import { actionUpdatePassword } from "@/lib/supabase/actions";
 import { useMutation } from "@tanstack/react-query";
 import { Redirect, router } from "expo-router";
@@ -27,6 +28,7 @@ export default function ResetPasswordScreen() {
     onSuccess: () => {
       setPassword("");
       setConfirmedPassword("");
+      completePasswordRecoveryCallback();
       showMessage("Your password has been updated", "info");
       router.replace("/");
     },

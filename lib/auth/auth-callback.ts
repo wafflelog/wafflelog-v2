@@ -12,6 +12,22 @@ export type AuthCallbackResult =
 
 export type AuthCallbackFlow = "signup" | "recovery" | "unknown";
 
+export type AuthCallbackSession = Extract<
+  AuthCallbackResult,
+  { type: "session" }
+>;
+
+type AuthCallbackSessionState = {
+  status: "processing" | "recovery-ready" | "completed";
+  sessionPromise: Promise<void>;
+};
+
+const authCallbackSessionStates = new Map<
+  string,
+  AuthCallbackSessionState
+>();
+let activeRecoveryAccessToken: string | null = null;
+
 const INVALID_LINK_MESSAGE =
   "Unable to use this email link. It may be invalid or expired.";
 
@@ -65,4 +81,63 @@ export function parseAuthCallbackUrl(url: string): AuthCallbackResult {
     flow:
       AUTH_CALLBACK_FLOW_BY_TYPE[parameters.get("type") ?? ""] ?? "unknown",
   };
+}
+
+export async function processAuthCallbackSessionOnce(
+  callback: AuthCallbackSession,
+  establishSession: () => Promise<unknown>,
+) {
+  let state = authCallbackSessionStates.get(callback.accessToken);
+
+  if (!state) {
+    const nextState: AuthCallbackSessionState = {
+      status: "processing",
+      sessionPromise: Promise.resolve(),
+    };
+
+    nextState.sessionPromise = Promise.resolve()
+      .then(establishSession)
+      .then(() => {
+        nextState.status =
+          callback.flow === "recovery" ? "recovery-ready" : "completed";
+
+        if (callback.flow === "recovery") {
+          activeRecoveryAccessToken = callback.accessToken;
+        }
+      })
+      .catch((error) => {
+        if (
+          authCallbackSessionStates.get(callback.accessToken) === nextState
+        ) {
+          authCallbackSessionStates.delete(callback.accessToken);
+        }
+
+        if (activeRecoveryAccessToken === callback.accessToken) {
+          activeRecoveryAccessToken = null;
+        }
+
+        throw error;
+      });
+
+    authCallbackSessionStates.set(callback.accessToken, nextState);
+    state = nextState;
+  }
+
+  await state.sessionPromise;
+
+  return state.status === "recovery-ready" ? "/reset-password" : "/";
+}
+
+export function completePasswordRecoveryCallback() {
+  if (!activeRecoveryAccessToken) {
+    return;
+  }
+
+  const state = authCallbackSessionStates.get(activeRecoveryAccessToken);
+
+  if (state?.status === "recovery-ready") {
+    state.status = "completed";
+  }
+
+  activeRecoveryAccessToken = null;
 }

@@ -4,6 +4,7 @@ import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, getColor } from "@/constants/theme";
 import {
   parseAuthCallbackUrl,
+  processAuthCallbackSessionOnce,
   type AuthCallbackFlow,
 } from "@/lib/auth/auth-callback";
 import { actionSetSessionFromAuthCallback } from "@/lib/supabase/actions";
@@ -11,7 +12,7 @@ import { sendTrackingEvent } from "@/lib/tracking";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { CircleAlert } from "lucide-react-native";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 const CALLBACK_COPY_BY_FLOW: Record<
@@ -20,32 +21,27 @@ const CALLBACK_COPY_BY_FLOW: Record<
     eyebrow: string;
     title: string;
     message: string;
-    destination: "/" | "/reset-password";
   }
 > = {
   signup: {
     eyebrow: "EMAIL CONFIRMATION",
     title: "Confirming your email",
     message: "Verifying your confirmation link and securely signing you in.",
-    destination: "/",
   },
   recovery: {
     eyebrow: "PASSWORD RECOVERY",
     title: "Opening password reset",
     message: "Verifying your reset link and securely opening your account.",
-    destination: "/reset-password",
   },
   unknown: {
     eyebrow: "SECURE SIGN IN",
     title: "Opening Wafflelog",
     message: "Verifying your email link and securely signing you in.",
-    destination: "/",
   },
 };
 
 export default function AuthCallbackScreen() {
   const linkingUrl = Linking.useLinkingURL();
-  const lastProcessedUrl = useRef<string | null>(null);
   const [sessionError, setSessionError] = useState<{
     url: string;
     message: string;
@@ -58,25 +54,28 @@ export default function AuthCallbackScreen() {
   useEffect(() => {
     if (
       !linkingUrl ||
-      callback?.type !== "session" ||
-      lastProcessedUrl.current === linkingUrl
+      callback?.type !== "session"
     ) {
       return;
     }
 
-    lastProcessedUrl.current = linkingUrl;
     let isActive = true;
 
     const createSession = async () => {
       try {
-        await actionSetSessionFromAuthCallback(callback);
+        const destination = await processAuthCallbackSessionOnce(
+          callback,
+          async () => {
+            await actionSetSessionFromAuthCallback(callback);
 
-        if (callback.flow === "signup") {
-          void sendTrackingEvent("email_verified", { method: "email" });
-        }
+            if (callback.flow === "signup") {
+              void sendTrackingEvent("email_verified", { method: "email" });
+            }
+          },
+        );
 
         if (isActive) {
-          router.replace(CALLBACK_COPY_BY_FLOW[callback.flow].destination);
+          router.replace(destination);
         }
       } catch (error) {
         if (!isActive) {
