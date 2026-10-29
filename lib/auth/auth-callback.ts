@@ -141,3 +141,14 @@ export function completePasswordRecoveryCallback() {
 
   activeRecoveryAccessToken = null;
 }
+
+export function isPasswordRecoveryCallbackActive() {
+  if (!activeRecoveryAccessToken) {
+    return false;
+  }
+
+  return (
+    authCallbackSessionStates.get(activeRecoveryAccessToken)?.status ===
+    "recovery-ready"
+  );
+}

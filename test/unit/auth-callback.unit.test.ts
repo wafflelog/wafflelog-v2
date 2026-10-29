@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   completePasswordRecoveryCallback,
+  isPasswordRecoveryCallbackActive,
   parseAuthCallbackUrl,
   processAuthCallbackSessionOnce,
   type AuthCallbackSession,
@@ -99,7 +100,10 @@ describe("auth callback session lifecycle", () => {
     const establishSession = vi.fn(async () => undefined);
 
     await processAuthCallbackSessionOnce(callback, establishSession);
+    expect(isPasswordRecoveryCallbackActive()).toBe(true);
+
     completePasswordRecoveryCallback();
+    expect(isPasswordRecoveryCallbackActive()).toBe(false);
 
     const repeatedSession = vi.fn(async () => undefined);
     await expect(

@@ -5,7 +5,10 @@ import { TitleRegular } from "@/components/title/regular";
 import { colors, gaps, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
-import { completePasswordRecoveryCallback } from "@/lib/auth/auth-callback";
+import {
+  completePasswordRecoveryCallback,
+  isPasswordRecoveryCallbackActive,
+} from "@/lib/auth/auth-callback";
 import { actionUpdatePassword } from "@/lib/supabase/actions";
 import { useMutation } from "@tanstack/react-query";
 import { Redirect, router } from "expo-router";
@@ -21,6 +24,7 @@ export default function ResetPasswordScreen() {
   const confirmPasswordInputRef = useRef<TextInput>(null);
   const [password, setPassword] = useState("");
   const [confirmedPassword, setConfirmedPassword] = useState("");
+  const isPasswordRecoveryActive = isPasswordRecoveryCallbackActive();
 
   const updatePasswordMutation = useMutation({
     mutationFn: (input: Parameters<typeof actionUpdatePassword>[0]) =>
@@ -65,6 +69,10 @@ export default function ResetPasswordScreen() {
 
   if (!isAuthenticated) {
     return <Redirect href="/login" />;
+  }
+
+  if (!isPasswordRecoveryActive) {
+    return <Redirect href="/" />;
   }
 
   return (
