@@ -9,6 +9,10 @@ type TripAccessInput = {
   isActiveTripMember: boolean;
 };
 
+type ChecklistDeleteInput = UserOwnershipInput & {
+  visibility: "private" | "trip";
+};
+
 export function isOwnEntity({
   currentUserId,
   entityUserId,
@@ -42,5 +46,11 @@ export function canViewTrip({ isTripOwner, isActiveTripMember }: TripAccessInput
 
 export function canMutateChecklistItem(input: TripAccessInput) {
   return canViewTrip(input);
+}
+
+export function canDeleteChecklistItem(input: ChecklistDeleteInput) {
+  return Boolean(
+    canDeleteOwnEntity(input) || input.visibility === "trip",
+  );
 }
 

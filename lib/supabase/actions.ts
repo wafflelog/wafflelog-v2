@@ -1,4 +1,5 @@
 import { type PinMetadata } from "@/types/pin";
+import { type ChecklistVisibility } from "@/types/trip";
 import { type SupabaseClient } from "@supabase/supabase-js";
 import { RegistrationError } from "@/lib/auth/registration-error";
 import { supabase } from "./client";
@@ -39,6 +40,7 @@ export type CreateChecklistItemInput = {
   tripId: string;
   title: string;
   completed: boolean;
+  visibility: ChecklistVisibility;
 };
 
 export type CreateNoteInput = {
@@ -285,6 +287,7 @@ const mapChecklistItemRow = (checklistItem: {
   user_id: string;
   title: string;
   completed: boolean;
+  visibility: string;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -294,6 +297,7 @@ const mapChecklistItemRow = (checklistItem: {
   userId: checklistItem.user_id,
   title: checklistItem.title,
   completed: checklistItem.completed,
+  visibility: checklistItem.visibility === "private" ? "private" : "trip",
   createdAt: checklistItem.created_at,
   updatedAt: checklistItem.updated_at,
   deletedAt: checklistItem.deleted_at,
@@ -761,13 +765,14 @@ export async function actionUpsertRemoteChecklistItemFromLocal(
     user_id: user.id,
     title: input.title.trim(),
     completed: input.completed,
+    visibility: input.visibility,
   };
 
   const { data, error } = await client
     .from("checklist_item")
     .upsert(payload)
     .select(
-      "id, trip_id, user_id, title, completed, created_at, updated_at, deleted_at",
+      "id, trip_id, user_id, title, completed, visibility, created_at, updated_at, deleted_at",
     )
     .single();
 
@@ -800,11 +805,12 @@ export async function actionUpdateRemoteChecklistItemFromLocal(
     .update({
       title: input.title.trim(),
       completed: input.completed,
+      visibility: input.visibility,
       updated_at: new Date().toISOString(),
     })
     .eq("id", input.id)
     .select(
-      "id, trip_id, user_id, title, completed, created_at, updated_at, deleted_at",
+      "id, trip_id, user_id, title, completed, visibility, created_at, updated_at, deleted_at",
     )
     .single();
 
@@ -2084,7 +2090,7 @@ export async function actionGetRemoteTripSyncBundle(
     client
       .from("checklist_item")
       .select(
-        "id, trip_id, user_id, title, completed, created_at, updated_at, deleted_at",
+        "id, trip_id, user_id, title, completed, visibility, created_at, updated_at, deleted_at",
       )
       .eq("trip_id", tripId),
     client

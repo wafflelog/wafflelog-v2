@@ -81,6 +81,7 @@ function createBundle(title = "Companion trip") {
         userId: "companion-a",
         title: "Bring tickets",
         completed: false,
+        visibility: "trip" as const,
         ...timestamps,
         deletedAt: null as string | null,
       },

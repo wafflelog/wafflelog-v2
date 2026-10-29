@@ -31,18 +31,20 @@ async function upsertChecklistItemFromRemote(
         user_id,
         title,
         completed,
+        visibility,
         created_at,
         updated_at,
         sync_status,
         last_synced_at,
         sync_error,
         deleted_at
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       on conflict(id) do update set
         trip_id = excluded.trip_id,
         user_id = excluded.user_id,
         title = excluded.title,
         completed = excluded.completed,
+        visibility = excluded.visibility,
         created_at = excluded.created_at,
         updated_at = excluded.updated_at,
         sync_status = excluded.sync_status,
@@ -57,6 +59,7 @@ async function upsertChecklistItemFromRemote(
       checklistItem.userId,
       checklistItem.title,
       checklistItem.completed ? 1 : 0,
+      checklistItem.visibility,
       checklistItem.createdAt,
       checklistItem.updatedAt,
       "synced",

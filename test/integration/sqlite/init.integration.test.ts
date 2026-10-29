@@ -129,6 +129,7 @@ describe("initializeDatabase", () => {
         "user_id",
         "title",
         "completed",
+        "visibility",
         "sync_status",
         "last_synced_at",
         "sync_error",

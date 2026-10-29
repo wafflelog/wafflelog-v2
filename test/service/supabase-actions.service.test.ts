@@ -298,6 +298,7 @@ describe("Supabase actions", () => {
         tripId,
         title: "  Action-created checklist item  ",
         completed: false,
+        visibility: "trip",
       },
       owner.client,
     );
@@ -316,6 +317,7 @@ describe("Supabase actions", () => {
         tripId,
         title: "  Completed by action  ",
         completed: true,
+        visibility: "trip",
       },
       owner.client,
     );
@@ -520,6 +522,7 @@ describe("Supabase actions", () => {
             tripId,
             title: "Delete me",
             completed: false,
+            visibility: "trip",
           },
           owner.client,
         )
@@ -752,6 +755,7 @@ describe("Supabase actions", () => {
         tripId,
         title: "Bundle item",
         completed: false,
+        visibility: "trip",
       },
       owner.client,
     );

@@ -92,6 +92,7 @@ export type Database = {
           trip_id: string
           updated_at: string
           user_id: string
+          visibility: string
         }
         Insert: {
           completed?: boolean
@@ -102,6 +103,7 @@ export type Database = {
           trip_id: string
           updated_at?: string
           user_id: string
+          visibility?: string
         }
         Update: {
           completed?: boolean
@@ -112,6 +114,7 @@ export type Database = {
           trip_id?: string
           updated_at?: string
           user_id?: string
+          visibility?: string
         }
         Relationships: [
           {

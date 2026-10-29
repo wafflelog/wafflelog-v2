@@ -83,6 +83,7 @@ export async function initializeDatabase() {
       user_id text not null,
       title text not null,
       completed integer not null default 0,
+      visibility text not null default 'trip',
       created_at text not null,
       updated_at text not null,
       sync_status text not null,
@@ -609,6 +610,17 @@ export async function initializeDatabase() {
   const hasChecklistItemDeletedAtColumn = checklistItemTableColumns.some(
     (column) => column.name === "deleted_at",
   );
+
+  const hasChecklistItemVisibilityColumn = checklistItemTableColumns.some(
+    (column) => column.name === "visibility",
+  );
+
+  if (!hasChecklistItemVisibilityColumn) {
+    await sqlite.execAsync(`
+      alter table checklist_item
+      add column visibility text not null default 'trip';
+    `);
+  }
 
   if (!hasChecklistItemDeletedAtColumn) {
     await sqlite.execAsync(`

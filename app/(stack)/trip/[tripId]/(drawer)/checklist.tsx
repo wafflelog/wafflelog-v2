@@ -7,11 +7,14 @@ import { UITab } from "@/components/ui/tab";
 import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useKnownTripsRefresh } from "@/hook/use-known-trips-refresh";
+import { canDeleteChecklistItem } from "@/lib/helper/permissions";
 import {
   actionListLocalChecklistItems,
   actionSoftDeleteLocalChecklistItem,
   actionToggleLocalChecklistItemCompleted,
 } from "@/lib/sqlite/model/checklist-item";
+import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
+import { type ChecklistVisibility } from "@/types/trip";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import {
@@ -23,7 +26,7 @@ import {
 import { useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 
-type TabId = "my" | "public";
+type TabId = ChecklistVisibility;
 
 export default function TripChecklistScreen() {
   const { tripId } = useLocalSearchParams<{ tripId: string }>();
@@ -31,7 +34,7 @@ export default function TripChecklistScreen() {
   const { isRefreshing, refreshKnownTrips } = useKnownTripsRefresh();
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<TabId>("my");
+  const [activeTab, setActiveTab] = useState<TabId>("private");
   const [isDialogNewChecklistItemVisible, setIsDialogNewChecklistItemVisible] =
     useState(false);
   const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
@@ -45,6 +48,13 @@ export default function TripChecklistScreen() {
       actionListLocalChecklistItems(String(tripId), session!.user.id),
     enabled: Boolean(tripId && session?.user.id),
   });
+
+  const { data: localTrip } = useQuery({
+    queryKey: ["local-trip", String(tripId), session?.user.id],
+    queryFn: () => actionGetLocalTrip(String(tripId), session!.user.id),
+    enabled: Boolean(tripId && session?.user.id),
+  });
+  const isTripOwner = localTrip?.userId === session?.user.id;
 
   const toggleChecklistItemMutation = useMutation({
     mutationFn: actionToggleLocalChecklistItemCompleted,
@@ -77,20 +87,20 @@ export default function TripChecklistScreen() {
 
   const tabs = [
     {
-      id: "my" as TabId,
+      id: "private" as TabId,
       label: "My Checklist",
-      isActive: activeTab === "my",
+      isActive: activeTab === "private",
       icon: (color: string) => <UserIcon size={24} color={color} />,
     },
     {
-      id: "public" as TabId,
+      id: "trip" as TabId,
       label: "Trip Checklist",
-      isActive: activeTab === "public",
+      isActive: activeTab === "trip",
       icon: (color: string) => <UsersIcon size={24} color={color} />,
     },
   ];
   const visibleChecklistItems = (checklistData ?? []).filter(
-    (item) => activeTab === "public" || item.userId === session?.user.id,
+    (item) => item.visibility === activeTab,
   );
 
   return (
@@ -127,12 +137,12 @@ export default function TripChecklistScreen() {
               <ListChecksIcon size={24} color={getColor(colors.purple)} />
             }
             title={
-              activeTab === "my"
+              activeTab === "private"
                 ? "Nothing on your checklist yet"
                 : "Nothing on the trip checklist yet"
             }
             message={
-              activeTab === "my"
+              activeTab === "private"
                 ? "Add anything you want to remember for this trip."
                 : "Checklist items shared within this trip will appear here."
             }
@@ -142,10 +152,19 @@ export default function TripChecklistScreen() {
           <CardTripChecklistItem
             checklistItem={item}
             onPress={() => toggleChecklistItemMutation.mutate(item.id)}
-            onDeletePress={() => {
-              setSelectedChecklistItemId(item.id);
-              setIsDeleteDialogVisible(true);
-            }}
+            onDeletePress={
+              canDeleteChecklistItem({
+                currentUserId: session?.user.id,
+                entityUserId: item.userId,
+                isTripOwner,
+                visibility: item.visibility,
+              })
+                ? () => {
+                    setSelectedChecklistItemId(item.id);
+                    setIsDeleteDialogVisible(true);
+                  }
+                : undefined
+            }
           />
         )}
       />
@@ -154,12 +173,13 @@ export default function TripChecklistScreen() {
         onPress={() => {
           setIsDialogNewChecklistItemVisible(true);
         }}
-        text="New Item"
+        text={activeTab === "private" ? "New Personal Item" : "New Trip Item"}
         icon={(color) => <PlusIcon size={20} color={color} />}
       />
       <DialogNewChecklistItem
         tripId={String(tripId)}
         visible={isDialogNewChecklistItemVisible}
+        visibility={activeTab}
         onDismiss={() => setIsDialogNewChecklistItemVisible(false)}
       />
       <ConfirmActionDialog

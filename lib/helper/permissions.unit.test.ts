@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canDeleteChecklistItem,
   canDeleteOwnEntity,
   canDeletePin,
   canEditOwnEntity,
@@ -127,6 +128,52 @@ describe("checklist permissions", () => {
       canMutateChecklistItem({
         isTripOwner: false,
         isActiveTripMember: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("only lets creators delete private items", () => {
+    expect(
+      canDeleteChecklistItem({
+        currentUserId: "user-1",
+        entityUserId: "user-1",
+        isTripOwner: false,
+        visibility: "private",
+      }),
+    ).toBe(true);
+    expect(
+      canDeleteChecklistItem({
+        currentUserId: "owner-1",
+        entityUserId: "user-1",
+        isTripOwner: true,
+        visibility: "private",
+      }),
+    ).toBe(false);
+  });
+
+  it("lets shared-item creators and trip owners delete trip items", () => {
+    expect(
+      canDeleteChecklistItem({
+        currentUserId: "user-1",
+        entityUserId: "user-1",
+        isTripOwner: false,
+        visibility: "trip",
+      }),
+    ).toBe(true);
+    expect(
+      canDeleteChecklistItem({
+        currentUserId: "owner-1",
+        entityUserId: "user-1",
+        isTripOwner: true,
+        visibility: "trip",
+      }),
+    ).toBe(true);
+    expect(
+      canDeleteChecklistItem({
+        currentUserId: "user-2",
+        entityUserId: "user-1",
+        isTripOwner: false,
+        visibility: "trip",
       }),
     ).toBe(true);
   });

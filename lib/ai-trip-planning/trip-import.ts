@@ -287,6 +287,7 @@ export async function actionImportAiPlanningResult(
           tripId: trip.id,
           userId,
           title: suggestion.title,
+          visibility: "trip",
         }),
       );
     }

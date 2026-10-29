@@ -51,6 +51,12 @@ describe("local checklist items", () => {
       userId: "user-a",
       title: "Do not show",
     });
+    await actionCreateLocalChecklistItem({
+      tripId: "trip-a",
+      userId: "user-b",
+      title: "Private companion item",
+      visibility: "private",
+    });
 
     await testDb.runAsync(
       "update checklist_item set created_at = ? where id = ?",

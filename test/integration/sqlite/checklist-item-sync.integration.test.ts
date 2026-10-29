@@ -68,6 +68,7 @@ describe("checklist-item sync", () => {
       tripId: "trip-a",
       title: "Pack passport",
       completed: false,
+      visibility: "trip",
     });
     expect(remote.update).not.toHaveBeenCalled();
     await expect(getSyncState(item.id)).resolves.toMatchObject({
@@ -104,6 +105,7 @@ describe("checklist-item sync", () => {
       tripId: "trip-a",
       title: "Book train",
       completed: true,
+      visibility: "trip",
     });
     expect(remote.upsert).not.toHaveBeenCalled();
   });

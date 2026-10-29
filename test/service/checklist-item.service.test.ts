@@ -9,6 +9,7 @@ describe("checklist item RLS", () => {
     const unrelated = await createTestUser("unrelated");
     const tripId = crypto.randomUUID();
     const checklistItemId = crypto.randomUUID();
+    const privateItemId = crypto.randomUUID();
 
     const { error: tripError } = await owner.client.from("trip").insert({
       id: tripId,
@@ -29,6 +30,17 @@ describe("checklist item RLS", () => {
       });
     expect(checklistItemError).toBeNull();
 
+    const { error: privateItemError } = await owner.client
+      .from("checklist_item")
+      .insert({
+        id: privateItemId,
+        trip_id: tripId,
+        user_id: owner.id,
+        title: "Pack passport",
+        visibility: "private",
+      });
+    expect(privateItemError).toBeNull();
+
     const { data: invitation, error: invitationError } = await owner.client
       .from("trip_invitation")
       .insert({
@@ -47,20 +59,47 @@ describe("checklist item RLS", () => {
       .eq("id", invitation!.id);
     expect(acceptError).toBeNull();
 
-    const [companionItem, unrelatedItem] = await Promise.all([
-      companion.client
-        .from("checklist_item")
-        .select("id, completed")
-        .eq("id", checklistItemId),
-      unrelated.client
-        .from("checklist_item")
-        .select("id, completed")
-        .eq("id", checklistItemId),
-    ]);
+    const [companionItem, companionPrivateItem, unrelatedItem] =
+      await Promise.all([
+        companion.client
+          .from("checklist_item")
+          .select("id, completed")
+          .eq("id", checklistItemId),
+        companion.client
+          .from("checklist_item")
+          .select("id")
+          .eq("id", privateItemId),
+        unrelated.client
+          .from("checklist_item")
+          .select("id, completed")
+          .eq("id", checklistItemId),
+      ]);
     expect(companionItem.error).toBeNull();
     expect(companionItem.data).toEqual([{ id: checklistItemId, completed: false }]);
+    expect(companionPrivateItem.error).toBeNull();
+    expect(companionPrivateItem.data).toEqual([]);
     expect(unrelatedItem.error).toBeNull();
     expect(unrelatedItem.data).toEqual([]);
+
+    const companionPrivateItemId = crypto.randomUUID();
+    const { error: createCompanionPrivateError } = await companion.client
+      .from("checklist_item")
+      .insert({
+        id: companionPrivateItemId,
+        trip_id: tripId,
+        user_id: companion.id,
+        title: "Pack medication",
+        visibility: "private",
+      });
+    expect(createCompanionPrivateError).toBeNull();
+
+    const { data: ownerViewOfCompanionPrivate, error: ownerPrivateReadError } =
+      await owner.client
+        .from("checklist_item")
+        .select("id")
+        .eq("id", companionPrivateItemId);
+    expect(ownerPrivateReadError).toBeNull();
+    expect(ownerViewOfCompanionPrivate).toEqual([]);
 
     const { data: completedItem, error: completeError } = await companion.client
       .from("checklist_item")
@@ -71,11 +110,21 @@ describe("checklist item RLS", () => {
     expect(completeError).toBeNull();
     expect(completedItem).toEqual({ id: checklistItemId, completed: true });
 
-    const { data: unrelatedUpdate, error: unrelatedUpdateError } = await unrelated.client
-      .from("checklist_item")
-      .update({ completed: false })
-      .eq("id", checklistItemId)
-      .select("id, completed");
+    const { data: deletedByCompanion, error: companionDeleteError } =
+      await companion.client
+        .from("checklist_item")
+        .update({ deleted_at: new Date().toISOString() })
+        .eq("id", checklistItemId)
+        .select("id");
+    expect(companionDeleteError).toBeNull();
+    expect(deletedByCompanion).toEqual([{ id: checklistItemId }]);
+
+    const { data: unrelatedUpdate, error: unrelatedUpdateError } =
+      await unrelated.client
+        .from("checklist_item")
+        .update({ completed: false })
+        .eq("id", checklistItemId)
+        .select("id, completed");
     expect(unrelatedUpdateError).toBeNull();
     expect(unrelatedUpdate).toEqual([]);
   });

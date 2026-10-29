@@ -5,12 +5,14 @@ import {
   actionUpdateRemoteChecklistItemFromLocal,
   actionUpsertRemoteChecklistItemFromLocal,
 } from "@/lib/supabase/actions";
+import { type ChecklistVisibility } from "@/types/trip";
 import { type CreatorAttribution } from "./user-profile";
 
 export type CreateLocalChecklistItemInput = {
   tripId: string;
   userId: string;
   title: string;
+  visibility?: ChecklistVisibility;
 };
 
 export type LocalChecklistItem = {
@@ -19,6 +21,7 @@ export type LocalChecklistItem = {
   userId: string;
   title: string;
   completed: boolean;
+  visibility: ChecklistVisibility;
   createdAt: string;
   updatedAt: string;
   syncStatus: string;
@@ -36,6 +39,7 @@ function mapLocalChecklistItemRow(row: {
   user_id: string;
   title: string;
   completed: number;
+  visibility: string;
   created_at: string;
   updated_at: string;
   sync_status: string;
@@ -50,6 +54,7 @@ function mapLocalChecklistItemRow(row: {
     userId: row.user_id,
     title: row.title,
     completed: Boolean(row.completed),
+    visibility: row.visibility === "private" ? "private" : "trip",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     syncStatus: row.sync_status,
@@ -74,6 +79,7 @@ export async function actionCreateLocalChecklistItem(
     user_id: input.userId,
     title: input.title.trim(),
     completed: 0,
+    visibility: input.visibility ?? "trip",
     created_at: now,
     updated_at: now,
     sync_status: "pending",
@@ -90,13 +96,14 @@ export async function actionCreateLocalChecklistItem(
         user_id,
         title,
         completed,
+        visibility,
         created_at,
         updated_at,
         sync_status,
         last_synced_at,
         sync_error,
         deleted_at
-      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       localChecklistItem.id,
@@ -104,6 +111,7 @@ export async function actionCreateLocalChecklistItem(
       localChecklistItem.user_id,
       localChecklistItem.title,
       localChecklistItem.completed,
+      localChecklistItem.visibility,
       localChecklistItem.created_at,
       localChecklistItem.updated_at,
       localChecklistItem.sync_status,
@@ -118,7 +126,7 @@ export async function actionCreateLocalChecklistItem(
 
 export async function actionListLocalChecklistItems(
   tripId: string,
-  _userId: string,
+  userId: string,
 ) {
   const rows = await sqlite.getAllAsync<{
     id: string;
@@ -126,6 +134,7 @@ export async function actionListLocalChecklistItems(
     user_id: string;
     title: string;
     completed: number;
+    visibility: string;
     created_at: string;
     updated_at: string;
     sync_status: string;
@@ -140,6 +149,7 @@ export async function actionListLocalChecklistItems(
         checklist_item.user_id,
         checklist_item.title,
         checklist_item.completed,
+        checklist_item.visibility,
         checklist_item.created_at,
         checklist_item.updated_at,
         checklist_item.sync_status,
@@ -150,13 +160,15 @@ export async function actionListLocalChecklistItems(
       from checklist_item
       left join user_profile
         on user_profile.id = checklist_item.user_id
-      where trip_id = ? and deleted_at is null
+      where trip_id = ?
+        and deleted_at is null
+        and (visibility = 'trip' or user_id = ?)
       order by created_at asc
     `,
-    [tripId],
+    [tripId, userId],
   );
 
-  return rows.map((row) => mapLocalChecklistItemRow(row, _userId));
+  return rows.map((row) => mapLocalChecklistItemRow(row, userId));
 }
 
 export async function actionToggleLocalChecklistItemCompleted(id: string) {
@@ -191,15 +203,20 @@ export async function actionSoftDeleteLocalChecklistItem(
       where id = ?
         and (
           user_id = ?
-          or exists (
-            select 1 from trip
-            where trip.id = checklist_item.trip_id and trip.user_id = ?
-          )
-          or exists (
-            select 1 from trip_membership
-            where trip_membership.trip_id = checklist_item.trip_id
-              and trip_membership.user_id = ?
-              and trip_membership.status = 'active'
+          or (
+            visibility = 'trip'
+            and (
+              exists (
+                select 1 from trip
+                where trip.id = checklist_item.trip_id and trip.user_id = ?
+              )
+              or exists (
+                select 1 from trip_membership
+                where trip_membership.trip_id = checklist_item.trip_id
+                  and trip_membership.user_id = ?
+                  and trip_membership.status = 'active'
+              )
+            )
           )
         )
     `,
@@ -230,6 +247,7 @@ export async function actionListPendingLocalChecklistItems(
     user_id: string;
     title: string;
     completed: number;
+    visibility: string;
     created_at: string;
     updated_at: string;
     sync_status: string;
@@ -244,6 +262,7 @@ export async function actionListPendingLocalChecklistItems(
         user_id,
         title,
         completed,
+        visibility,
         created_at,
         updated_at,
         sync_status,
@@ -385,6 +404,7 @@ export async function actionSyncLocalChecklistItem(
       tripId: localChecklistItem.tripId,
       title: localChecklistItem.title,
       completed: localChecklistItem.completed,
+      visibility: localChecklistItem.visibility,
     });
 
     await actionMarkLocalChecklistItemSynced(

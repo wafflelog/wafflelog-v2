@@ -11,8 +11,11 @@ export type ChecklistItem = {
   id: string;
   title: string;
   completed: boolean;
+  visibility: ChecklistVisibility;
   createdBy: User;
 };
+
+export type ChecklistVisibility = "private" | "trip";
 
 export type TripDay = {
   date: string;
