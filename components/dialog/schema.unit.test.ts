@@ -271,5 +271,25 @@ describe("newTripFormSchema", () => {
       ),
     ).toContain("End date must be on or after the start date");
   });
+
+  it("accepts a 120-day trip and rejects a 121-day trip", () => {
+    expect(
+      newTripFormSchema.safeParse({
+        tripName: "Extended trip",
+        tripStartDate: "2026-01-01",
+        tripEndDate: "2026-04-30",
+      }).success,
+    ).toBe(true);
+
+    expect(
+      expectSchemaMessages(
+        newTripFormSchema.safeParse({
+          tripName: "Extended trip",
+          tripStartDate: "2026-01-01",
+          tripEndDate: "2026-05-01",
+        }),
+      ),
+    ).toContain("Trips can be up to 120 days long.");
+  });
 });
 

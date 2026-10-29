@@ -1,7 +1,13 @@
 import { borderRadiuses, colors, gaps, getColor } from "@/constants/theme";
 import { formatDate } from "@/lib/helper/utils";
 import { TripDay } from "@/types/trip";
-import { ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import { useCallback, useEffect, useRef } from "react";
+import {
+  type LayoutChangeEvent,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 import { TitleRegular } from "../title/regular";
 
 type TripDaysTabProps = {
@@ -9,12 +15,55 @@ type TripDaysTabProps = {
 };
 
 export const TripDaysTab = ({ tripDays }: TripDaysTabProps) => {
+  const scrollViewRef = useRef<ScrollView>(null);
+  const viewportWidthRef = useRef(0);
+  const tabLayoutsRef = useRef(new Map<number, { width: number; x: number }>());
+  const activeDayIndex = tripDays.findIndex((tripDay) => tripDay.isActive);
+
+  const scrollToActiveDay = useCallback((animated: boolean) => {
+    const activeTabLayout = tabLayoutsRef.current.get(activeDayIndex);
+
+    if (!activeTabLayout) {
+      return;
+    }
+
+    const centeredOffset =
+      activeTabLayout.x -
+      Math.max(0, (viewportWidthRef.current - activeTabLayout.width) / 2);
+
+    scrollViewRef.current?.scrollTo({
+      x: Math.max(0, centeredOffset),
+      animated,
+    });
+  }, [activeDayIndex]);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => scrollToActiveDay(true));
+    return () => cancelAnimationFrame(frame);
+  }, [scrollToActiveDay]);
+
+  const handleViewportLayout = (event: LayoutChangeEvent) => {
+    viewportWidthRef.current = event.nativeEvent.layout.width;
+    scrollToActiveDay(false);
+  };
+
+  const handleTabLayout = (index: number, event: LayoutChangeEvent) => {
+    const { width, x } = event.nativeEvent.layout;
+    tabLayoutsRef.current.set(index, { width, x });
+
+    if (index === activeDayIndex) {
+      scrollToActiveDay(false);
+    }
+  };
+
   return (
     <ScrollView
+      ref={scrollViewRef}
       horizontal
       showsHorizontalScrollIndicator={false}
       style={styles.container}
       contentContainerStyle={styles.content}
+      onLayout={handleViewportLayout}
     >
       {tripDays.map((tripDay, index) => (
         <TouchableOpacity
@@ -23,6 +72,9 @@ export const TripDaysTab = ({ tripDays }: TripDaysTabProps) => {
           onPress={() => {
             tripDay.onPress();
           }}
+          onLayout={(event) => handleTabLayout(index, event)}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: tripDay.isActive }}
         >
           <TitleRegular
             size="sm"

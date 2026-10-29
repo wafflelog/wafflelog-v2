@@ -32,6 +32,24 @@ const toPickerDate = (input?: string) => {
   return parsed.isValid() ? parsed.toDate() : new Date();
 };
 
+const getConstrainedPickerDate = (
+  input?: string,
+  minimumDate?: Date,
+  maximumDate?: Date,
+) => {
+  const pickerDate = toPickerDate(input);
+
+  if (minimumDate && dayjs(pickerDate).isBefore(minimumDate, "day")) {
+    return minimumDate;
+  }
+
+  if (maximumDate && dayjs(pickerDate).isAfter(maximumDate, "day")) {
+    return maximumDate;
+  }
+
+  return pickerDate;
+};
+
 export const UIInputDate = ({
   placeholder,
   value,
@@ -41,9 +59,15 @@ export const UIInputDate = ({
   maximumDate,
 }: UIInputDateProps) => {
   const [showPicker, setShowPicker] = useState(false);
-  const [date, setDate] = useState<Date>(() => toPickerDate(value));
+  const [date, setDate] = useState<Date>(() =>
+    getConstrainedPickerDate(value, minimumDate, maximumDate),
+  );
 
   const displayValue = value ? dayjs(value).format("DD/MM/YYYY") : "";
+  const today = dayjs().startOf("day");
+  const isTodaySelectable =
+    (!minimumDate || !today.isBefore(dayjs(minimumDate), "day")) &&
+    (!maximumDate || !today.isAfter(dayjs(maximumDate), "day"));
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === "android") {
@@ -70,7 +94,7 @@ export const UIInputDate = ({
   };
 
   const handleInputPress = () => {
-    setDate(toPickerDate(value));
+    setDate(getConstrainedPickerDate(value, minimumDate, maximumDate));
     setShowPicker(true);
   };
 
@@ -100,11 +124,16 @@ export const UIInputDate = ({
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.todayButton} onPress={handleTodayPress}>
-          <TitleRegular size="xs" weight="500" color={colors.turquoise}>
-            Today
-          </TitleRegular>
-        </TouchableOpacity>
+        {isTodaySelectable ? (
+          <TouchableOpacity
+            style={styles.todayButton}
+            onPress={handleTodayPress}
+          >
+            <TitleRegular size="xs" weight="500" color={colors.turquoise}>
+              Today
+            </TitleRegular>
+          </TouchableOpacity>
+        ) : null}
       </View>
       {showPicker && (
         <Dialog

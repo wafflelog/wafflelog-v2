@@ -1,3 +1,8 @@
+import {
+  getTripDurationDays,
+  MAX_TRIP_DURATION_DAYS,
+  TRIP_DURATION_LIMIT_MESSAGE,
+} from "@/lib/helper/trip";
 import { sqlite } from "@/lib/sqlite/client";
 import { buildUUID } from "@/lib/sqlite/utils";
 import {
@@ -48,6 +53,18 @@ export type UpsertLocalTripMembershipInput = {
 
 const DEFAULT_SYNC_BATCH_SIZE = 25;
 
+function assertValidTripDateRange(startDate: string, endDate: string) {
+  const durationDays = getTripDurationDays(startDate, endDate);
+
+  if (durationDays === null) {
+    throw new Error("End date must be on or after the start date");
+  }
+
+  if (durationDays > MAX_TRIP_DURATION_DAYS) {
+    throw new Error(TRIP_DURATION_LIMIT_MESSAGE);
+  }
+}
+
 function mapLocalTripRow(row: {
   id: string;
   user_id: string;
@@ -79,6 +96,8 @@ function mapLocalTripRow(row: {
 }
 
 export async function actionCreateLocalTrip(input: CreateLocalTripInput) {
+  assertValidTripDateRange(input.startDate, input.endDate);
+
   const now = new Date().toISOString();
   const localTrip = {
     id: buildUUID(),
@@ -267,6 +286,8 @@ export async function actionListLocalPinsOutsideTripDateRange(
 }
 
 export async function actionUpdateLocalTrip(input: UpdateLocalTripInput) {
+  assertValidTripDateRange(input.startDate, input.endDate);
+
   const outsidePins = await actionListLocalPinsOutsideTripDateRange(
     input.id,
     input.userId,

@@ -8,6 +8,11 @@ import { CATEGORIES } from "@/constants/pin-categories";
 import { colors, gaps, getColor, semanticColors } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useKnownTripsRefresh } from "@/hook/use-known-trips-refresh";
+import {
+  getInitialTripDayIndex,
+  getTripDurationDays,
+  MAX_TRIP_DURATION_DAYS,
+} from "@/lib/helper/trip";
 import { actionListLocalNotesByTrip } from "@/lib/sqlite/model/note";
 import { actionListLocalPinsByTripAndDate } from "@/lib/sqlite/model/pin";
 import {
@@ -25,7 +30,7 @@ import {
   Plus as PlusIcon,
   StickyNote as StickyNoteIcon,
 } from "lucide-react-native";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -40,7 +45,10 @@ export default function TripIndexScreen() {
   const { isRefreshing, refreshKnownTrips } = useKnownTripsRefresh();
   const queryClient = useQueryClient();
 
-  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+  const [selectedDay, setSelectedDay] = useState<{
+    tripId: string;
+    index: number;
+  } | null>(null);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [isDialogNewPinOpen, setIsDialogNewPinOpen] = useState(false);
 
@@ -91,6 +99,33 @@ export default function TripIndexScreen() {
       : null;
   }, [localTrip]);
 
+  const numOfDays = trip
+    ? Math.min(
+        getTripDurationDays(trip.startDate, trip.endDate) ?? 0,
+        MAX_TRIP_DURATION_DAYS,
+      )
+    : 0;
+  const requestedDayIndex = trip
+    ? selectedDay?.tripId === trip.id
+      ? selectedDay.index
+      : getInitialTripDayIndex(trip.startDate, trip.endDate)
+    : 0;
+  const selectedDayIndex = Math.min(
+    requestedDayIndex,
+    Math.max(numOfDays - 1, 0),
+  );
+
+  const handleDayChanged = useCallback(
+    (index: number) => {
+      if (!trip) {
+        return;
+      }
+
+      setSelectedDay({ tripId: trip.id, index });
+    },
+    [trip],
+  );
+
   const selectedDate = useMemo(() => {
     if (!trip) {
       return null;
@@ -126,9 +161,6 @@ export default function TripIndexScreen() {
 
   const noteCount = localNotes.length;
   const noteBadgeText = noteCount > 99 ? "99+" : String(noteCount);
-
-  const numOfDays =
-    dayjs(trip?.endDate).diff(dayjs(trip?.startDate), "day") + 1 || 0;
 
   const tripDays = useMemo(() => {
     if (!trip) return [];
@@ -178,10 +210,17 @@ export default function TripIndexScreen() {
       isActive: selectedDayIndex === index,
       pins: selectedDayIndex === index ? filteredSelectedDayPins : [],
       onPress: () => {
-        setSelectedDayIndex(index);
+        handleDayChanged(index);
       },
     }));
-  }, [trip, numOfDays, selectedDayIndex, selectedDayPins, selectedCategoryIds]);
+  }, [
+    trip,
+    numOfDays,
+    selectedDayIndex,
+    selectedDayPins,
+    selectedCategoryIds,
+    handleDayChanged,
+  ]);
 
   if (!trip) {
     return (
@@ -271,7 +310,7 @@ export default function TripIndexScreen() {
 
       <TripPinsList
         tripDays={tripDays}
-        onDayChanged={setSelectedDayIndex}
+        onDayChanged={handleDayChanged}
         onAddPin={() => setIsDialogNewPinOpen(true)}
         hasActiveFilters={selectedCategoryIds.length > 0}
         onClearFilters={() => setSelectedCategoryIds([])}

@@ -5,11 +5,16 @@ import { gaps } from "@/constants/theme";
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import {
+  getTripDurationDays,
+  MAX_TRIP_DURATION_DAYS,
+} from "@/lib/helper/trip";
+import {
   actionCreateLocalTrip,
   actionUpdateLocalTrip,
 } from "@/lib/sqlite/model/trip";
 import { sendTrackingEvent } from "@/lib/tracking";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import dayjs from "dayjs";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { newTripFormSchema } from "./schema";
@@ -170,6 +175,30 @@ const DialogNewTripVisible = ({
     });
   };
 
+  const handleStartDateChange = (date: string) => {
+    setTripStartDate(date);
+
+    if (!tripEndDate) {
+      return;
+    }
+
+    const durationDays = getTripDurationDays(date, tripEndDate);
+
+    if (durationDays === null || durationDays > MAX_TRIP_DURATION_DAYS) {
+      setTripEndDate("");
+    }
+  };
+
+  const endDateMinimum = tripStartDate
+    ? dayjs(tripStartDate).startOf("day").toDate()
+    : undefined;
+  const endDateMaximum = tripStartDate
+    ? dayjs(tripStartDate)
+        .startOf("day")
+        .add(MAX_TRIP_DURATION_DAYS - 1, "day")
+        .toDate()
+    : undefined;
+
   return (
     <>
       <Dialog
@@ -189,12 +218,14 @@ const DialogNewTripVisible = ({
           <UIInputDate
             placeholder="Enter trip start date"
             value={tripStartDate}
-            onChange={setTripStartDate}
+            onChange={handleStartDateChange}
           />
           <UIInputDate
             placeholder="Enter trip end date"
             value={tripEndDate}
             onChange={setTripEndDate}
+            minimumDate={endDateMinimum}
+            maximumDate={endDateMaximum}
           />
         </View>
         <SystemMessageModal />
