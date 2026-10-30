@@ -105,6 +105,26 @@ describe("companion access reconciliation", () => {
     ).resolves.toBeNull();
   });
 
+  it("purges a cached trip when its remote membership is no longer listed", async () => {
+    await seedCompanionTrip();
+    remote.listMemberships.mockResolvedValue([]);
+
+    const { actionReconcileLocalCompanionAccess } = await import(
+      "@/lib/sqlite/model/companion-access"
+    );
+
+    await actionReconcileLocalCompanionAccess("companion-a");
+
+    expect(remote.removeLocalFile).toHaveBeenCalledWith("file:///ticket.pdf");
+    expect(remote.removeLocalFile).toHaveBeenCalledWith("file:///photo.jpg");
+    await expect(
+      testDb.getFirstAsync("select id from trip where id = 'trip-a'"),
+    ).resolves.toBeNull();
+    await expect(
+      testDb.getFirstAsync("select id from pin where trip_id = 'trip-a'"),
+    ).resolves.toBeNull();
+  });
+
   it("purges stale edits when a device missed the leave and rejoin window", async () => {
     await seedCompanionTrip();
     remote.listMemberships.mockResolvedValue([

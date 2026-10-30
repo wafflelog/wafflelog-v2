@@ -2011,9 +2011,10 @@ export async function actionListCompanionMemberships(
   const { data, error } = await client
     .from("trip_member")
     .select(
-      "id, trip_id, user_id, role, status, disabled_reason, created_at, updated_at",
+      "id, trip_id, user_id, role, status, disabled_reason, created_at, updated_at, trip!inner(id)",
     )
     .eq("user_id", user.id)
+    .is("trip.deleted_at", null)
     .order("updated_at", { ascending: false });
 
   if (error) {

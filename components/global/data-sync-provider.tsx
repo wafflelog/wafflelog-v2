@@ -37,6 +37,7 @@ const LOCAL_SYNC_QUERY_KEYS = [
   ["local-trip-reference-links"],
   ["local-trip-expenses"],
   ["local-pin-expenses"],
+  ["local-expense-split-participants"],
   ["local-trip-documents"],
   ["local-pin-documents"],
   ["local-trip-images"],

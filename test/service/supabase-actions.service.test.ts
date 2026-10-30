@@ -11,6 +11,7 @@ import {
   actionLeaveTrip,
   actionListActiveCompanionMemberships,
   actionListAppNotifications,
+  actionListCompanionMemberships,
   actionListPublicUsers,
   actionListRemoteOwnedTripIds,
   actionListTripCompanions,
@@ -398,6 +399,37 @@ describe("Supabase actions", () => {
     expect(error).toBeNull();
     expect(data?.deleted_at).not.toBeNull();
     expect(data?.pin[0]?.deleted_at).not.toBeNull();
+  });
+
+  it("excludes memberships whose trip has been soft deleted", async () => {
+    const owner = await createTestUser("del_o");
+    const companion = await createTestUser("del_c");
+    const tripId = crypto.randomUUID();
+
+    await actionCreateTrip(
+      {
+        id: tripId,
+        title: "Deleted shared trip",
+        startDate: "2026-08-01",
+        endDate: "2026-08-03",
+      },
+      owner.client,
+    );
+    const invitation = await actionCreateTripInvitation(
+      { tripId, inviteeUserId: companion.id },
+      owner.client,
+    );
+    await actionAcceptTripInvitation(invitation.id, companion.client);
+
+    expect(
+      await actionListCompanionMemberships(companion.client),
+    ).toContainEqual(expect.objectContaining({ tripId, status: "active" }));
+
+    await actionSoftDeleteRemoteTrip(tripId, owner.client);
+
+    expect(
+      await actionListCompanionMemberships(companion.client),
+    ).not.toContainEqual(expect.objectContaining({ tripId }));
   });
 
   it("maps child-content actions and soft deletes through an injected client", async () => {
