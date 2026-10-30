@@ -13,7 +13,10 @@ import {
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useSystemMessage } from "@/hook/use-system-message";
 import { actionPurgeLocalCompanionTrip } from "@/lib/sqlite/model/companion-access";
-import { actionGetLocalTrip } from "@/lib/sqlite/model/trip";
+import {
+  actionGetLocalTrip,
+  type LocalTrip,
+} from "@/lib/sqlite/model/trip";
 import { actionGetLocalUserProfile } from "@/lib/sqlite/model/user-profile";
 import {
   actionDisableCompanionAccess,
@@ -131,10 +134,13 @@ export default function TripCompanionsScreen() {
     onSuccess: async () => {
       setIsLeaveDialogVisible(false);
 
+      queryClient.setQueryData<LocalTrip[]>(
+        ["local-trips", session?.user.id],
+        (trips) => trips?.filter((trip) => trip.id !== tripId),
+      );
+      queryClient.removeQueries({ queryKey: ["local-trip", tripId] });
+
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["local-trip", tripId, session?.user.id],
-        }),
         queryClient.invalidateQueries({
           queryKey: ["local-trips", session?.user.id],
         }),

@@ -55,15 +55,15 @@ export async function actionPurgeLocalCompanionTrip(
 
   await removeTripMediaFiles(tripId);
 
-  await sqlite.withExclusiveTransactionAsync(async (transaction) => {
-    await transaction.runAsync(
+  await sqlite.withTransactionAsync(async () => {
+    await sqlite.runAsync(
       `
         delete from expense_participant
         where expense_id in (select id from expense where trip_id = ?)
       `,
       [tripId],
     );
-    await transaction.runAsync(
+    await sqlite.runAsync(
       `
         delete from pin_location
         where pin_id in (select id from pin where trip_id = ?)
@@ -81,12 +81,12 @@ export async function actionPurgeLocalCompanionTrip(
       "pin",
       "trip_membership",
     ]) {
-      await transaction.runAsync(`delete from ${table} where trip_id = ?`, [
+      await sqlite.runAsync(`delete from ${table} where trip_id = ?`, [
         tripId,
       ]);
     }
 
-    await transaction.runAsync(
+    await sqlite.runAsync(
       "delete from trip where id = ? and user_id != ?",
       [tripId, userId],
     );
