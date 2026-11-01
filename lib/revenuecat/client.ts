@@ -7,6 +7,7 @@ const revenueCatApiKey = __DEV__
   ? testStoreApiKey
   : Platform.select({
       ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY,
+      android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY,
     });
 
 let identitySyncQueue = Promise.resolve();
