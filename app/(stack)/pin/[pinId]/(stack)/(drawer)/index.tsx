@@ -19,6 +19,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Platform,
   Pressable,
   RefreshControl,
@@ -66,6 +67,39 @@ import {
 } from "lucide-react-native";
 
 type NewObjectDialog = "expense" | "image" | "document" | "reference-link";
+
+function selectExternalMapProvider() {
+  switch (Platform.OS) {
+    case "ios":
+      return new Promise<ExternalMapProvider | null>((resolve) => {
+        Alert.alert(
+          "Open in Maps",
+          "Choose which maps app to use.",
+          [
+            {
+              text: "Apple Maps",
+              onPress: () => resolve("apple_maps"),
+            },
+            {
+              text: "Google Maps",
+              onPress: () => resolve("google_maps"),
+            },
+            {
+              text: "Cancel",
+              style: "cancel",
+              onPress: () => resolve(null),
+            },
+          ],
+          {
+            cancelable: true,
+            onDismiss: () => resolve(null),
+          },
+        );
+      });
+    default:
+      return Promise.resolve<ExternalMapProvider | null>("google_maps");
+  }
+}
 
 export default function PinIndexScreen() {
   const { pinId } = useLocalSearchParams<{ pinId: string }>();
@@ -253,8 +287,11 @@ export default function PinIndexScreen() {
       return;
     }
 
-    const provider: ExternalMapProvider =
-      Platform.OS === "ios" ? "apple_maps" : "google_maps";
+    const provider = await selectExternalMapProvider();
+
+    if (!provider) {
+      return;
+    }
 
     try {
       await openLocationInMaps(

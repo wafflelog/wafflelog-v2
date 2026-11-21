@@ -1,4 +1,7 @@
-import { supabase } from "@/lib/supabase/client";
+import {
+  getPersistedAuthSession,
+  supabase,
+} from "@/lib/supabase/client";
 import { type Session } from "@supabase/supabase-js";
 import {
   createContext,
@@ -23,25 +26,53 @@ export function AuthSessionProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let isMounted = true;
+    let hasReceivedAuthEvent = false;
 
-    const loadSession = async () => {
-      const { data } = await supabase.auth.getSession();
+    const loadPersistedSession = async () => {
+      try {
+        const persistedSession = await getPersistedAuthSession();
 
-      if (!isMounted) {
-        return;
+        if (isMounted && !hasReceivedAuthEvent) {
+          setSession(persistedSession);
+        }
+      } catch (error) {
+        console.warn("Unable to restore the persisted auth session", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
-
-      setSession(data.session ?? null);
-      setIsLoading(false);
     };
 
-    loadSession();
+    void loadPersistedSession();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession ?? null);
-      setIsLoading(false);
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      hasReceivedAuthEvent = true;
+
+      if (event === "INITIAL_SESSION" && !nextSession) {
+        void getPersistedAuthSession()
+          .then((persistedSession) => {
+            if (isMounted) {
+              setSession(persistedSession);
+              setIsLoading(false);
+            }
+          })
+          .catch((error) => {
+            console.warn("Unable to restore the persisted auth session", error);
+
+            if (isMounted) {
+              setIsLoading(false);
+            }
+          });
+        return;
+      }
+
+      if (isMounted) {
+        setSession(nextSession ?? null);
+        setIsLoading(false);
+      }
     });
 
     return () => {

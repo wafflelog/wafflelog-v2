@@ -20,22 +20,25 @@ export const TripDaysTab = ({ tripDays }: TripDaysTabProps) => {
   const tabLayoutsRef = useRef(new Map<number, { width: number; x: number }>());
   const activeDayIndex = tripDays.findIndex((tripDay) => tripDay.isActive);
 
-  const scrollToActiveDay = useCallback((animated: boolean) => {
-    const activeTabLayout = tabLayoutsRef.current.get(activeDayIndex);
+  const scrollToActiveDay = useCallback(
+    (animated: boolean) => {
+      const activeTabLayout = tabLayoutsRef.current.get(activeDayIndex);
 
-    if (!activeTabLayout) {
-      return;
-    }
+      if (!activeTabLayout) {
+        return;
+      }
 
-    const centeredOffset =
-      activeTabLayout.x -
-      Math.max(0, (viewportWidthRef.current - activeTabLayout.width) / 2);
+      const centeredOffset =
+        activeTabLayout.x -
+        Math.max(0, (viewportWidthRef.current - activeTabLayout.width) / 2);
 
-    scrollViewRef.current?.scrollTo({
-      x: Math.max(0, centeredOffset),
-      animated,
-    });
-  }, [activeDayIndex]);
+      scrollViewRef.current?.scrollTo({
+        x: Math.max(0, centeredOffset),
+        animated,
+      });
+    },
+    [activeDayIndex],
+  );
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => scrollToActiveDay(true));
@@ -90,6 +93,13 @@ export const TripDaysTab = ({ tripDays }: TripDaysTabProps) => {
           >
             {formatDate(tripDay.date, "short")}
           </TitleRegular>
+          <TitleRegular
+            size="xs"
+            style={[tripDay.isActive && styles.activeDOW]}
+            weight="500"
+          >
+            {formatDate(tripDay.date, "dow")}
+          </TitleRegular>
         </TouchableOpacity>
       ))}
     </ScrollView>
@@ -116,6 +126,9 @@ const styles = StyleSheet.create({
     color: getColor(colors.textDarkGrey),
   },
   activeDate: {
+    color: getColor(colors.textDarkGrey),
+  },
+  activeDOW: {
     color: getColor(colors.textDarkGrey),
   },
 });

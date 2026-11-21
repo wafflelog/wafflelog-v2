@@ -133,6 +133,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         "expo-build-properties",
         {
           ios: {
+            enableSceneSupport: true,
             useFrameworks: "static",
             forceStaticLinking: ["RNFBApp", "RNFBAnalytics"],
           },

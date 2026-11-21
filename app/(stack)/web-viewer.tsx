@@ -1,7 +1,13 @@
 import { AppHeader } from "@/components/header/app-header";
-import { HeaderCloseButton } from "@/components/header/icon-button";
+import {
+  HeaderCloseButton,
+  HeaderIconButton,
+} from "@/components/header/icon-button";
 import { colors, getColor, semanticColors } from "@/constants/theme";
+import { useSystemMessage } from "@/hook/use-system-message";
+import * as Linking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { ExternalLink as ExternalLinkIcon } from "lucide-react-native";
 import { useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -12,15 +18,34 @@ export default function WebViewerScreen() {
   const [loading, setLoading] = useState(true);
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { showMessage, SystemMessageModal } = useSystemMessage();
   const url = params.url || "";
+  const handleOpenInBrowser = async () => {
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      console.error("Error opening link in the system browser", error);
+      showMessage("Unable to open this link in your browser", "error");
+    }
+  };
   const header = (
     <AppHeader
+      sideWidth={url ? 88 : 44}
       title={params.title || "Link"}
       trailing={
-        <HeaderCloseButton
-          accessibilityLabel="Close web viewer"
-          onPress={() => router.back()}
-        />
+        <View style={styles.headerActions}>
+          {url ? (
+            <HeaderIconButton
+              accessibilityLabel="Open in browser"
+              icon={ExternalLinkIcon}
+              onPress={() => void handleOpenInBrowser()}
+            />
+          ) : null}
+          <HeaderCloseButton
+            accessibilityLabel="Close web viewer"
+            onPress={() => router.back()}
+          />
+        </View>
       }
     />
   );
@@ -30,6 +55,7 @@ export default function WebViewerScreen() {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         {header}
         <View style={styles.errorContainer} />
+        <SystemMessageModal />
       </View>
     );
   }
@@ -58,6 +84,7 @@ export default function WebViewerScreen() {
           <ActivityIndicator size="large" color={getColor(colors.purple)} />
         </View>
       )}
+      <SystemMessageModal />
     </View>
   );
 }
@@ -68,6 +95,10 @@ const styles = StyleSheet.create({
     backgroundColor: semanticColors.screen,
   },
   webview: {},
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   loadingContainer: {
     position: "absolute",
     top: 0,

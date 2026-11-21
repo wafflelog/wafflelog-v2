@@ -4,7 +4,7 @@ import { getCreatorDisplayName } from "@/lib/helper/creator";
 import { type ReferenceLink } from "@/types/pin";
 import { useRouter } from "expo-router";
 import {
-  ExternalLink as ExternalLinkIcon,
+  Copy as CopyIcon,
   Globe as GlobeIcon,
   Trash2 as Trash2Icon,
 } from "lucide-react-native";
@@ -13,12 +13,14 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 type CardPinReferenceLinkRegularProps = {
   referenceLink: ReferenceLink;
   onPress?: () => void;
+  onCopyPress?: () => void;
   onDeletePress?: () => void;
 };
 
 export function CardPinReferenceLinkRegular({
   referenceLink,
   onPress,
+  onCopyPress,
   onDeletePress,
 }: CardPinReferenceLinkRegularProps) {
   const router = useRouter();
@@ -53,8 +55,21 @@ export function CardPinReferenceLinkRegular({
       </TouchableOpacity>
 
       <View style={styles.actions}>
+        {onCopyPress ? (
+          <TouchableOpacity
+            accessibilityLabel="Copy link"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={onCopyPress}
+            style={styles.iconButton}
+          >
+            <CopyIcon size={16} color={getColor(colors.textDarkGrey)} />
+          </TouchableOpacity>
+        ) : null}
         {onDeletePress && (
           <TouchableOpacity
+            accessibilityLabel="Delete link"
+            accessibilityRole="button"
             style={styles.iconButton}
             onPress={onDeletePress}
             hitSlop={8}
@@ -62,9 +77,6 @@ export function CardPinReferenceLinkRegular({
             <Trash2Icon size={16} color={getColor(colors.red)} />
           </TouchableOpacity>
         )}
-        <View style={styles.iconButton}>
-          <ExternalLinkIcon size={16} color={getColor(colors.pineGreen)} />
-        </View>
       </View>
     </View>
   );

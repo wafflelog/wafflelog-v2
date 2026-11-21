@@ -14,6 +14,7 @@ import {
 import { useAuthSession } from "@/hook/use-auth-session";
 import { useKnownTripsRefresh } from "@/hook/use-known-trips-refresh";
 import { useSystemMessage } from "@/hook/use-system-message";
+import { copyTextToClipboard } from "@/lib/clipboard";
 import { getPinTitle } from "@/lib/helper/pin";
 import {
   actionListLocalReferenceLinksByTrip,
@@ -142,6 +143,13 @@ export default function TripLinksScreen() {
           <View key={item.id} style={styles.link}>
             <CardPinReferenceLinkRegular
               referenceLink={item}
+              onCopyPress={() => {
+                void copyTextToClipboard(item.url)
+                  .then(() => showMessage("Link copied", "info"))
+                  .catch(() =>
+                    showMessage("Unable to copy this link", "error"),
+                  );
+              }}
               onDeletePress={
                 item.creator.isCurrentUser || isTripOwner
                   ? () => setSelectedReferenceLinkId(item.id)

@@ -1,13 +1,16 @@
-import dayjs from "dayjs";
-import { type ConfigType } from "dayjs";
+import dayjs, { type ConfigType } from "dayjs";
 import { Platform } from "react-native";
 
 import { match } from "ts-pattern";
 
-export function formatDate(date: string, format: "long" | "short" = "long") {
+export function formatDate(
+  date: string,
+  format: "long" | "short" | "dow" = "long",
+) {
   return match(format)
     .with("long", () => dayjs(date).format("DD MMM YYYY"))
     .with("short", () => dayjs(date).format("DD MMM"))
+    .with("dow", () => dayjs(date).format("ddd"))
     .exhaustive();
 }
 

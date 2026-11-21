@@ -6,6 +6,8 @@ import { Link2 as Link2Icon } from "lucide-react-native";
 import { CardPinReferenceLinkRegular } from "@/components/card/reference-link/regular";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
 import { colors, getColor } from "@/constants/theme";
+import { useSystemMessage } from "@/hook/use-system-message";
+import { copyTextToClipboard } from "@/lib/clipboard";
 import {
   actionListLocalReferenceLinksByPin,
   actionSoftDeleteLocalReferenceLink,
@@ -29,6 +31,7 @@ export const PinLinks = ({
   const [selectedReferenceLinkId, setSelectedReferenceLinkId] = useState<
     string | null
   >(null);
+  const { showMessage, SystemMessageModal } = useSystemMessage();
   const queryClient = useQueryClient();
 
   const { data: localReferenceLinks = [] } = useQuery({
@@ -68,6 +71,13 @@ export const PinLinks = ({
                 caption: referenceLink.caption ?? undefined,
                 creator: referenceLink.creator,
               }}
+              onCopyPress={() => {
+                void copyTextToClipboard(referenceLink.url)
+                  .then(() => showMessage("Link copied", "info"))
+                  .catch(() =>
+                    showMessage("Unable to copy this link", "error"),
+                  );
+              }}
               onDeletePress={
                 referenceLink.creator.isCurrentUser || isTripOwner
                   ? () => {
@@ -103,6 +113,7 @@ export const PinLinks = ({
         isPending={softDeleteReferenceLinkMutation.isPending}
         confirmVariant="danger"
       />
+      <SystemMessageModal />
     </>
   );
 };

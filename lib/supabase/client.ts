@@ -1,6 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 import { deleteItemAsync, getItemAsync, setItemAsync } from "expo-secure-store";
+import {
+  getSupabaseAuthStorageKey,
+  parsePersistedAuthSession,
+} from "@/lib/auth/persisted-session";
 import { Database } from "./types";
+
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
+const supabaseAuthStorageKey = getSupabaseAuthStorageKey(supabaseUrl);
 
 const ExpoSecureStoreAdapter = {
   getItem: (key: string) => {
@@ -19,12 +26,19 @@ const ExpoSecureStoreAdapter = {
   },
 };
 
+export async function getPersistedAuthSession() {
+  const value = await ExpoSecureStoreAdapter.getItem(supabaseAuthStorageKey);
+
+  return parsePersistedAuthSession(value);
+}
+
 export const supabase = createClient<Database>(
-  process.env.EXPO_PUBLIC_SUPABASE_URL ?? "",
+  supabaseUrl,
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
   {
     auth: {
       storage: ExpoSecureStoreAdapter as any,
+      storageKey: supabaseAuthStorageKey,
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,
