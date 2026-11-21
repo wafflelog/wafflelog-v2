@@ -6,6 +6,7 @@ export const colors = {
   blue: [50, 100, 150],
   purple: [82, 72, 156],
   red: [254, 74, 73],
+  positiveGreen: [23, 131, 79],
   pineGreen: [50, 98, 115],
   whiteGrey: [220, 220, 220],
   paleGrey: [180, 180, 180],

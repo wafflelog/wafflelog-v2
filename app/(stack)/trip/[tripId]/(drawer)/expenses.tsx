@@ -2,6 +2,7 @@ import { ButtonFab } from "@/components/button/fab";
 import { CardExpenseRegular } from "@/components/card/expense/regular";
 import { DialogNewExpense } from "@/components/dialog/new-expense";
 import { ConfirmActionDialog } from "@/components/dialog/confirm-action";
+import { ExpenseBalanceOverview } from "@/components/trip/expense-balance-overview";
 import { TripExpenseSummary } from "@/components/trip/expense-summary";
 import { MemberExpenseGroup } from "@/components/trip/member-expense-group";
 import { UITab } from "@/components/ui/tab";
@@ -179,20 +180,6 @@ export default function TripExpensesScreen() {
 
   return (
     <View style={styles.container}>
-      {tabs.length > 0 && (
-        <View style={styles.tabs}>
-          {tabs.map((tab) => (
-            <UITab
-              key={tab.id}
-              text={tab.label}
-              onPress={() => setActiveCurrency(tab.id as Currency)}
-              isActive={tab.isActive}
-              variant="short"
-            />
-          ))}
-        </View>
-      )}
-
       <View style={styles.content}>
         <View style={styles.viewTabs}>
           <UITab
@@ -208,6 +195,24 @@ export default function TripExpensesScreen() {
             style={styles.viewTab}
           />
         </View>
+
+        {activeView === "balances" && personalLedgers.length > 0 ? (
+          <ExpenseBalanceOverview balances={personalLedgers} />
+        ) : null}
+
+        {tabs.length > 0 ? (
+          <View style={styles.tabs}>
+            {tabs.map((tab) => (
+              <UITab
+                key={tab.id}
+                text={tab.label}
+                onPress={() => setActiveCurrency(tab.id as Currency)}
+                isActive={tab.isActive}
+                variant="short"
+              />
+            ))}
+          </View>
+        ) : null}
 
         {activeView === "balances" ? (
           <ScrollView
@@ -229,8 +234,6 @@ export default function TripExpensesScreen() {
                   totalSpent={activeLedger.totalSpent}
                   youPaid={activeLedger.youPaid}
                   yourShare={activeLedger.yourShare}
-                  youOwe={activeLedger.youOwe}
-                  owedToYou={activeLedger.owedToYou}
                 />
                 {activeLedger.members.length > 0 ? (
                   <View style={styles.memberGroups}>
